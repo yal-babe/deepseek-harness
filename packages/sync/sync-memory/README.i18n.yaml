@@ -1,0 +1,49 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/sync/sync-memory/README.md
+/:
+  en: 894a116e47296ed0
+  zh: 5b332d03b98153a6
+/deepseek-ai-dsh-sync-memory:
+  en: e6e18d9479933022
+  zh: f8fc20c6e035ca9e
+/deepseek-ai-dsh-sync-memory/summary:
+  en: 1a013dac4094274e
+  zh: c7f2b5cc00562b54
+/deepseek-ai-dsh-sync-memory/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-sync-memory/use-this-package:
+  en: 80b7093e7debaabc
+  zh: cbca02fc6ea6af59
+/deepseek-ai-dsh-sync-memory/understand-the-implementation:
+  en: 05be336495cfffcb
+  zh: d75187bfd7b037ab
+/deepseek-ai-dsh-sync-memory/further-exploration:
+  en: 10eb1236fb2f4f8e
+  zh: a931943780080ff4
+/deepseek-ai-dsh-sync-memory/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-sync-memory/model-experience/admitted-project-memory-snapshot:
+  en: 0d8e2445436d4e6c
+  zh: 824498654332e6b9
+/deepseek-ai-dsh-sync-memory/model-experience/admitted-project-memory-snapshot/what-the-model-sees:
+  en: 562fd200c003c652
+  zh: ef6ebd896f0de077
+/deepseek-ai-dsh-sync-memory/model-experience/admitted-project-memory-snapshot/what-the-model-sees/verbatim-text-for-this-field-when-needed:
+  en: efa45d5438560dbd
+  zh: e555c321bef22865
+/deepseek-ai-dsh-sync-memory/model-experience/admitted-project-memory-snapshot/token-effect:
+  en: 2cb64a9e1a0e66eb
+  zh: 80d44597c5bc80fc
+/deepseek-ai-dsh-sync-memory/model-experience/admitted-project-memory-snapshot/kv-cache-effect:
+  en: 2fbf2175168e8244
+  zh: f681f89596f500f5
+/deepseek-ai-dsh-sync-memory/known-limitations-and-deferred-work:
+  en: f74e9d5df517eb93
+  zh: c1104643aeebb417
+/deepseek-ai-dsh-sync-memory/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6

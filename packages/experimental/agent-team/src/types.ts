@@ -108,13 +108,28 @@ export interface TeamMemberProjection {
 }
 
 /**
+ * Historical mailbox row published through the `agentTeam` Session projection.
+ * Live peer sends use the target Agent inbox and are not recorded here.
+ */
+export interface TeamMessageView {
+  readonly id: TeamMessageId
+  readonly senderId: SessionId
+  readonly senderName: string
+  readonly targetId: SessionId
+  /** Concatenated text blocks; non-text content is omitted. */
+  readonly text: string
+}
+
+/**
  * Durable Team state published to browser clients through the Lead Session's
  * `agentTeam` projection. `failure` names the first rejected persisted Team
- * record; members and tasks then stay at the last valid state.
+ * record; members and tasks then stay at the last valid state. `messages`
+ * lists historical `team/message/queued` rows when any exist.
  */
 export interface TeamProjection {
   readonly members: TeamMemberProjection[]
   readonly tasks: TeamTaskView[]
+  readonly messages?: TeamMessageView[]
   readonly failure?: string
 }
 

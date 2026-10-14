@@ -1,0 +1,5 @@
+# Minimal Desktop overlay that proves Studio extension seams resolve at boot.
+# Launch: pnpm dsh --profile desktop --patch apps/desktop/tests/studio-extension-probe.overlay.yml --dump-config
+# The probe inserts no experimental product defaults; it only asserts composition acceptance.
+
+[]

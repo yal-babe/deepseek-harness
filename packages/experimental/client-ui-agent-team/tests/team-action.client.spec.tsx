@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
-  TeamMemberProjection, TeamProjection, TeamTaskId, TeamTaskView as TeamTask,
+  TeamMemberProjection, TeamMessageId, TeamProjection, TeamTaskId, TeamTaskView as TeamTask,
 } from '@deepseek-ai/dsh-experimental-agent-team/client'
 import type { SessionListState, SessionSnapshot, SessionSummary, UseProjection } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
@@ -308,7 +308,10 @@ describe('TeamAction', () => {
     const tasks = [...document.querySelectorAll('article')]
     expect(tasks.map(card => card.querySelector('[data-state]')?.getAttribute('data-state')))
       .toEqual(['idle', 'warning', 'done'])
-    for (const card of tasks) expect(card.querySelector('button, input, select, textarea')).toBeNull()
+    for (const card of tasks) {
+      expect(card.querySelector('input, select, textarea')).toBeNull()
+      expect(card.querySelectorAll('button')).toHaveLength(1)
+    }
 
     fireEvent.click(screen.getByRole('button', { name: /^worker/u }))
     expect(screen.getByRole('alert').textContent).toBe('Error: navigation failed')
@@ -489,6 +492,58 @@ describe('TeamAction', () => {
     render(<TeamAction {...bench().props} />)
     screen.getByText(zh.trigger).style.display = 'none'
     expect(screen.getByRole('button', { name: zh.trigger })).toBeTruthy()
+  })
+
+  it('opens task details on click and shows write-scope warnings on the card', () => {
+    render(<TeamAction {...bench().props} />)
+    openPanel()
+    expect(screen.getByText('write scopes overlap with task-2')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: zh['task.details'] }))
+    expect(screen.getByText(zh['task.deliverables'])).toBeTruthy()
+    expect(screen.getByText(zh['task.deliverablesNone'])).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: zh['task.hideDetails'] }))
+    expect(screen.queryByText(zh['task.deliverables'])).toBeNull()
+  })
+
+  it('lists historical mailbox rows on the messages tab and explains live-inbox limits', () => {
+    const b = bench({
+      projections: {
+        [SESSION]: {
+          state: 'ready', error: null,
+          values: {
+            agentTeam: {
+              ...team,
+              messages: [
+                {
+                  id: 'message-1' as TeamMessageId, senderId: SESSION, senderName: 'lead',
+                  targetId: WORKER, text: 'Please take the runtime task',
+                },
+                {
+                  id: 'message-2' as TeamMessageId, senderId: WORKER, senderName: 'worker',
+                  targetId: SESSION, text: '',
+                },
+              ],
+            },
+          },
+        },
+      },
+    })
+    render(<TeamAction {...b.props} />)
+    openPanel()
+    expect(screen.queryByText('Please take the runtime task')).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: zh['tab.messages'] }))
+    expect(screen.getByText(zh['messages.limit'])).toBeTruthy()
+    expect(screen.getByText('Please take the runtime task')).toBeTruthy()
+    expect(screen.getByText(zh['message.noText'])).toBeTruthy()
+    expect(screen.getByText(new RegExp(`${zh['message.to']} worker`, 'u'))).toBeTruthy()
+  })
+
+  it('shows the mailbox empty notice when the messages tab has no historical rows', () => {
+    render(<TeamAction {...bench().props} />)
+    openPanel()
+    fireEvent.click(screen.getByRole('tab', { name: zh['tab.messages'] }))
+    expect(screen.getByText(zh['messages.empty'])).toBeTruthy()
+    expect(screen.getByText(zh['messages.limit'])).toBeTruthy()
   })
 
   it('dismisses a hovered panel with Escape without stealing composer focus', async () => {

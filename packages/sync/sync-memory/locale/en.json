@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Project memory",
+    "description": "Stores redacted project memory and injects matching records into the model through logged session events."
+  }
+}

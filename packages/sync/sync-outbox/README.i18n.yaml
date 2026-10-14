@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/sync/sync-outbox/README.md
+/:
+  en: e658594f23e18f20
+  zh: 766a65689f4a8d05
+/deepseek-ai-dsh-sync-outbox:
+  en: e45860a3e2b73bab
+  zh: 202be8fde51d7784
+/deepseek-ai-dsh-sync-outbox/summary:
+  en: b1a350389545510d
+  zh: cf09d606479294aa
+/deepseek-ai-dsh-sync-outbox/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-sync-outbox/use-this-package:
+  en: 22e9af9958acabaa
+  zh: a7aa7bd8b600ff78
+/deepseek-ai-dsh-sync-outbox/understand-the-implementation:
+  en: 80266f5143e772ed
+  zh: 001a9017a3eb7969
+/deepseek-ai-dsh-sync-outbox/further-exploration:
+  en: 10eb1236fb2f4f8e
+  zh: a931943780080ff4
+/deepseek-ai-dsh-sync-outbox/model-experience:
+  en: 459824475121e196
+  zh: a3b7536c5ab13e4d
+/deepseek-ai-dsh-sync-outbox/model-experience/kv-cache-effect:
+  en: 47f982e326fe77fd
+  zh: 9f2be5c9af23d759
+/deepseek-ai-dsh-sync-outbox/known-limitations-and-deferred-work:
+  en: bd6dda92103ea9a7
+  zh: 6cf74d88641a2d39
+/deepseek-ai-dsh-sync-outbox/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6

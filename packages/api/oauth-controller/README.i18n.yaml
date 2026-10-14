@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/api/oauth-controller/README.md
+/:
+  en: cded433e693b2af1
+  zh: f106e8d9e9dafef0
+/deepseek-ai-dsh-api-oauth-controller:
+  en: 05fd473dcee1c59b
+  zh: cacaaaf4a37bc5b1
+/deepseek-ai-dsh-api-oauth-controller/summary:
+  en: d6be886dcc3d2647
+  zh: 0974c043a2699e34
+/deepseek-ai-dsh-api-oauth-controller/table-of-contents:
+  en: af856ba79fe31b8e
+  zh: 15b7d1a5d1856de2
+/deepseek-ai-dsh-api-oauth-controller/use-this-package:
+  en: 038c05715d0a4bee
+  zh: 4c6a663b37604d7f
+/deepseek-ai-dsh-api-oauth-controller/understand-the-implementation:
+  en: 1a1a33d9fb8baf26
+  zh: cdf7377a0f5cb317
+/deepseek-ai-dsh-api-oauth-controller/further-exploration:
+  en: 703898666ae5beb4
+  zh: 8a06557794e08fc1
+/deepseek-ai-dsh-api-oauth-controller/model-experience:
+  en: cbc965c4988073dc
+  zh: 9811eea73903be3a
+/deepseek-ai-dsh-api-oauth-controller/model-experience/kv-cache-effect:
+  en: ca3015e252db0114
+  zh: ebca9253cf15e8e9
+/deepseek-ai-dsh-api-oauth-controller/known-limitations-and-deferred-work:
+  en: a60af8f56bd459ef
+  zh: 025a754b87754311

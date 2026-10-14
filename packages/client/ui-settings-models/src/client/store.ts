@@ -34,10 +34,37 @@ export interface ProviderDirectoryEntry {
 }
 
 /**
+ * OAuth account routes that occupy first-class Models rows and stay out of the
+ * third-party catalog add list. Codex is a pi-ai catalog route; Antigravity is
+ * its own adapter family.
+ */
+export const OAUTH_ACCOUNT_PROVIDERS = ['openai-codex', 'antigravity'] as const
+
+/**
+ * Whether `provider` is a first-class OAuth account row on Models.
+ * @param provider - directory route id.
+ * @returns true for Codex and Antigravity account rows.
+ */
+export function isOauthAccountProvider(provider: string): boolean {
+  return provider === 'openai-codex' || provider === 'antigravity'
+}
+
+/** Stable Models row order: DeepSeek account, OAuth accounts, official, then others. */
+function directoryRank(provider: string): number {
+  switch (provider) {
+    case 'deepseek-account': return 0
+    case 'openai-codex': return 1
+    case 'antigravity': return 2
+    case 'deepseek-official': return 3
+    default: return 4
+  }
+}
+
+/**
  * Join declared configurable providers with the currently registered routes.
  * @param registered - live provider routes in registration order.
  * @param directory - declared configurable providers in declaration order.
- * @returns account and official routes first, then other routes in their original order.
+ * @returns account routes first, then the official DeepSeek route, then others.
  */
 export function joinProviderDirectory(
   registered: readonly LlmProviderInfo[],
@@ -64,9 +91,7 @@ export function joinProviderDirectory(
       active: true,
     })
   }
-  return rows.toSorted((left, right) =>
-    (left.provider === 'deepseek-account' ? 0 : left.provider === 'deepseek-official' ? 1 : 2)
-      - (right.provider === 'deepseek-account' ? 0 : right.provider === 'deepseek-official' ? 1 : 2))
+  return rows.toSorted((left, right) => directoryRank(left.provider) - directoryRank(right.provider))
 }
 
 /** One provider row the page renders. */
@@ -218,9 +243,11 @@ export class ModelsSettingsStore {
     const namespaces = new Map(views.map(view => [view.ns, view]))
     const rows: ProviderRow[] = providers.map((entry) => {
       const namespace = namespaces.get(entry.settingsNs)
-      const configured = namespace !== undefined
-        && (entry.settingsPath.length === 0 || this.schema.getPath(namespace.value, entry.settingsPath) !== undefined)
-      const removable = namespace !== undefined
+      const oauthAccount = isOauthAccountProvider(entry.provider)
+      const configured = oauthAccount || (namespace !== undefined
+        && (entry.settingsPath.length === 0 || this.schema.getPath(namespace.value, entry.settingsPath) !== undefined))
+      const removable = !oauthAccount
+        && namespace !== undefined
         && entry.settingsPath.length > 0
         && this.schema.hasPath(namespace.user, entry.settingsPath)
         && !this.schema.hasPath(namespace.base, entry.settingsPath)
@@ -228,7 +255,9 @@ export class ModelsSettingsStore {
         entry,
         configured,
         removable,
-        apiKeyEnv: entry.provider === 'deepseek-account' ? undefined : apiKeyEnvOf(namespace, entry.settingsPath, this.schema),
+        apiKeyEnv: entry.provider === 'deepseek-account' || oauthAccount
+          ? undefined
+          : apiKeyEnvOf(namespace, entry.settingsPath, this.schema),
         credential: undefined,
       }
     })
@@ -239,7 +268,9 @@ export class ModelsSettingsStore {
           && catalog.value.groups.some(group => group.id === 'deepseek-account' && group.models.length > 0)
       }
     }
-    const refs = [...new Set(rows.filter(row => row.entry.provider !== 'deepseek-account').map(row => row.apiKeyEnv ?? deriveKeyRef(row.entry.provider)))]
+    const refs = [...new Set(rows
+      .filter(row => row.entry.provider !== 'deepseek-account' && !isOauthAccountProvider(row.entry.provider))
+      .map(row => row.apiKeyEnv ?? deriveKeyRef(row.entry.provider)))]
     let credentials: Record<string, CredentialInfo> = {}
     let credentialError: string | null = null
     if (refs.length > 0) {
@@ -300,6 +331,9 @@ export class ModelsSettingsStore {
 export function providerUsable(row: ProviderRow): boolean {
   if (!row.entry.active) return false
   if (row.entry.provider === 'deepseek-account') return row.accountAvailable === true
+  // OAuth account rows authenticate through a grant, not an API-key reference
+  // this join describes, so they never end first-run onboarding by themselves.
+  if (isOauthAccountProvider(row.entry.provider)) return false
   if (row.apiKeyEnv === undefined) return true
   return row.credential?.configured === true
 }

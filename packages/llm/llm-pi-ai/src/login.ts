@@ -87,13 +87,61 @@ function relay(event: AuthEvent, session: AuthorizationSession): void {
 }
 
 /**
+ * Whether this prompt is Codex's browser-vs-device-code picker. The Models
+ * card always wants the browser loopback, so the Host answers it without a
+ * round-trip that would leave Sign in stuck on an idle in-flight snapshot.
+ * @param prompt - what pi-ai asked.
+ * @returns true when both `browser` and `device_code` are offered.
+ */
+function isBrowserDeviceSelect(prompt: AuthPrompt): boolean {
+  if (prompt.type !== 'select') return false
+  const ids = new Set(prompt.options.map(option => option.id))
+  return ids.has('browser') && ids.has('device_code')
+}
+
+/**
+ * Hold Codex's callback paste prompt until the loopback server or cancellation
+ * withdraws it. Resolving or rejecting it early cancels the callback wait and
+ * fails the grant; the Models card opens the authorize URL instead of asking
+ * for a pasted code.
+ * @param prompt - pi-ai's `manual_code` question.
+ * @param session - the attempt whose cancellation also withdraws the prompt.
+ * @returns never settles except by rejection when withdrawn.
+ */
+function holdUntilWithdrawn(prompt: AuthPrompt, session: AuthorizationSession): Promise<string> {
+  return new Promise((_resolve, reject) => {
+    const fail = (): void => {
+      prompt.signal?.removeEventListener('abort', fail)
+      session.signal.removeEventListener('abort', fail)
+      reject(new Error('the authorization prompt was withdrawn'))
+    }
+    prompt.signal?.addEventListener('abort', fail, { once: true })
+    session.signal.addEventListener('abort', fail, { once: true })
+    if (prompt.signal?.aborted === true || session.signal.aborted) fail()
+  })
+}
+
+/**
+ * Answer one pi-ai login prompt for the Models card.
+ *
+ * Codex's browser-vs-device-code picker is browser. `manual_code` is held until
+ * withdrawn so the loopback callback can finish without a paste form.
+ * @param prompt - what pi-ai asked.
+ * @param session - the attempt that can still put other questions to the UI.
+ * @returns the chosen option, typed value, or a rejection when withdrawn.
+ */
+function answer(prompt: AuthPrompt, session: AuthorizationSession): Promise<string> {
+  if (isBrowserDeviceSelect(prompt)) return Promise.resolve('browser')
+  if (prompt.type === 'manual_code') return holdUntilWithdrawn(prompt, session)
+  return session.prompt(restate(prompt))
+}
+
+/**
  * Restate one pi-ai prompt in the seam's vocabulary.
  *
- * `manual_code` becomes a plain text question because the difference pi-ai
- * draws — a code the human copies from a browser rather than a value they know
- * — changes nothing a surface renders. Its own `signal` is carried through, and
- * that is the part which matters: it is how a flow racing a typed code against
- * a browser callback withdraws the losing question.
+ * `manual_code` is not restated: {@link answer} holds it until withdrawn.
+ * A remaining prompt's own `signal` is carried through so a later withdrawal
+ * still cancels the UI question.
  * @param prompt - what pi-ai asked.
  * @returns the neutral prompt to put to the human.
  */
@@ -119,6 +167,16 @@ function restate(prompt: AuthPrompt): AuthorizationPrompt {
   }
 }
 
+/** pi-ai env that selects the Codex loopback bind hostname. */
+export const OAUTH_CALLBACK_HOST_ENV = 'PI_OAUTH_CALLBACK_HOST'
+
+/**
+ * Bind hostname matching OpenAI Codex's registered redirect
+ * `http://localhost:1455/auth/callback`. `127.0.0.1` leaves `localhost` (often
+ * `::1`) connection-refused.
+ */
+export const OAUTH_CALLBACK_HOST = 'localhost'
+
 /**
  * Register one authorization flow per installed provider that ships a login.
  *
@@ -129,6 +187,9 @@ function restate(prompt: AuthPrompt): AuthorizationPrompt {
  * @param auth - the injectables every collection here is built with.
  */
 export function registerPiAiFlows(ctx: Context, auth: PiAiAuthInjection): void {
+  if (!process.env[OAUTH_CALLBACK_HOST_ENV]) {
+    process.env[OAUTH_CALLBACK_HOST_ENV] = OAUTH_CALLBACK_HOST
+  }
   for (const providerId of catalogProviderIds()) {
     const provider = catalogProvider(providerId)
     const [first, ...rest] = loginMethods(provider)
@@ -164,7 +225,7 @@ export function registerPiAiFlows(ctx: Context, auth: PiAiAuthInjection): void {
         await models.login(providerId, type, {
           signal: session.signal,
           notify: (event) => { relay(event, session) },
-          prompt: prompt => session.prompt(restate(prompt)),
+          prompt: prompt => answer(prompt, session),
         })
       },
     })

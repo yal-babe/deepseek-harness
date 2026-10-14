@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
   TeamMemberProjection,
+  TeamMessageView,
+  TeamTaskId,
   TeamTaskView as TeamTask,
 } from '@deepseek-ai/dsh-experimental-agent-team/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
@@ -126,12 +128,19 @@ function TeamMemberRow({
 }
 
 /** Task card with a two-line description clamp expanded from a toggle in the meta row. */
-function TaskCard({ task, t }: { task: TeamTask; t: TranslateNS<typeof NS> }) {
+function TaskCard({
+  task, selected, onSelect, t,
+}: {
+  task: TeamTask
+  selected: boolean
+  onSelect: (id: TeamTaskId) => void
+  t: TranslateNS<typeof NS>
+}) {
   const [expanded, setExpanded] = useState(false)
   const [clamped, setClamped] = useState(false)
   const textRef = useRef<HTMLParagraphElement>(null)
   useLayoutEffect(() => {
-    if (expanded) return
+    if (expanded || selected) return
     const paragraph = textRef.current
     /* v8 ignore next -- the paragraph mounts in the same commit as the effect. */
     if (paragraph === null) return
@@ -141,19 +150,35 @@ function TaskCard({ task, t }: { task: TeamTask; t: TranslateNS<typeof NS> }) {
     const observer = new ResizeObserver(measure)
     observer.observe(paragraph)
     return () => { observer.disconnect() }
-  }, [task.description, expanded])
+  }, [task.description, expanded, selected])
+  const showFullDescription = expanded || selected
   return (
-    <article className={css.task}>
-      <div className={css.taskTitle}>
-        <strong>{task.subject}</strong>
-        <span className={css.taskState}>
-          <StateDot state={taskDotState(task)} />
-          <span>{t(statusKey(task.status))}</span>
-        </span>
-      </div>
-      <p ref={textRef} className={expanded ? undefined : css.clampedDescription}>{task.description}</p>
+    <article
+      className={selected ? `${css.task} ${css.taskSelected}` : css.task}
+      aria-expanded={selected}
+    >
+      <button
+        type="button"
+        className={css.taskHit}
+        aria-label={t(selected ? 'task.hideDetails' : 'task.details')}
+        onClick={() => { onSelect(task.id) }}
+      >
+        <div className={css.taskTitle}>
+          <strong>{task.subject}</strong>
+          <span className={css.taskState}>
+            <StateDot state={taskDotState(task)} />
+            <span>{t(statusKey(task.status))}</span>
+          </span>
+        </div>
+      </button>
+      {task.writeScopeWarnings.length > 0 && (
+        <div className={css.scopeWarnings}>
+          {task.writeScopeWarnings.map(warning => <p key={warning} className={css.scopeWarning}>{warning}</p>)}
+        </div>
+      )}
+      <p ref={textRef} className={showFullDescription ? undefined : css.clampedDescription}>{task.description}</p>
       <div className={css.meta}>
-        {(clamped || expanded) && (
+        {(clamped || expanded) && !selected && (
           <button
             type="button"
             className={css.expandToggle}
@@ -169,9 +194,45 @@ function TaskCard({ task, t }: { task: TeamTask; t: TranslateNS<typeof NS> }) {
         {task.status === 'pending' && <span>{task.ready ? t('ready') : t('blocked')}</span>}
         {task.blockedBy.length > 0 && <span>{t('blockedBy')}: {task.blockedBy.join(', ')}</span>}
         {task.writeScopes.length > 0 && <span>{t('writeScopes')}: {task.writeScopes.join(', ')}</span>}
-        {task.writeScopeWarnings.map(warning => <span key={warning} className={css.warning}>{warning}</span>)}
       </div>
+      {selected && (
+        <div className={css.taskDetails}>
+          <p className={css.detailLabel}>{t('task.deliverables')}</p>
+          <p className={css.emptyNotice}>{t('task.deliverablesNone')}</p>
+        </div>
+      )}
     </article>
+  )
+}
+
+type PanelTab = 'board' | 'messages'
+
+function MessagesTimeline({
+  messages, members, t,
+}: {
+  messages: readonly TeamMessageView[]
+  members: readonly TeamMemberProjection[]
+  t: TranslateNS<typeof NS>
+}) {
+  const nameOf = (id: TeamMemberProjection['id']): string =>
+    members.find(member => member.id === id)?.name ?? id
+  return (
+    <section>
+      <p className={css.limitNotice}>{t('messages.limit')}</p>
+      {messages.length === 0
+        ? <p className={css.emptyNotice}>{t('messages.empty')}</p>
+        : (
+          <ol className={css.timeline}>
+            {messages.map(message => (
+              <li key={message.id} className={css.timelineItem}>
+                <strong>{message.senderName}</strong>
+                <span className={css.meta}> {t('message.to')} {nameOf(message.targetId)}</span>
+                <p>{message.text.length > 0 ? message.text : t('message.noText')}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+    </section>
   )
 }
 
@@ -181,6 +242,8 @@ export function TeamAction({
 }: TeamActionProps) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<PanelTab>('board')
+  const [selectedTaskId, setSelectedTaskId] = useState<TeamTaskId | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const triggerLabelRef = useRef<HTMLSpanElement>(null)
@@ -206,6 +269,8 @@ export function TeamAction({
     pinnedRef.current = false
     setOpen(false)
     setError(null)
+    setTab('board')
+    setSelectedTaskId(null)
   }, [sessionId])
 
   useEffect(() => cancelHoverChange, [])
@@ -260,7 +325,8 @@ export function TeamAction({
     return () => { document.removeEventListener('keydown', dismiss) }
   }, [open])
 
-  const compact = team !== undefined && team.members.length === 1 && team.tasks.length === 0
+  const mailbox = team?.messages ?? []
+  const compact = team !== undefined && team.members.length === 1 && team.tasks.length === 0 && mailbox.length === 0
 
   return (
     <div
@@ -314,39 +380,77 @@ export function TeamAction({
                 {team.failure !== undefined && (
                   <div className={css.error} role="alert"><StateDot state="error" />{t('failure', { message: team.failure })}</div>
                 )}
-                <section>
-                  <h3>
-                    {t('roster')}
-                    {team.members.length > 1 && <span className={css.count}>{team.members.length}</span>}
-                  </h3>
-                  <div className={css.roster}>
-                    {team.members.map(member => (
-                      <TeamMemberRow
-                        key={member.id}
-                        member={member}
-                        memberCount={team.members.length}
-                        sessionId={sessionId}
-                        useSessions={useSessions}
-                        useSessionStatus={useSessionStatus}
-                        openTeammate={openTeammate}
-                        onError={setError}
-                        t={t}
-                      />
-                    ))}
+                {!compact && (
+                  <div className={css.tabs} role="tablist" aria-label={t('trigger')}>
+                    <button
+                      type="button"
+                      role="tab"
+                      className={tab === 'board' ? css.tabActive : css.tab}
+                      aria-selected={tab === 'board'}
+                      onClick={() => { setTab('board') }}
+                    >
+                      {t('tab.board')}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      className={tab === 'messages' ? css.tabActive : css.tab}
+                      aria-selected={tab === 'messages'}
+                      onClick={() => { setTab('messages') }}
+                    >
+                      {t('tab.messages')}
+                      {mailbox.length > 0 && <span className={css.count} aria-hidden="true">{mailbox.length}</span>}
+                    </button>
                   </div>
-                </section>
-                <section>
-                  {team.tasks.length === 0
-                    ? <p className={css.emptyNotice}>{t('empty')}</p>
-                    : (
-                      <>
-                        <h3>{t('tasks')}<span className={css.count}>{team.tasks.length}</span></h3>
-                        <div className={css.tasks}>
-                          {team.tasks.map(task => <TaskCard key={task.id} task={task} t={t} />)}
-                        </div>
-                      </>
-                    )}
-                </section>
+                )}
+                {tab === 'board' && (
+                  <>
+                    <section>
+                      <h3>
+                        {t('roster')}
+                        {team.members.length > 1 && <span className={css.count}>{team.members.length}</span>}
+                      </h3>
+                      <div className={css.roster}>
+                        {team.members.map(member => (
+                          <TeamMemberRow
+                            key={member.id}
+                            member={member}
+                            memberCount={team.members.length}
+                            sessionId={sessionId}
+                            useSessions={useSessions}
+                            useSessionStatus={useSessionStatus}
+                            openTeammate={openTeammate}
+                            onError={setError}
+                            t={t}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                    <section>
+                      {team.tasks.length === 0
+                        ? <p className={css.emptyNotice}>{t('empty')}</p>
+                        : (
+                          <>
+                            <h3>{t('tasks')}<span className={css.count}>{team.tasks.length}</span></h3>
+                            <div className={css.tasks}>
+                              {team.tasks.map(task => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  selected={selectedTaskId === task.id}
+                                  onSelect={(id) => { setSelectedTaskId(current => current === id ? null : id) }}
+                                  t={t}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                    </section>
+                  </>
+                )}
+                {tab === 'messages' && (
+                  <MessagesTimeline messages={mailbox} members={team.members} t={t} />
+                )}
               </>
             )}
           </div>

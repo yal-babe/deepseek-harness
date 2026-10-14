@@ -196,6 +196,25 @@ describe('historical tool availability on the wire', () => {
     })
   })
 
+  it('rewrites Codex instructions and omits GPT-6 verbosity on the wire', async () => {
+    // Codex extracts an account id from the token before contacting the mock server.
+    const payload = Buffer.from(JSON.stringify({ 'https://api.openai.com/auth': { chatgpt_account_id: 'fixture-account' } })).toString('base64url')
+    const token = `e30.${payload}.fixture`
+    const { requests } = await send('openai-codex', 'gpt-6-luna', {
+      system: 'Harness system prompt',
+      messages: [user('hello')],
+    }, token)
+    expect(requests).toHaveLength(1)
+    expect(requests[0]).toMatchObject({
+      instructions: 'You are a helpful assistant.',
+      input: [
+        { role: 'developer', content: 'Harness system prompt' },
+        { role: 'user', content: [{ type: 'input_text', text: 'hello' }] },
+      ],
+    })
+    expect(requests[0]).not.toHaveProperty('text')
+  })
+
   it('loads Codex tool additions through tool-search output', async () => {
     // Codex extracts an account id from the token before contacting the mock server.
     const payload = Buffer.from(JSON.stringify({ 'https://api.openai.com/auth': { chatgpt_account_id: 'fixture-account' } })).toString('base64url')

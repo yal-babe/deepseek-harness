@@ -77,7 +77,7 @@ interface TeamTaskSnapshot {
 
 ## Web projection
 
-The Lead Session publishes `SessionProjectionMap.agentTeam` with durable roster rows and non-deleted task views. `failure` reports a rejected persisted record beside the last valid state. Member activity comes from Session status; model labels come from each member's `modelSelection` projection.
+The Lead Session publishes `SessionProjectionMap.agentTeam` with durable roster rows, non-deleted task views, and historical mailbox rows when any `team/message/queued` records exist. `failure` reports a rejected persisted record beside the last valid state. Member activity comes from Session status; model labels come from each member's `modelSelection` projection. Live peer sends use the target Agent inbox and are not listed here.
 
 ```ts type-equiv
 /** One durable roster row published through the `agentTeam` Session projection. */
@@ -109,20 +109,37 @@ interface TeamTaskView {
 
 ```ts type-equiv
 /**
+ * Historical mailbox row published through the `agentTeam` Session projection.
+ * Live peer sends use the target Agent inbox and are not recorded here.
+ */
+interface TeamMessageView {
+  readonly id: TeamMessageId
+  readonly senderId: SessionId
+  readonly senderName: string
+  readonly targetId: SessionId
+  /** Concatenated text blocks; non-text content is omitted. */
+  readonly text: string
+}
+```
+
+```ts type-equiv
+/**
  * Durable Team state published to browser clients through the Lead Session's
  * `agentTeam` projection. `failure` names the first rejected persisted Team
- * record; members and tasks then stay at the last valid state.
+ * record; members and tasks then stay at the last valid state. `messages`
+ * lists historical `team/message/queued` rows when any exist.
  */
 interface TeamProjection {
   readonly members: TeamMemberProjection[]
   readonly tasks: TeamTaskView[]
+  readonly messages?: TeamMessageView[]
   readonly failure?: string
 }
 ```
 
 ## Replay
 
-The `agentTeam` Session projection replays one root Session into the roster, task board, and historical queued-minus-delivered mailbox. It selects records by `TeamId`, so events inherited by an ordinary fork retain the ancestor id and never enter the new root's state. Session event `seq` and `time` remain the ordering and timing record; Team snapshots do not duplicate them. Roster and task reads reach callers as views; pending mail is not exposed to callers. The package [README](../../packages/experimental/agent-team/README.md) owns operation, authorization, recovery, and limit behavior.
+The `agentTeam` Session projection replays one root Session into the roster, task board, and historical queued-minus-delivered mailbox. It selects records by `TeamId`, so events inherited by an ordinary fork retain the ancestor id and never enter the new root's state. Session event `seq` and `time` remain the ordering and timing record; Team snapshots do not duplicate them. Roster and task reads reach callers as views; historical queued mailbox rows appear on the client view as `messages`. Live inbox sends are not listed. The package [README](../../packages/experimental/agent-team/README.md) owns operation, authorization, recovery, and limit behavior.
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 

@@ -21,7 +21,7 @@ vi.mock('../src/models.ts', async importOriginal => ({
 
 const { credentialStoreFrom, authContextFrom, recordKeyFor } = await import('../src/auth.ts')
 const { catalogProvider } = await import('../src/catalog.ts')
-const { registerPiAiFlows } = await import('../src/login.ts')
+const { OAUTH_CALLBACK_HOST, registerPiAiFlows } = await import('../src/login.ts')
 
 const CODEX = recordKeyFor('openai-codex')
 const dirs: string[] = []
@@ -82,6 +82,21 @@ afterEach(async () => {
 })
 
 describe('pi-ai login flows', () => {
+  it('binds the Codex loopback callback on localhost unless the host env is already set', async () => {
+    const previous = process.env.PI_OAUTH_CALLBACK_HOST
+    delete process.env.PI_OAUTH_CALLBACK_HOST
+    try {
+      await harness()
+      expect(process.env.PI_OAUTH_CALLBACK_HOST).toBe(OAUTH_CALLBACK_HOST)
+      process.env.PI_OAUTH_CALLBACK_HOST = '127.0.0.1'
+      await harness()
+      expect(process.env.PI_OAUTH_CALLBACK_HOST).toBe('127.0.0.1')
+    } finally {
+      if (previous === undefined) delete process.env.PI_OAUTH_CALLBACK_HOST
+      else process.env.PI_OAUTH_CALLBACK_HOST = previous
+    }
+  })
+
   it('offers one flow per installed provider, with the methods that provider ships', async () => {
     const ctx = await harness()
     const offered = ctx.authorization.list()
@@ -163,12 +178,11 @@ describe('pi-ai login flows', () => {
     const ctx = await harness()
     const withdraw = new AbortController()
     const prompts: AuthPrompt[] = [
-      { type: 'text', message: 'Your workspace', placeholder: 'acme' },
+      { type: 'text', message: 'Your workspace', placeholder: 'acme', signal: withdraw.signal },
+      { type: 'text', message: 'Project name' },
       { type: 'secret', message: 'Paste the key' },
       { type: 'secret', message: 'Paste the token', placeholder: 'sk-…' },
       { type: 'select', message: 'Which account?', options: [{ id: 'a', label: 'Work' }] },
-      // The manual-code question a browser callback can win the race against.
-      { type: 'manual_code', message: 'Paste the code', signal: withdraw.signal },
     ]
 
     const ui = await attempt(ctx, async (interaction) => {
@@ -176,12 +190,99 @@ describe('pi-ai login flows', () => {
     })
 
     expect(ui.prompts).toEqual([
-      { kind: 'text', message: 'Your workspace', placeholder: 'acme' },
+      { kind: 'text', message: 'Your workspace', placeholder: 'acme', signal: withdraw.signal },
+      { kind: 'text', message: 'Project name' },
       { kind: 'secret', message: 'Paste the key' },
       { kind: 'secret', message: 'Paste the token', placeholder: 'sk-…' },
       { kind: 'select', message: 'Which account?', options: [{ id: 'a', label: 'Work' }] },
-      { kind: 'text', message: 'Paste the code', signal: withdraw.signal },
     ])
+  })
+
+  it('holds Codex manual_code until the browser callback withdraws it', async () => {
+    const ctx = await harness()
+    const withdraw = new AbortController()
+    const ui = await attempt(ctx, async (interaction) => {
+      const pending = interaction.prompt({
+        type: 'manual_code',
+        message: 'Complete login in your browser, or paste the authorization code / redirect URL here:',
+        placeholder: 'http://localhost:1455/auth/callback',
+        signal: withdraw.signal,
+      })
+      await Promise.resolve()
+      withdraw.abort()
+      await expect(pending).rejects.toThrow('the authorization prompt was withdrawn')
+    })
+    expect(ui.prompts).toEqual([])
+  })
+
+  it('withdraws Codex manual_code that is already aborted', async () => {
+    const ctx = await harness()
+    const withdraw = new AbortController()
+    withdraw.abort()
+    const ui = await attempt(ctx, async (interaction) => {
+      await expect(interaction.prompt({
+        type: 'manual_code',
+        message: 'Complete login in your browser, or paste the authorization code / redirect URL here:',
+        signal: withdraw.signal,
+      })).rejects.toThrow('the authorization prompt was withdrawn')
+    })
+    expect(ui.prompts).toEqual([])
+  })
+
+  it('withdraws a held Codex paste prompt when the attempt is cancelled', async () => {
+    const ctx = await harness()
+    const controller = new AbortController()
+    let pending: Promise<string> | undefined
+    login.mockImplementation((_id: string, _type: AuthType, interaction: AuthInteraction) => {
+      pending = interaction.prompt({
+        type: 'manual_code',
+        message: 'Complete login in your browser, or paste the authorization code / redirect URL here:',
+      })
+      return new Promise(() => {})
+    })
+    const begun = ctx.authorization.begin({
+      key: CODEX,
+      interaction: surface(),
+      signal: controller.signal,
+    })
+    await vi.waitFor(() => { expect(pending).toBeDefined() })
+    controller.abort()
+    await expect(pending).rejects.toThrow('the authorization prompt was withdrawn')
+    await expect(begun).resolves.toEqual({ status: 'cancelled' })
+  })
+
+  it('withdraws Codex manual_code when the attempt is already cancelled', async () => {
+    const ctx = await harness()
+    const controller = new AbortController()
+    login.mockImplementation(async (_id: string, _type: AuthType, interaction: AuthInteraction) => {
+      controller.abort()
+      await expect(interaction.prompt({
+        type: 'manual_code',
+        message: 'Complete login in your browser, or paste the authorization code / redirect URL here:',
+      })).rejects.toThrow('the authorization prompt was withdrawn')
+      return new Promise(() => {})
+    })
+    await expect(ctx.authorization.begin({
+      key: CODEX,
+      interaction: surface(),
+      signal: controller.signal,
+    })).resolves.toEqual({ status: 'cancelled' })
+  })
+
+  it('answers Codex browser-vs-device-code without prompting the UI', async () => {
+    const ctx = await harness()
+    const ui = await attempt(ctx, async (interaction) => {
+      const chosen = await interaction.prompt({
+        type: 'select',
+        message: 'Select OpenAI Codex login method:',
+        options: [
+          { id: 'browser', label: 'Browser login (default)' },
+          { id: 'device_code', label: 'Device code login (headless)' },
+        ],
+      })
+      expect(chosen).toBe('browser')
+    })
+    expect(ui.prompts).toEqual([])
   })
 
   it('hands the flow the attempt-wide cancellation signal', async () => {

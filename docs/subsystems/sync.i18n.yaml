@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for sync.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/sync.md
+/cloud-sync:
+  en: b066e6972a478173
+  zh: 3370d21d92616e24
+/cloud-sync/identifiers-and-status:
+  en: d773233bb81cbc09
+  zh: d47d907bd93960d8
+/cloud-sync/batch:
+  en: 32c9808a002aa4bc
+  zh: f0f903a231f1e298
+/cloud-sync/lease:
+  en: a96b300a3becb1f9
+  zh: bf16b8f0af8e0c14
+/cloud-sync/memory:
+  en: 6c35207c32ac1580
+  zh: 13fdd0198c6ebb33

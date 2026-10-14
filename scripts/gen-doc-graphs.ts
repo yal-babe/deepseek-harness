@@ -409,7 +409,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Credential seam',
     mode: 'seam',
     implementations: ['credentials-local'],
-    consumers: ['api-settings-controller', 'llm-deepseek', 'llm-pi-ai'],
+    consumers: ['api-settings-controller', 'llm-deepseek', 'llm-pi-ai', 'llm-oauth-bridge'],
     note: 'Configuration carries references to secrets; providers own the values. Consumers resolve per operation, so a rotated credential reaches the very next request; the settings controller exposes value-free views and write-only storage.',
   },
   {
@@ -427,8 +427,16 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Authorization flow registry',
     mode: 'seam',
     implementations: [],
-    consumers: ['llm-pi-ai'],
+    consumers: ['llm-pi-ai', 'llm-oauth-bridge'],
     note: 'Flows are registered by the plugin that knows how to obtain one credential and keyed by the record they write; the seam owns the conversation and the one-attempt-per-key lifecycle, never the protocol.',
+  },
+  {
+    key: 'oauthBridge',
+    pkg: 'llm-oauth-bridge',
+    title: 'UI-driven OAuth attempts',
+    mode: 'service',
+    consumers: ['api-oauth-controller'],
+    note: 'Runs authorization attempts for a UI: one attempt per credential key, with notices and prompts buffered into a safe view.',
   },
   {
     key: 'productAnalytics',

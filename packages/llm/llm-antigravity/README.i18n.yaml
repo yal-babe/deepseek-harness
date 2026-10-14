@@ -1,0 +1,64 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/llm/llm-antigravity/README.md
+/:
+  en: 81309532f9fd76dc
+  zh: 2d16577e9d5f10c0
+/deepseek-ai-dsh-llm-antigravity:
+  en: ab91f363b357c8ef
+  zh: eca9f0a4ccf1a8a7
+/deepseek-ai-dsh-llm-antigravity/summary:
+  en: 14e5707f2be488b9
+  zh: 1c8ddf6b699b6d32
+/deepseek-ai-dsh-llm-antigravity/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-llm-antigravity/use-this-package:
+  en: 2cd8f0a302e6203f
+  zh: f7e587f32eb22391
+/deepseek-ai-dsh-llm-antigravity/use-this-package/sign-in:
+  en: b5b840195d94b3e6
+  zh: 1a5cc7892154b9ab
+/deepseek-ai-dsh-llm-antigravity/use-this-package/failures:
+  en: cd87b6c572784256
+  zh: baa5409e73564fa5
+/deepseek-ai-dsh-llm-antigravity/understand-the-implementation:
+  en: d65ab03675e94f7c
+  zh: f7ecb6f6fe273aad
+/deepseek-ai-dsh-llm-antigravity/further-exploration:
+  en: 081a6fbadbba9641
+  zh: 7349abcd6e19fd3a
+/deepseek-ai-dsh-llm-antigravity/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-request:
+  en: 7da63421f0d3fdf0
+  zh: 8360b052f32ca1d6
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-request/what-the-model-sees:
+  en: 5bfaac502c17635d
+  zh: 7751a15e574c530e
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-request/token-effect:
+  en: 53f4e552893d6e68
+  zh: 84cb2f04a0106af8
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-request/kv-cache-effect:
+  en: 2c361334a56aaa3e
+  zh: 3494f995d47c3f78
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-response:
+  en: 002acc6dff25ce66
+  zh: 2fe59121909489e1
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-response/what-the-model-sees:
+  en: d25beac13e4e7359
+  zh: a8edff042a904172
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-response/token-effect:
+  en: b03883611c9e76cf
+  zh: 64c29b7940c24457
+/deepseek-ai-dsh-llm-antigravity/model-experience/cloud-code-response/kv-cache-effect:
+  en: 524c29bcfd9be134
+  zh: 594e695f5fdd6ed5
+/deepseek-ai-dsh-llm-antigravity/known-limitations-and-deferred-work:
+  en: 551604bd2c482773
+  zh: fc73683989da1359
+/deepseek-ai-dsh-llm-antigravity/known-limitations-and-deferred-work/dev-note:
+  en: bc8ba18d73912450
+  zh: 6985abaa8f2fdcc1

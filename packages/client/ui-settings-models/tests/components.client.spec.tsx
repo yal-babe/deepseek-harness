@@ -763,6 +763,20 @@ describe('ModelsSection', () => {
     // A user who can already reach some provider is not in the first-run
     // posture, so nothing on the page opens itself.
     expect(needsSetup(row(undefined), true)).toBe(false)
+    expect(needsSetup({
+      entry: { provider: 'antigravity', displayName: 'Antigravity', settingsNs: 'llm-antigravity', settingsPath: [], active: true },
+      configured: true,
+      removable: false,
+      apiKeyEnv: undefined,
+      credential: undefined,
+    }, false)).toBe(false)
+    expect(needsSetup({
+      entry: { provider: 'openai-codex', displayName: 'Codex Account', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai-codex'], active: true },
+      configured: true,
+      removable: false,
+      apiKeyEnv: undefined,
+      credential: undefined,
+    }, false)).toBe(false)
   })
 
   it('derives conventional credential references from route ids', () => {
@@ -2245,4 +2259,48 @@ it('renders the localized account row and supports catalogs without capacity def
     namespace={{ ...namespace, value: { models: [] }, base: { models: [] } }} settingsPath={[]} schema={settingsSchema}
     operations={operationsWith(scripted.face)} t={t} readOnly={false} onClose={() => {}} />)
   expect(screen.queryByLabelText(en.keyInput)).toBeNull()
+})
+
+it('shows Codex and Antigravity as localized account rows outside the catalog add list', async () => {
+  const { controller } = await mountSection()
+  const openai = controller.store.getSnapshot().rows.find(row => row.entry.provider === 'openai')!
+  await act(async () => { controller.store.update((state) => {
+    state.rows = [
+      {
+        ...openai,
+        configured: true,
+        removable: false,
+        apiKeyEnv: undefined,
+        credential: undefined,
+        entry: {
+          provider: 'openai-codex',
+          displayName: 'openai-codex',
+          settingsNs: 'llm-pi-ai',
+          settingsPath: ['providers', 'openai-codex'],
+          active: true,
+        },
+      },
+      {
+        ...openai,
+        configured: true,
+        removable: false,
+        apiKeyEnv: undefined,
+        credential: undefined,
+        entry: {
+          provider: 'antigravity',
+          displayName: 'Antigravity',
+          settingsNs: 'llm-pi-ai',
+          settingsPath: [],
+          active: true,
+        },
+      },
+      ...state.rows,
+    ]
+  }) })
+  expect(screen.getByText(en.codexAccount)).toBeTruthy()
+  expect(screen.getByText(en.antigravityAccount)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: en.add }))
+  expect(screen.queryByRole('option', { name: en.codexAccount })).toBeNull()
+  expect(screen.queryByRole('option', { name: 'openai-codex' })).toBeNull()
+  expect(screen.queryByRole('option', { name: en.antigravityAccount })).toBeNull()
 })

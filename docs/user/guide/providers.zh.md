@@ -16,7 +16,7 @@
 
 选择**添加模型提供商**。卡片默认打开在**第三方模型提供商**：选取 dsh 自带的提供商——列表显示的是提供商 id，例如 `anthropic`、`openai`、Kimi 对应的 `moonshotai`、GLM 对应的 `zai`——输入其 API 密钥并保存。已安装目录会提供端点、协议和模型列表。
 
-通过 OAuth 登录的提供商（例如 Codex）暂不支持。
+**Codex 账号**和 **Antigravity 账号**是本页的一等行，不在第三方目录里。在各自行上使用**登录**，分别完成 ChatGPT 或 Google 授权。Antigravity 登录后，模型选择器会列出该账号的 Cloud Code 目录。
 
 ## 添加自定义模型 API
 

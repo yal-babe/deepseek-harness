@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/llm/llm-oauth-bridge/README.md
+/:
+  en: b38b2a2420cc3164
+  zh: e2649d7a355b8d1d
+/deepseek-ai-dsh-llm-oauth-bridge:
+  en: b4d3e165d7ec6439
+  zh: e993ed6c198a4c4d
+/deepseek-ai-dsh-llm-oauth-bridge/summary:
+  en: 9235fd961d9b644a
+  zh: 5dba2004083c811d
+/deepseek-ai-dsh-llm-oauth-bridge/table-of-contents:
+  en: af856ba79fe31b8e
+  zh: 15b7d1a5d1856de2
+/deepseek-ai-dsh-llm-oauth-bridge/use-this-package:
+  en: fea5f549d5603381
+  zh: 7a30e748173cd1e2
+/deepseek-ai-dsh-llm-oauth-bridge/understand-the-implementation:
+  en: 9d780f8bcb8ea301
+  zh: 7c2f7d774459d474
+/deepseek-ai-dsh-llm-oauth-bridge/further-exploration:
+  en: 7ad5ff59353f54e1
+  zh: 969278ff6c83c460
+/deepseek-ai-dsh-llm-oauth-bridge/model-experience:
+  en: cbc965c4988073dc
+  zh: 9811eea73903be3a
+/deepseek-ai-dsh-llm-oauth-bridge/model-experience/kv-cache-effect:
+  en: ca3015e252db0114
+  zh: ebca9253cf15e8e9
+/deepseek-ai-dsh-llm-oauth-bridge/known-limitations-and-deferred-work:
+  en: b9e0608b813bea22
+  zh: 6be71a90d5a58cff

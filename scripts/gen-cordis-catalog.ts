@@ -84,6 +84,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   deepseekAccount: 'credentials.md',
   credentials: 'credentials.md',
   credentialsController: 'credentials.md',
+  oauthBridge: 'credentials.md',
+  oauthController: 'credentials.md',
   settingsController: 'settings.md',
   directoryPicker: 'workspace.md',
   deepseekLlmApiExtensions: 'llm-streaming.md',
@@ -146,6 +148,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   workspaceChanges: 'deliverables.md',
   terminalController: 'workspace.md',
   directoryPickerController: 'workspace.md',
+  syncOutbox: 'sync.md',
+  syncMemory: 'sync.md',
 }
 
 /**
@@ -819,6 +823,12 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   TypertPackageRecord: 'typert.md',
   TypertSchemaFilter: 'typert.md',
   TypertSchemaRecord: 'typert.md',
+  CreateMemoryRequest: 'sync.md',
+  EnqueueRequest: 'sync.md',
+  MemoryId: 'sync.md',
+  MemoryRecord: 'sync.md',
+  SyncBatch: 'sync.md',
+  SyncOutboxSnapshot: 'sync.md',
 }
 
 /** TypeScript lib and pinned framework types with no repository-owned data page. */
@@ -854,6 +864,7 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   ProductEvent: 'Desktop event fields are owned by packages/client/product-analytics/README.md and src/events.ts',
+  OAuthAttemptView: 'OAuth attempt snapshot is owned by packages/llm/llm-oauth-bridge/src/types.ts',
   ConnectionFetchHandler: 'shared Fetch dispatch is owned by packages/client/connection/src/rpc.ts',
   ConnectionRequestRejection: 'transport rejection status is owned by packages/client/connection/src/rpc.ts',
   ConnectionTrustRequest: 'transport authentication input is owned by packages/client/connection/src/rpc.ts',

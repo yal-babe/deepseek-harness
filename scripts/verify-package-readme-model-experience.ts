@@ -72,6 +72,9 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/credentials/deepseek-account-platform': { kind: 'none', reason: 'Account authorization registers no model context or tools; credentials affect HTTP authentication only.' },
   'packages/api/account-controller': { kind: 'none', reason: 'Account authorization registers no model context or tools; credentials affect HTTP authentication only.' },
   'packages/client/ui-settings-account': { kind: 'none', reason: 'Account authorization registers no model context or tools; credentials affect HTTP authentication only.' },
+  'packages/llm/llm-oauth-bridge': { kind: 'none', reason: 'OAuth credentials affect HTTP authentication and never enter model prompts, Session logs, or tool results.' },
+  'packages/api/oauth-controller': { kind: 'none', reason: 'OAuth credentials affect HTTP authentication and never enter model prompts, Session logs, or tool results.' },
+  'packages/client/ui-settings-oauth': { kind: 'none', reason: 'Codex and Antigravity sign-in are configuration-time conversations and no OAuth state enters a model request.' },
 
   'packages/attachment/attachment': { kind: 'indirect', reason: 'The storage seam delegates model request rendering to provider adapters.' },
   'packages/attachment/attachment-local': { kind: 'indirect', reason: 'The local backend delegates model request rendering to provider adapters.' },
@@ -203,6 +206,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/settings/settings': { kind: 'indirect', reason: 'The seam stores and resolves user settings; consumer plugins own any model-facing content fed by a value.' },
   'packages/credentials/credentials': { kind: 'indirect', reason: 'The seam resolves credential references; the consuming adapter owns every model-facing use a value authorizes.' },
   'packages/credentials/credentials-local': { kind: 'indirect', reason: 'The file/environment provider stores credential values; consumers of ctx.credentials own any model-facing behavior.' },
+  'packages/credentials/credentials-os': { kind: 'indirect', reason: 'The OS-keychain provider stores credential values; consumers of ctx.credentials own any model-facing behavior.' },
   'packages/credentials/authorization': { kind: 'none', reason: 'A configuration-time conversation with a human; no flow, notice, or prompt reaches a model request.' },
   'packages/util/atomic-write': { kind: 'none', reason: 'Pure filesystem write primitive; registers nothing model-facing.' },
   'packages/session/session-telemetry': { kind: 'none', reason: 'The seam observes the session stream and hands redacted copies outward; it registers nothing model-facing.' },
@@ -241,6 +245,10 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/web/web-fetch-http': { kind: 'indirect', reason: 'The provider backend delegates model rendering to dsh-tool-web.' },
   'packages/web/web-search-exa': { kind: 'indirect', reason: 'The provider backend delegates model rendering to dsh-tool-web.' },
   'packages/workflow/workflow': { kind: 'indirect', reason: 'The service delegates parent and child model rendering to its consumer and engine.' },
+  'packages/sync/sync-protocol': { kind: 'none', reason: 'Pure identifier, validation, and redaction helpers; consumers own every model-visible use.' },
+  'packages/sync/sync-outbox': { kind: 'none', reason: 'Queues already-redacted events for HTTP delivery and registers no model context.' },
+  'packages/sync/sync-server': { kind: 'none', reason: 'HTTP and SQLite process; it never assembles a model request.' },
+  'packages/sync/client-ui-sync': { kind: 'none', reason: 'Browser-side outbox status chip; registers nothing model-facing.' },
 }
 
 interface Failure {

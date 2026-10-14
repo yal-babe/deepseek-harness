@@ -792,6 +792,32 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-credentials-local -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-credentials-os -->
+<a id="deepseek-aidsh-credentials-os"></a>
+
+## `@deepseek-ai/dsh-credentials-os`
+
+- `source`: [`packages/credentials/credentials-os/src/index.ts:66`](../packages/credentials/credentials-os/src/index.ts)
+
+```ts config-catalog
+/** Plugin config: backend selection, OS service name, and file-backend location. */
+export interface Config {
+  /** Secret backend; defaults to `os`. `file` fully delegates to {@link LocalCredentialProvider}. */
+  backend?: 'os' | 'file'
+  /** Keychain / credential-manager service name; defaults to `dsh-studio`. */
+  service?: string
+  /** Credentials document (file) or index (os) path; defaults under the harness home. */
+  path?: string
+  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh`. */
+  dshHome?: string
+  /** Watch the file document and hot-publish external edits; file backend only, defaults to true. */
+  watch?: boolean
+  /** Watcher write-settle window in milliseconds; file backend only, defaults to 100. */
+  debounceMs?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-credentials-os -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-deepseek-account-platform -->
 <a id="deepseek-aidsh-deepseek-account-platform"></a>
 
@@ -839,7 +865,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-experimental-agent-team`
 
 - `inject`: `agents` · `sessions` · `sessionPersistence` · `sessionProjections` · `subagents`
-- `source`: [`packages/experimental/agent-team/src/types.ts:153`](../packages/experimental/agent-team/src/types.ts)
+- `source`: [`packages/experimental/agent-team/src/types.ts:168`](../packages/experimental/agent-team/src/types.ts)
 
 ```ts config-catalog
 /** Team-service deployment limits. */
@@ -1704,6 +1730,61 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-jobs-local -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-llm-antigravity -->
+<a id="deepseek-aidsh-llm-antigravity"></a>
+
+## `@deepseek-ai/dsh-llm-antigravity`
+
+- `inject`: `llm`
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/llm/llm-antigravity/src/config.ts:70`](../packages/llm/llm-antigravity/src/config.ts)
+
+```ts config-catalog
+/** Live plugin configuration. Volatile fields are read per request. */
+export interface Config {
+  /**
+   * Cloud Code root for listing and generate. The default is the consumer daily
+   * host; production `cloudcode-pa` is for enterprise deployments.
+   */
+  baseURL: Volatile<string>
+  /** Browser authorization endpoint. */
+  oauthAuthorizeURL: Volatile<string>
+  /** Token exchange and refresh endpoint. */
+  oauthTokenURL: Volatile<string>
+  /** OAuth client id sent on authorize and token requests. */
+  oauthClientId: Volatile<string>
+  /** OAuth client secret sent on token requests; empty omits the field. */
+  oauthClientSecret: Volatile<string>
+  /** Exact pathname registered as the Host OAuth callback. */
+  oauthRedirectPath: Volatile<string>
+  /** Credential reference used when no grant is stored. */
+  apiKeyEnv: Volatile<string>
+  /**
+   * Advisory catalog. An empty list (the default) loads the Cloud Code
+   * companion project then POSTs `v1internal:fetchAvailableModels` after
+   * sign-in. A non-empty list replaces that listing.
+   */
+  models: Volatile<AntigravityCatalogModel[]>
+  /** Deadline for each HTTP request, including token exchange and refresh. */
+  requestTimeoutMs: Volatile<number>
+  /** Maximum provider idle time while one stream read is outstanding. */
+  streamIdleTimeoutMs: Volatile<number>
+}
+
+/** One advisory catalog entry advertised through `listModels()`. */
+export interface AntigravityCatalogModel {
+  /** Model id sent as `GenerateOptions.model` and on the wire. */
+  id: string
+  /** Selector label; omitted entries use `id`. */
+  name?: string
+  /** Optional distinction shown beside otherwise similar models. */
+  description?: string
+  /** Combined request and response context in tokens, when disclosed. */
+  contextWindow?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-llm-antigravity -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-llm-deepseek-account -->
 <a id="deepseek-aidsh-llm-deepseek-account"></a>
@@ -3472,6 +3553,57 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-subagent-spawn-in-process -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-sync-memory -->
+<a id="deepseek-aidsh-sync-memory"></a>
+
+## `@deepseek-ai/dsh-sync-memory`
+
+- `inject`: `agents`
+- `source`: [`packages/sync/sync-memory/src/index.ts:55`](../packages/sync/sync-memory/src/index.ts)
+
+```ts config-catalog
+/** Deployment choices for local memory storage and injection bounds. */
+export interface Config {
+  /** Cloud project that owns stored records. */
+  projectId: string
+  /** SQLite path; omission uses `$DSH_HOME/sync-memory.sqlite`. */
+  storePath?: string
+  /** Maximum records admitted in one injection. */
+  maxInjectRecords?: number
+  /** Maximum concatenated character count admitted in one injection. */
+  maxInjectChars?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-sync-memory -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-sync-outbox -->
+<a id="deepseek-aidsh-sync-outbox"></a>
+
+## `@deepseek-ai/dsh-sync-outbox`
+
+- `source`: [`packages/sync/sync-outbox/src/index.ts:40`](../packages/sync/sync-outbox/src/index.ts)
+
+```ts config-catalog
+/** Deployment choices for the local outbox. Invalid values fail plugin load. */
+export interface Config {
+  /** Sync server origin, for example `https://sync.example`. Empty queues locally without HTTP. */
+  serverUrl?: string
+  /** Environment variable holding the device bearer credential. */
+  deviceCredentialEnv?: string
+  /** Inclusive envelope cap per batch. */
+  maxBatchEvents?: number
+  /** Base backoff in milliseconds; doubled after each failed attempt. */
+  retryBaseMs?: number
+  /** JSON queue path; omission uses `$DSH_HOME/sync-outbox.json`. */
+  queuePath?: string
+  /** Cloud project used when capturing session events. */
+  projectId?: string
+  /** Device used when capturing session events. */
+  deviceId?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-sync-outbox -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-system-prompt -->
 <a id="deepseek-aidsh-system-prompt"></a>
 
@@ -4502,6 +4634,7 @@ export interface Config {
 | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
 | `@deepseek-ai/dsh-agent` | — | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
 | `@deepseek-ai/dsh-api-account-controller` | `deepseekAccount` · `agents` | [`packages/api/account-controller/src/index.ts`](../packages/api/account-controller/src/index.ts) |
+| `@deepseek-ai/dsh-api-oauth-controller` | `oauthBridge` | [`packages/api/oauth-controller/src/index.ts`](../packages/api/oauth-controller/src/index.ts) |
 | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
 | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
 | `@deepseek-ai/dsh-browser-use` | — | [`packages/browser-use/browser-use/src/index.ts`](../packages/browser-use/browser-use/src/index.ts) |
@@ -4536,6 +4669,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-settings` | — | [`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-agent-loop` | — | [`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-settings-oauth` | — | [`packages/client/ui-settings-oauth/src/index.ts`](../packages/client/ui-settings-oauth/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-plugin-inventory` | — | [`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-plugins` | — | [`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
@@ -4550,6 +4684,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-sidebar-terminal` | — | [`packages/client/ui-sidebar-terminal/src/index.ts`](../packages/client/ui-sidebar-terminal/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-skill` | — | [`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-subagent` | — | [`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-sync` | — | [`packages/sync/client-ui-sync/src/index.ts`](../packages/sync/client-ui-sync/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-tool` | — | [`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-trajectory` | — | [`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-user-questions` | — | [`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts) |
@@ -4578,6 +4713,7 @@ export interface Config {
 | `@deepseek-ai/dsh-host-directory-picker-native` | — | [`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts) |
 | `@deepseek-ai/dsh-host-plugin-inventory` | `loader` | [`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts) |
 | `@deepseek-ai/dsh-llm` | — | [`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts) |
+| `@deepseek-ai/dsh-llm-oauth-bridge` | `authorization` · `credentials` | [`packages/llm/llm-oauth-bridge/src/index.ts`](../packages/llm/llm-oauth-bridge/src/index.ts) |
 | `@deepseek-ai/dsh-lsp` | — | [`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts) |
 | `@deepseek-ai/dsh-mcp-resources` | `tools` | [`packages/mcp/mcp-resources/src/index.ts`](../packages/mcp/mcp-resources/src/index.ts) |
 | `@deepseek-ai/dsh-otel` | — | [`packages/telemetry/otel/src/index.ts`](../packages/telemetry/otel/src/index.ts) |
@@ -4689,6 +4825,8 @@ export interface Config {
 | `@deepseek-ai/dsh-session-telemetry` | — | [`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts) |
 | `@deepseek-ai/dsh-session-title-llm` | — | [`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts) |
 | `@deepseek-ai/dsh-ssh-helper-runtime` | — | [`packages/ssh/ssh-helper-runtime/src/index.ts`](../packages/ssh/ssh-helper-runtime/src/index.ts) |
+| `@deepseek-ai/dsh-sync-protocol` | — | [`packages/sync/sync-protocol/src/index.ts`](../packages/sync/sync-protocol/src/index.ts) |
+| `@deepseek-ai/dsh-sync-server` | — | [`packages/sync/sync-server/src/index.ts`](../packages/sync/sync-server/src/index.ts) |
 | `@deepseek-ai/dsh-timeout` | — | [`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts) |
 | `@deepseek-ai/dsh-typert-generator` | — | [`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts) |
 | `@deepseek-ai/dsh-typert-protocol` | — | [`packages/typert/protocol/src/index.ts`](../packages/typert/protocol/src/index.ts) |

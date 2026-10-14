@@ -121,6 +121,7 @@
     "@deepseek-ai/dsh-attachment-local": "workspace:*",
     "@deepseek-ai/dsh-bash-local": "workspace:*",
     "@deepseek-ai/dsh-credentials-local": "workspace:*",
+    "@deepseek-ai/dsh-credentials-os": "workspace:*",
     "@deepseek-ai/dsh-deepseek-llm-api-extensions": "workspace:*",
     "@deepseek-ai/dsh-experimental-agent-team": "workspace:*",
     "@deepseek-ai/dsh-experimental-ptc-runtime-python": "workspace:*",

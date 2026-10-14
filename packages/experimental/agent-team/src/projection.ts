@@ -11,6 +11,7 @@ import type {
   TeamMemberSnapshot,
   TeamMessageId,
   TeamMessageSnapshot,
+  TeamMessageView,
   TeamProjection,
   TeamTaskSnapshot,
   TeamTaskView,
@@ -330,14 +331,30 @@ const teamTaskViewSchema = z.object({
   writeScopeWarnings: z.array(z.string()),
 }).strict() as z.ZodType<TeamTaskView>
 
+const teamMessageViewSchema = z.object({
+  id: teamMessageIdSchema,
+  senderId: sessionIdSchema,
+  senderName: z.string(),
+  targetId: sessionIdSchema,
+  text: z.string(),
+}).strict() as z.ZodType<TeamMessageView>
+
 const teamProjectionSchema = z.object({
   members: z.array(teamMemberProjectionSchema),
   tasks: z.array(teamTaskViewSchema),
+  messages: z.array(teamMessageViewSchema).optional(),
   failure: z.string().optional(),
 }).strict() as z.ZodType<TeamProjection>
 
-/** Client views keyed by the member and task collections they were derived from. */
-const teamProjectionViews = new WeakMap<readonly TeamMemberSnapshot[], WeakMap<readonly TeamTaskSnapshot[], TeamProjection>>()
+/** Client views keyed by the member, task, and historical mailbox collections. */
+const teamProjectionViews = new WeakMap<
+  readonly TeamMemberSnapshot[],
+  WeakMap<readonly TeamTaskSnapshot[], WeakMap<readonly TeamMessageSnapshot[], TeamProjection>>
+>()
+
+function messagePreview(content: readonly ContentBlock[]): string {
+  return content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
+}
 
 function buildTeamProjection(state: TeamProjectionState): TeamProjection {
   const rootId = brandString<SessionId>(state.id)
@@ -351,22 +368,30 @@ function buildTeamProjection(state: TeamProjectionState): TeamProjection {
       ...member.error === undefined ? {} : { error: member.error },
     })
   }
+  const messages: TeamMessageView[] = state.messages.map(message => ({
+    id: message.id,
+    senderId: message.senderId,
+    senderName: message.senderName,
+    targetId: message.targetId,
+    text: messagePreview(message.content),
+  }))
   return {
     members,
     tasks: state.tasks
       .filter(task => task.status !== 'deleted')
       .map(task => projectTaskView(state, task)),
+    ...messages.length === 0 ? {} : { messages },
     ...state.failure === undefined ? {} : { failure: state.failure },
   }
 }
 
 /**
- * Durable client view of one Team state. Mailbox-only state changes reuse the
- * previous view reference, so the live drive publishes nothing for them.
+ * Durable client view of one Team state. Historical mailbox enqueue publishes
+ * a new view; acknowledgement-only changes reuse the previous reference.
  * A failure is terminal: later events retain the failed state reference and
  * do not republish its view.
  * @param state - current Team state.
- * @returns the roster and non-deleted task board, plus any projection failure.
+ * @returns the roster, non-deleted task board, historical mailbox rows, and any projection failure.
  */
 export function teamProjectionView(state: TeamProjectionState): TeamProjection {
   if (state.failure !== undefined) return buildTeamProjection(state)
@@ -375,15 +400,20 @@ export function teamProjectionView(state: TeamProjectionState): TeamProjection {
     byTasks = new WeakMap()
     teamProjectionViews.set(state.members, byTasks)
   }
-  let view = byTasks.get(state.tasks)
+  let byMessages = byTasks.get(state.tasks)
+  if (byMessages === undefined) {
+    byMessages = new WeakMap()
+    byTasks.set(state.tasks, byMessages)
+  }
+  let view = byMessages.get(state.messages)
   if (view === undefined) {
     view = buildTeamProjection(state)
-    byTasks.set(state.tasks, view)
+    byMessages.set(state.messages, view)
   }
   return view
 }
 
-/** Team projection selected by the projected Session identity; the wire view carries durable roster and task state only. */
+/** Team projection selected by the projected Session identity; the wire view carries durable roster, task, and historical mailbox state. */
 export const teamProjectionDefinition = {
   key: 'agentTeam',
   stateVersion: 4,

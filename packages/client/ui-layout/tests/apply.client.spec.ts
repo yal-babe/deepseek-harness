@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import ShortcutsService from '../../shortcuts/src/client/index.ts'
+import ShortcutsService, { type Shortcuts } from '../../shortcuts/src/client/index.ts'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
@@ -150,6 +150,19 @@ describe('ui-layout client apply', () => {
     theme.setTheme('dark')
     expect(document.documentElement.style.colorScheme).toBe('')
     expect(document.body.hasAttribute('data-ds-dark-theme')).toBe(false)
+  })
+
+  it('registers a handled save command that does not claim the shortcut editor', async () => {
+    const { ctx } = await bench()
+    const fiber = ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    const shortcuts = ctx.get('shortcuts') as Shortcuts
+    const save = shortcuts.catalog.getSnapshot().find(row => row.id === 'editor.save')
+    expect(save).toBeDefined()
+    expect(save!.issue).toBeNull()
+    expect(save!.label).toBe('Save')
+    await fiber.dispose()
+    expect(shortcuts.catalog.getSnapshot().some(row => row.id === 'editor.save')).toBe(false)
   })
 
   it('teardown unwinds the service, the root registration, and the child declarations', async () => {

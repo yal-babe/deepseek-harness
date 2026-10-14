@@ -188,7 +188,7 @@ export function apply(ctx: ClientContext): void {
       },
       store,
     }, AppFrame)
-    const disposeShortcut = ctx.shortcuts.register({
+    const disposeToggle = ctx.shortcuts.register({
       id: 'sidebar.left.toggle' as ShortcutCommandId, label: () => t('toggle'), aliases: ['sidebar', 'toggle left sidebar'],
       defaults: {
         'desktop:macos': { code: 'KeyB', modifiers: ['primary'] },
@@ -200,10 +200,26 @@ export function apply(ctx: ClientContext): void {
       regions: ['page', 'editable'], modals: [],
       resolve: () => ({ status: 'handled', run: () => { layout.toggleSidebar() } }),
     })
+    // Handled no-op: Desktop Cmd/Ctrl+S, Web Mod+Alt+S. Empty modals so the
+    // shortcut editor (Mod+/) keeps capturing keys. Editors persist through
+    // their own Apply/Create; this command only suppresses the browser save dialog.
+    const disposeSave = ctx.shortcuts.register({
+      id: 'editor.save' as ShortcutCommandId, label: () => t('save'), aliases: ['save'],
+      defaults: {
+        'desktop:macos': { code: 'KeyS', modifiers: ['primary'] },
+        'desktop:windows': { code: 'KeyS', modifiers: ['primary'] },
+        'desktop:linux': { code: 'KeyS', modifiers: ['primary'] },
+        'web:macos': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+        'web:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+      },
+      regions: ['page', 'editable'], modals: [],
+      resolve: () => ({ status: 'handled', run: () => {} }),
+    })
     const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
     retainMainPanels()
     return () => {
-      disposeShortcut()
+      disposeToggle()
+      disposeSave()
       layout.dispose()
       disposePanels()
       disposeRegistration()

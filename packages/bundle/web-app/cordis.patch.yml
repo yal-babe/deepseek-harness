@@ -61,6 +61,23 @@
         enabled: true
         appVersion: !!js process.env.DSH_CLIENT_VERSION
 
+    - id: sync-outbox
+      name: '@deepseek-ai/dsh-sync-outbox'
+      disabled: !!js "ctx.get('profileContext')?.name !== 'desktop'"
+      config:
+        serverUrl: !!js "process.env.STUDIO_SYNC_URL ?? ''"
+        deviceCredentialEnv: STUDIO_DEVICE_CREDENTIAL
+
+    - id: sync-memory
+      name: '@deepseek-ai/dsh-sync-memory'
+      disabled: !!js "ctx.get('profileContext')?.name !== 'desktop'"
+      config:
+        projectId: !!js "process.env.STUDIO_PROJECT_ID || 'local'"
+
+    - id: ui-sync
+      name: '@deepseek-ai/dsh-client-ui-sync'
+      disabled: !!js "ctx.get('profileContext')?.name !== 'desktop'"
+
     # Host-owned opt-in sampled when a new Web session receives its preset
     # delegation tools. The Plugins page edits this settings namespace.
     - id: subagent-model-selection-settings
@@ -146,6 +163,15 @@
 
     - id: account-controller
       name: '@deepseek-ai/dsh-api-account-controller'
+
+    - id: llm-oauth-bridge
+      name: '@deepseek-ai/dsh-llm-oauth-bridge'
+
+    - id: oauth-controller
+      name: '@deepseek-ai/dsh-api-oauth-controller'
+
+    - id: ui-settings-oauth
+      name: '@deepseek-ai/dsh-client-ui-settings-oauth'
 
     - id: settings-controller
       name: '@deepseek-ai/dsh-api-settings-controller'

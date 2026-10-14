@@ -476,7 +476,7 @@ describe('Agent Teams projection events', () => {
       expect(teamProjectionDefinition.apply(failed, queuedEvent)).toBe(failed)
     })
 
-    it('views durable roster and non-deleted derived tasks and reuses the view across mailbox-only changes', () => {
+    it('views durable roster, non-deleted derived tasks, and historical mailbox rows', () => {
       const activeMember = event('team/member', { version: 2, teamId: TEAM, member: member({ phase: 'active' }) }, SessionSeq(1))
       const claimed = event('team/task', {
         version: 2, teamId: TEAM, task: task({ revision: 2, status: 'in_progress', ownerId: CHILD, writeScopes: ['src'] }),
@@ -510,10 +510,17 @@ describe('Agent Teams projection events', () => {
         ],
       })
       expect(view).not.toHaveProperty('failure')
+      expect(view).not.toHaveProperty('messages')
       expect(teamProjectionView(state)).toBe(view)
 
       const withMail = teamProjectionDefinition.apply(state, { ...queuedEvent, seq: SessionSeq(6) })
-      expect(teamProjectionView(withMail)).toBe(view)
+      const mailView = teamProjectionView(withMail)
+      expect(mailView).not.toBe(view)
+      expect(mailView.messages).toEqual([{
+        id: 'message-1', senderId: ROOT, senderName: 'lead', targetId: CHILD, text: 'hello',
+      }])
+      const withReceipt = teamProjectionDefinition.apply(withMail, { ...deliveredEvent, seq: SessionSeq(9) })
+      expect(teamProjectionView(withReceipt)).toBe(mailView)
       const withMember = teamProjectionDefinition.apply(withMail, event('team/member', {
         version: 2, teamId: TEAM, member: member({ id: SessionId('child-b'), name: 'worker-b' }),
       }, SessionSeq(7)))
@@ -567,12 +574,18 @@ describe('Agent Teams projection events', () => {
       })
 
       lead.append('team/message/queued', queuedEvent.data)
-      lead.append('turn/start', { turn: 1 })
-      expect(published).toHaveLength(1)
-
-      other.append('team/task', { version: 2, teamId: TeamId(other.id), task: task() })
       expect(published).toHaveLength(2)
       expect(published[1]).toMatchObject({
+        session: ROOT,
+        key: 'agentTeam',
+        value: { messages: [{ id: 'message-1', text: 'hello' }] },
+      })
+      lead.append('turn/start', { turn: 1 })
+      expect(published).toHaveLength(2)
+
+      other.append('team/task', { version: 2, teamId: TeamId(other.id), task: task() })
+      expect(published).toHaveLength(3)
+      expect(published[2]).toMatchObject({
         session: other.id,
         value: { members: [{ id: other.id, name: 'lead', role: 'lead', phase: 'active' }] },
       })

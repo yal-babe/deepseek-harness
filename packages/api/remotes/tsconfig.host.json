@@ -87,6 +87,12 @@
       "path": "../account-controller"
     },
     {
+      "path": "../oauth-controller"
+    },
+    {
+      "path": "../../llm/llm-oauth-bridge"
+    },
+    {
       "path": "../../credentials/deepseek-account"
     }
   ]

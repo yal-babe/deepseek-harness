@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Cloud sync outbox",
+    "description": "Queues redacted session events and retries delivery to the Studio sync server."
+  }
+}

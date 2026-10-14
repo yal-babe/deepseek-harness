@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package adds an Agent Teams action to the Web conversation header, where a user can inspect the current roster, inspect the shared task board, and navigate into a teammate's conversation. It reads the Lead Session's `agentTeam` projection from the shared Session store, where Host projection frames keep it current without a refresh control, and keeps ordinary child-history navigation on the stable addressed-subagent path. Choose it through the published experimental Agent Teams bundle. The browser projection does not extend the stable API Proxy, store Team state, or register model-facing input.
+This package adds an Agent Teams action to the Web conversation header, where a user can inspect the current roster, inspect the shared task board, open a historical mailbox timeline, and navigate into a teammate's conversation. It reads the Lead Session's `agentTeam` projection from the shared Session store, where Host projection frames keep it current without a refresh control, and keeps ordinary child-history navigation on the stable addressed-subagent path. Choose it through the published experimental Agent Teams bundle. The browser projection does not extend the stable API Proxy, store Team state, or register model-facing input.
 
 ## Table of Contents
 
@@ -37,7 +37,11 @@ Roster rows show durable names and phases. Provisioning and running members use 
 
 Ready pending tasks use idle, blocked pending tasks use warning, in-progress tasks use ongoing, and completed tasks use done.
 
-The read-only task board shows task identity, owner, blockers, readiness, advisory write scopes, and overlap warnings. Descriptions longer than two lines have an expand toggle. Section headings show member and task counts; an empty board shows a short description, and a lone member with no tasks uses a single-column panel. Team agents create and update tasks through their tools; the panel provides no task mutation controls. When the projection reports a rejected persisted Team record, the panel shows that failure above the last valid roster and tasks.
+The read-only task board shows task identity, owner, blockers, readiness, advisory write scopes, and overlap warnings. Overlap warnings appear as a banner on the card. Clicking a task opens details, including a notice that present() deliverables stay in the current conversation record rather than joining to the task. Descriptions longer than two lines have an expand toggle. Section headings show member and task counts; an empty board shows a short description, and a lone member with no tasks uses a single-column panel. Team agents create and update tasks through their tools; the panel provides no task mutation controls. When the projection reports a rejected persisted Team record, the panel shows that failure above the last valid roster and tasks.
+
+### Inspect the mailbox timeline
+
+The Messages tab lists historical `team/message/queued` rows from the Lead projection, with sender, target, and concatenated text. Live peer sends use the target Agent inbox and do not appear here; open a member conversation to read them. An empty historical mailbox shows that limit beside a short empty notice.
 
 -----
 
@@ -85,7 +89,8 @@ No direct effect; the Team tools and ordinary conversation submission own any la
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **No mailbox timeline** — the projection view carries roster and tasks only; peer messages are not shown.
+- **Historical mailbox only** — the Messages tab lists Lead-log `team/message/queued` rows. New peer sends use the target Agent inbox and appear in member conversations, not this timeline.
+- **Deliverables are not joined to tasks** — present() files stay in the current conversation transcript. Adding `taskId` to durable deliverable events would be a Session persistence change and is deferred.
 - **Late plugin activation** — after enabling Agent Teams in an already-open conversation, reload the page to receive its Team projection.
 - **Model availability** — a model appears only when the shared store has a durable selection or request for that member. Missing cold-cache values stay absent until normal Session loading or a live update supplies them.
 - **Ordinary child continuation** — a human message sent after navigation uses the stable addressed-subagent prompt path, not the Team peer mailbox.

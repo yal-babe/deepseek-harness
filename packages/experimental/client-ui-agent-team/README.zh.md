@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本包向 Web 会话页头添加 Agent Teams action，让用户检查当前 roster、查看共享任务板并导航到 teammate 会话。它从共享 Session store 读取 Lead Session 的 `agentTeam` 投影，Host 投影 frame 使其保持最新而无需刷新控件，并让普通 child history 导航继续使用稳定的 addressed-subagent 路径。通过公开发布的实验性 Agent Teams bundle 选择本包。这个浏览器 projection 不扩展稳定 API Proxy、不存储 Team 状态，也不注册面向模型的输入。
+本包向 Web 会话页头添加 Agent Teams action，让用户检查当前 roster、查看共享任务板、打开历史 mailbox 时间线并导航到 teammate 会话。它从共享 Session store 读取 Lead Session 的 `agentTeam` 投影，Host 投影 frame 使其保持最新而无需刷新控件，并让普通 child history 导航继续使用稳定的 addressed-subagent 路径。通过公开发布的实验性 Agent Teams bundle 选择本包。这个浏览器 projection 不扩展稳定 API Proxy、不存储 Team 状态，也不注册面向模型的输入。
 
 ## 目录
 
@@ -37,7 +37,11 @@ Roster 行展示持久名称与阶段。provisioning 和 running 成员使用共
 
 可开始的 pending 任务使用 idle 灰点，被依赖阻塞的 pending 任务使用 warning 橙点，in-progress 任务使用 ongoing loading，completed 任务使用 done 绿点。
 
-只读任务板展示任务标识、负责人、依赖、就绪状态、提示性写入范围与重叠警告。超过两行的描述提供展开按钮。分区标题显示成员与任务数量；空任务板显示简短描述，只有一名成员且无任务时采用单列面板。Team agent 通过工具创建和更新任务；面板不提供任务修改控件。当投影报告某条持久 Team 记录被拒绝时，面板在最后有效的 roster 与任务上方显示该失败。
+只读任务板展示任务标识、负责人、依赖、就绪状态、提示性写入范围与重叠警告。重叠警告以卡片横幅显示。点击任务打开详情，并说明 present() 成果留在当前会话记录中、不按任务关联。超过两行的描述提供展开按钮。分区标题显示成员与任务数量；空任务板显示简短描述，只有一名成员且无任务时采用单列面板。Team agent 通过工具创建和更新任务；面板不提供任务修改控件。当投影报告某条持久 Team 记录被拒绝时，面板在最后有效的 roster 与任务上方显示该失败。
+
+### 查看 mailbox 时间线
+
+消息标签列出 Lead 投影中的历史 `team/message/queued` 行，包含发送者、目标与拼接后的文本。实时 peer 发送走目标 Agent inbox，不出现在此列表；打开成员会话即可阅读。历史 mailbox 为空时，在简短空状态旁显示该限制。
 
 -----
 
@@ -85,7 +89,8 @@ Client export 通过 Cordis effect 注册 locale dictionary 与一个 conversati
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **没有 mailbox timeline**——投影视图只承载 roster 与任务；不显示 peer 消息。
+- **仅历史 mailbox**——消息标签列出 Lead 日志中的 `team/message/queued` 行。新的 peer 发送走目标 Agent inbox，出现在成员会话中，而不在此时间线。
+- **成果不按任务关联**——present() 文件留在当前会话记录中。给持久交付事件增加 `taskId` 会改动 Session 持久化，因此延期。
 - **晚启用插件** — 在已经打开的会话中启用 Agent Teams 后，需要刷新页面才能接收其 Team 投影。
 - **模型可用性** — 仅当共享 store 包含该成员的持久选择或请求时才显示模型。冷缓存中缺少的值会保持缺失，直到正常 Session 加载或实时更新提供它们。
 - **普通 child continuation**——导航后发送的人类消息使用稳定 addressed-subagent 提示词路径，而不是 Team peer mailbox。

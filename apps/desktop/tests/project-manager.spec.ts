@@ -123,7 +123,7 @@ describe('desktop external plugin profile', () => {
     expect(manifest.dsh.profile.bundles).not.toContain('plugin')
     expect(manifest.dsh.profile.bundles).toContain('@deepseek-ai/dsh-web-app')
     await manager.applyRelease()
-    expect(readFileSync(patch, 'utf8')).toContain('[]')
+    expect(readFileSync(patch, 'utf8')).toContain('@deepseek-ai/dsh-credentials-os')
   })
 
   it('needs no runtime or package manifest when no plugins have been installed', async () => {
@@ -182,7 +182,7 @@ describe('desktop external plugin profile', () => {
     await expect(manager.applyRelease()).resolves.toBeUndefined()
     expect(readFileSync(join(manager.paths.profile, '.DS_Store'), 'utf8')).toBe('metadata')
     expect(readFileSync(join(manager.paths.profile, 'user-file'), 'utf8')).toBe('retain')
-    expect(readFileSync(join(manager.paths.profile, 'cordis.patch.yml'), 'utf8')).toContain('[]')
+    expect(readFileSync(join(manager.paths.profile, 'cordis.patch.yml'), 'utf8')).toContain('@deepseek-ai/dsh-credentials-os')
     expect(existsSync(join(manager.paths.profile, 'desktop-runtime-state.json'))).toBe(false)
   })
 
@@ -192,6 +192,15 @@ describe('desktop external plugin profile', () => {
     await expect(manager.applyRelease()).resolves.toBeUndefined()
     expect(plugins(manager)).toEqual([])
     expect(JSON.parse(readFileSync(join(manager.paths.profile, 'package.json'), 'utf8'))).toMatchObject({ dependencies: {} })
+  })
+
+  it('seeds Official Agent Teams into first-init Desktop bundles', async () => {
+    const { manager } = setup()
+    await manager.applyRelease()
+    const manifest = JSON.parse(readFileSync(join(manager.paths.profile, 'package.json'), 'utf8')) as {
+      dsh: { profile: { bundles: string[] } }
+    }
+    expect(manifest.dsh.profile.bundles).toContain('@deepseek-ai/dsh-experimental-agent-team-profile')
   })
 
   it.skipIf(process.platform !== 'win32')('reuses the profile when the launch path changes only Windows letter casing', async () => {

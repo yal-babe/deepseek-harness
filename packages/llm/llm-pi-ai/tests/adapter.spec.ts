@@ -213,6 +213,24 @@ describe('PiAiAdapter provider routing', () => {
     expect(adapter.providerInfo('departed')).toEqual({ id: 'departed', name: 'departed' })
   })
 
+  it('hides openai-codex models until a grant is stored', async () => {
+    const unsigned = adapterOf({ 'openai-codex': { displayName: 'Codex' } }, undefined)
+    expect(await unsigned.listModels('openai-codex')).toEqual([])
+    expect(unsigned.providerInfo('openai-codex')).toEqual({ id: 'openai-codex', name: 'Codex' })
+
+    const signed = new PiAiAdapter({
+      profiles: () => resolveProfiles({ 'openai-codex': { displayName: 'Codex' } }),
+      resolveApiKey: () => Promise.resolve(undefined),
+      auth: memoryAuth({
+        'openai-codex': { type: 'oauth', access: 'at', refresh: 'rt', expires: 1 },
+      }),
+    })
+    expect((await signed.listModels('openai-codex')).map(model => model.id)).not.toHaveLength(0)
+
+    const keyed = adapterOf({ 'openai-codex': { apiKeyEnv: 'CODEX_TOKEN' } }, undefined)
+    expect((await keyed.listModels('openai-codex')).map(model => model.id)).not.toHaveLength(0)
+  })
+
   it('reports unsupported stop sequences rather than silently ignoring them', async () => {
     const server = await mockServer([])
     const ctx = await harness(server.url)

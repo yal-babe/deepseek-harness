@@ -58,6 +58,8 @@ import type {
 } from '@deepseek-ai/dsh-llm'
 import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
+import { catalogProvider } from './catalog.ts'
+import { rewriteCodexPayload } from './codex-payload.ts'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { toPiContext } from './context.ts'
 import { conversationUpdates, createModels, getSupportedThinkingLevels } from './models.ts'
@@ -284,17 +286,36 @@ export class PiAiAdapter extends LlmAdapter {
     return this.current().profiles.get(provider)?.retryPolicy
   }
 
-  override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
-    return Promise.resolve().then(() => {
-      const snapshot = this.current()
-      this.profileOf(snapshot, provider)
-      return snapshot.models.getModels(provider).map(model => ({
-        provider,
-        id: model.id,
-        name: model.name,
-        inputModalities: [...model.input],
-      }))
-    })
+  override async listModels(provider: string): Promise<readonly LlmModelInfo[]> {
+    const snapshot = this.current()
+    this.profileOf(snapshot, provider)
+    const profile = snapshot.profiles.get(provider)
+    if (profile !== undefined && await this.hideOauthCatalog(provider, profile)) return []
+    return snapshot.models.getModels(provider).map(model => ({
+      provider,
+      id: model.id,
+      name: model.name,
+      inputModalities: [...model.input],
+    }))
+  }
+
+  /**
+   * Whether this OAuth-only catalog route should stay out of selectors until a
+   * grant is stored. A profile that names `apiKeyEnv` still advertises models,
+   * because that route authenticates with a key rather than a login.
+   * @param provider - registered provider route.
+   * @param profile - resolved profile for that route.
+   * @returns true when `listModels` must return no entries.
+   */
+  private async hideOauthCatalog(
+    provider: string,
+    profile: ResolvedPiAiProviderProfile,
+  ): Promise<boolean> {
+    const catalog = catalogProvider(provider)
+    if (catalog?.auth.oauth === undefined || catalog.auth.apiKey !== undefined || profile.apiKeyEnv !== undefined) {
+      return false
+    }
+    return (await this.config.auth.credentials.read(provider)) === undefined
   }
 
   override resolveModel(
@@ -408,6 +429,7 @@ export class PiAiAdapter extends LlmAdapter {
         // Profile headers are deployment-owned; attribution names are
         // Harness-owned and therefore win collisions.
         headers: requestHeaders(profile.headers),
+        ...model.api === 'openai-codex-responses' ? { onPayload: rewriteCodexPayload } : {},
       })
       const iterator = toStreamChunks(events, model.contextWindow, options.signal, model.id)[Symbol.asyncIterator]()
       let exhausted = false

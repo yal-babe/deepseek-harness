@@ -4,10 +4,13 @@
  *
  * The list is the profile's `models` array as the card holds it: an empty list
  * means "serve this route's built-in catalog", and any entry replaces that
- * catalog, so a row is only ever added deliberately. Fetching asks the endpoint
- * **the form currently shows** — including a key typed but not yet saved — so
- * adding a provider is one pass instead of save-then-return; the reply is
- * candidates the user picks from, never configuration written behind them.
+ * catalog, so a row is only ever added deliberately. Fetching and Test connection
+ * ask the endpoint **the form currently shows** — including a key typed but not
+ * yet saved — so adding a provider is one pass instead of save-then-return.
+ * Fetch opens a searchable picker; Test reports success or the refusal and does
+ * not write. A successful listing is cached in the editor for input-type
+ * defaults. Add selected stages models into the draft; Apply or Create persists
+ * them in the provider profile.
  *
  * A provider that cannot be interrogated (an unreachable endpoint, a protocol
  * with no readable listing) is not a dead end: the failure is shown next to the
@@ -16,7 +19,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { LlmDiscoveredModel } from '@deepseek-ai/dsh-api-remotes/client'
+import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button, IconPlusOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { formatCapacity, parseCapacity } from './DeepSeekModelsEditor.tsx'
 import type { ModelsOperations } from './operations.ts'
@@ -129,6 +132,20 @@ function capacitySpelling(value: number | undefined): string {
   return value === undefined ? '' : formatCapacity(value)
 }
 
+/**
+ * Build the discovery request from the live form.
+ * @param probe - endpoint facts as the form currently shows them.
+ * @returns the Remote request.
+ */
+function discoveryRequest(probe: ProbeTarget): LlmModelDiscoveryRequest {
+  return {
+    ...probe.provider === undefined ? {} : { provider: probe.provider },
+    ...probe.baseURL === undefined || probe.baseURL.length === 0 ? {} : { baseURL: probe.baseURL },
+    ...probe.api === undefined ? {} : { api: probe.api },
+    ...probe.apiKey === undefined ? {} : { apiKey: probe.apiKey },
+  }
+}
+
 /** Adopt a candidate, preserving disclosed capacities and input types. */
 function adopt(candidate: LlmDiscoveredModel): ModelDraft {
   return {
@@ -141,20 +158,23 @@ function adopt(candidate: LlmDiscoveredModel): ModelDraft {
 }
 
 /**
- * Render the model list with its fetch action.
+ * Render the model list with its fetch and test actions.
  * @param props - the drafted rows, probe target, wire face, and copy.
  * @returns the model-list editor.
  */
 export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const { models, onChange, probe, operations, t, disabled, onBusyChange } = props
   const { catalogProvider } = props
-  const [busy, setBusy] = useState(false)
+  const [inflight, setInflight] = useState<'idle' | 'fetch' | 'test'>('idle')
+  const busy = inflight !== 'idle'
   useEffect(() => { onBusyChange(busy) }, [busy, onBusyChange])
   const [failure, setFailure] = useState<string | undefined>(undefined)
+  const [connectionNotice, setConnectionNotice] = useState<string | undefined>(undefined)
   const [inheritedCatalog, setInheritedCatalog] = useState<{
     provider: string
     models: readonly LlmDiscoveredModel[]
   } | undefined>(undefined)
+  const [discoveredCatalog, setDiscoveredCatalog] = useState<readonly LlmDiscoveredModel[] | undefined>(undefined)
   useEffect(() => {
     if (catalogProvider === undefined) return
     let current = true
@@ -165,7 +185,9 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
     })
     return () => { current = false }
   }, [catalogProvider, operations, probe.settingsNs])
-  const catalog = inheritedCatalog?.provider === catalogProvider ? inheritedCatalog?.models : undefined
+  const catalog = catalogProvider !== undefined && inheritedCatalog?.provider === catalogProvider
+    ? inheritedCatalog.models
+    : discoveredCatalog
   const inputDefaults = useMemo(() => new Map(catalog?.map(model => [model.id, model.inputModalities])), [catalog])
   const [candidates, setCandidates] = useState<readonly LlmDiscoveredModel[] | undefined>(undefined)
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
@@ -231,22 +253,24 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
     }))
   }
 
+  /** Cache a listing for input-type defaults and later fetch pickers. */
+  const cacheListing = (found: readonly LlmDiscoveredModel[]): void => {
+    setDiscoveredCatalog(found)
+    if (catalogProvider !== undefined) setInheritedCatalog({ provider: catalogProvider, models: found })
+  }
+
   const fetchModels = async (): Promise<void> => {
-    setBusy(true)
+    setInflight('fetch')
     setFailure(undefined)
+    setConnectionNotice(undefined)
     try {
-      const answer = await operations.discoverModels(probe.settingsNs, {
-        ...probe.provider === undefined ? {} : { provider: probe.provider },
-        ...probe.baseURL === undefined || probe.baseURL.length === 0 ? {} : { baseURL: probe.baseURL },
-        ...probe.api === undefined ? {} : { api: probe.api },
-        ...probe.apiKey === undefined ? {} : { apiKey: probe.apiKey },
-      })
+      const answer = await operations.discoverModels(probe.settingsNs, discoveryRequest(probe))
       if (answer.kind === 'refused') {
         setFailure(answer.message)
         return
       }
       const found = answer.models
-      if (catalogProvider !== undefined) setInheritedCatalog({ provider: catalogProvider, models: found })
+      cacheListing(found)
       if (found.length === 0) {
         setFailure(t('fetchEmpty'))
         return
@@ -258,7 +282,26 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
       setCandidates(found)
       setPicked(new Set(found.filter(model => !known.has(model.id)).map(model => model.id)))
     } finally {
-      setBusy(false)
+      setInflight('idle')
+    }
+  }
+
+  const testConnection = async (): Promise<void> => {
+    setInflight('test')
+    setFailure(undefined)
+    setConnectionNotice(undefined)
+    try {
+      const answer = await operations.discoverModels(probe.settingsNs, discoveryRequest(probe))
+      if (answer.kind === 'refused') {
+        setFailure(answer.message)
+        return
+      }
+      cacheListing(answer.models)
+      setConnectionNotice(answer.models.length === 0
+        ? t('testOk')
+        : t('testOkModels').replace('{count}', String(answer.models.length)))
+    } finally {
+      setInflight('idle')
     }
   }
 
@@ -347,9 +390,20 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
           title={props.probeBlocked !== undefined
             ? t(props.probeBlocked)
             : askable ? undefined : t('fetchNeedsBaseUrl')}
+          onClick={() => { void testConnection() }}
+        >
+          {inflight === 'test' ? t('testing') : t('testConnection')}
+        </button>
+        <button
+          type="button"
+          className={styles['linkButton']}
+          disabled={disabled || busy || !askable || props.probeBlocked !== undefined}
+          title={props.probeBlocked !== undefined
+            ? t(props.probeBlocked)
+            : askable ? undefined : t('fetchNeedsBaseUrl')}
           onClick={() => { void fetchModels() }}
         >
-          {busy ? t('fetching') : t('fetchModels')}
+          {inflight === 'fetch' ? t('fetching') : t('fetchModels')}
         </button>
       </div>
       {models.length === 0 ? <p className={styles['modelEmpty']}>{t('modelsEmpty')}</p> : null}
@@ -403,6 +457,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
         {t('addModel')}
       </button>
       {failure !== undefined ? <p className={styles['error']}>{failure}</p> : null}
+      {connectionNotice !== undefined ? <p className={styles['savedNotice']} role="status">{connectionNotice}</p> : null}
       <Modal
         open={candidates !== undefined}
         onClose={closePicker}

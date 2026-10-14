@@ -30,7 +30,26 @@ const PROJECT_NAME = '@deepseek-ai/dsh-desktop-runtime'
 const DSH_PACKAGE = '@deepseek-ai/dsh'
 const CORE_BUILD_PACKAGE = '@deepseek-ai/dsh-subprocess-local'
 const WEB_PROFILE = PROFILE_TEMPLATES.web as ProfileTemplate
+/**
+ * Desktop profile bundles: Web composition plus Official Agent Teams enabled on
+ * first init. Teams stays in OPTIONAL_BUNDLES and out of PROFILE_TEMPLATES.web
+ * so CLI Web isolation gates stay clean; Plugins can still disable it.
+ */
+const DESKTOP_PROFILE_BUNDLES: readonly string[] = [
+  ...WEB_PROFILE.bundles,
+  '@deepseek-ai/dsh-experimental-agent-team-profile',
+]
 const WORKSPACE_SETTINGS = 'nodeLinker: hoisted\nautoInstallPeers: false\n'
+/** Profile patch seeded on first Desktop init: OS keychain instead of the YAML store. */
+const DESKTOP_CREDENTIALS_PATCH = `# Desktop stores API keys in the OS keychain (macOS Keychain / Windows DPAPI).
+# Use backend: file to keep $DSH_HOME/.credentials.yaml instead.
+- id: credentials
+  name: '@deepseek-ai/dsh-credentials-os'
+  config:
+    backend: os
+    service: dsh-studio
+`
+
 function writeJson(path: string, value: unknown): void {
   writeFileSync(path, `${JSON.stringify(value, undefined, 2)}\n`, { mode: 0o600 })
 }
@@ -74,7 +93,7 @@ export class DesktopProjectManager {
    * @returns Backup path after the locked profile write, or undefined if the patch was absent.
    */
   async disableAllPlugins(): Promise<string | undefined> {
-    return this.withLock(() => sanitizeProfile('dsh', this.paths.profile, WEB_PROFILE.bundles))
+    return this.withLock(() => sanitizeProfile('dsh', this.paths.profile, DESKTOP_PROFILE_BUNDLES))
   }
 
   /**
@@ -139,7 +158,7 @@ export function createRuntimeProjectMetadata(projectDir: string, release: Deskto
     private: true,
     version: '0.0.0',
     dependencies: desktopCorePackageOverrides(packageSet),
-    dsh: { profile: { bundles: [...WEB_PROFILE.bundles] } },
+    dsh: { profile: { bundles: [...DESKTOP_PROFILE_BUNDLES] } },
   }
   writeJson(join(projectDir, 'package.json'), manifest)
   writeFileSync(
@@ -164,7 +183,7 @@ export function createDevelopmentProjectMetadata(projectDir: string, release: De
       [DSH_PACKAGE]: release.version,
       [DESKTOP_HOST_PACKAGE]: release.version,
     },
-    dsh: { profile: { bundles: [...WEB_PROFILE.bundles] } },
+    dsh: { profile: { bundles: [...DESKTOP_PROFILE_BUNDLES] } },
   }
   writeJson(join(projectDir, 'package.json'), manifest)
   writeFileSync(join(projectDir, 'pnpm-workspace.yaml'), workspaceFile(), { mode: 0o600 })
@@ -172,5 +191,13 @@ export function createDevelopmentProjectMetadata(projectDir: string, release: De
 
 /** Create the first external plugin profile without running a package manager. */
 export function createPluginProfile(projectDir: string): void {
-  initProfile(projectDir, WEB_PROFILE.bundles)
+  const patchPath = join(projectDir, 'cordis.patch.yml')
+  const created = !existsSync(patchPath)
+  initProfile(projectDir, DESKTOP_PROFILE_BUNDLES)
+  if (created) writeFileSync(patchPath, DESKTOP_CREDENTIALS_PATCH)
+}
+
+/** Bundles Desktop seeds into `$DSH_HOME/profiles/desktop` on first init. */
+export function desktopProfileBundles(): readonly string[] {
+  return DESKTOP_PROFILE_BUNDLES
 }

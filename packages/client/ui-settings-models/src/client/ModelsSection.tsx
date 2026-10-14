@@ -29,7 +29,7 @@ import type { SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: pulls this package's SlotMap merge (the two Models child slots).
 import type {} from './slot-contract.ts'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
-import { deriveKeyRef, protocolChoices, providerUsable } from './store.ts'
+import { deriveKeyRef, isOauthAccountProvider, protocolChoices, providerUsable } from './store.ts'
 import type { ModelsSettingsStore, ProviderRow } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
@@ -167,7 +167,9 @@ export async function removeProviderProfile(
  * @returns whether to render the setup card.
  */
 export function needsSetup(row: ProviderRow, anyUsable: boolean): boolean {
-  if (anyUsable || row.entry.provider === 'deepseek-account') return false
+  if (anyUsable || row.entry.provider === 'deepseek-account' || isOauthAccountProvider(row.entry.provider)) {
+    return false
+  }
   if (row.entry.settingsPath.length > 0) return false
   return row.credential?.configured !== true
 }
@@ -232,8 +234,13 @@ export function ModelsSection(props: ModelsSectionProps): ReactNode {
 function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderSlot: ModelsRenderSlot }): ReactNode {
   const { controller, operations, schema, t } = injected
   const snapshot = injected.useSnapshot(value => value)
-  const state = { ...snapshot, rows: snapshot.rows.map(row => row.entry.provider === 'deepseek-account'
-    ? { ...row, entry: { ...row.entry, displayName: t('deepSeekAccount') } } : row) }
+  const state = { ...snapshot, rows: snapshot.rows.map((row) => {
+    const label = row.entry.provider === 'deepseek-account' ? t('deepSeekAccount')
+      : row.entry.provider === 'openai-codex' ? t('codexAccount')
+        : row.entry.provider === 'antigravity' ? t('antigravityAccount')
+          : undefined
+    return label === undefined ? row : { ...row, entry: { ...row.entry, displayName: label } }
+  }) }
   /** A new or failed surface waits for a current snapshot; background refreshes preserve its drafts. */
   const [hasReadySnapshot, setHasReadySnapshot] = useState(state.status === 'ready')
   if (state.status === 'ready' && !hasReadySnapshot) setHasReadySnapshot(true)
@@ -354,7 +361,9 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
   const configurable = state.rows.filter(row => state.namespaces.has(row.entry.settingsNs))
   const addable: AddableRow[] = state.rows.flatMap((row) => {
     const namespace = state.namespaces.get(row.entry.settingsNs)
-    return namespace === undefined || row.configured ? [] : [{ row, namespace }]
+    return namespace === undefined || row.configured || isOauthAccountProvider(row.entry.provider)
+      ? []
+      : [{ row, namespace }]
   })
   // Hand-declared routes live in the pi-ai namespace, which is also the only
   // one whose schema names the protocols one may speak; without it mounted

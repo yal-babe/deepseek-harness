@@ -105,3 +105,62 @@ it('restores inherited image input after a failed catalog read is retried manual
   expect(discover).toHaveBeenCalledTimes(2)
   expect(onChange).not.toHaveBeenCalled()
 })
+
+it('tests the connection without opening the picker and caches the listing', async () => {
+  const discover = vi.fn(() => Promise.resolve({ kind: 'found' as const, models: [{ id: 'vision' }] }))
+  const onChange = vi.fn()
+  render(<ModelListEditor
+    models={[{ id: 'kept' }]} onChange={onChange}
+    probe={{ settingsNs: 'llm-pi-ai', provider: 'acme', baseURL: 'https://acme.test/v1' }}
+    disabled={false} t={key => en[key]} onBusyChange={() => {}}
+    operations={operations(discover)}
+  />)
+  fireEvent.click(screen.getByRole('button', { name: en.testConnection }))
+  expect((await screen.findByRole('status')).textContent).toBe(en.testOkModels.replace('{count}', '1'))
+  expect(screen.queryByRole('dialog', { name: en.fetchTitle })).toBeNull()
+  expect(onChange).not.toHaveBeenCalled()
+  expect(discover).toHaveBeenCalledWith('llm-pi-ai', {
+    provider: 'acme', baseURL: 'https://acme.test/v1',
+  })
+})
+
+it('reports a refused connection test next to the rows', async () => {
+  render(<ModelListEditor
+    models={[{ id: 'm' }]} onChange={vi.fn()}
+    probe={{ settingsNs: 'llm-pi-ai', provider: 'acme', baseURL: 'https://acme.test/v1' }}
+    disabled={false} t={key => en[key]} onBusyChange={() => {}}
+    operations={operations(() => Promise.resolve({ kind: 'refused', message: 'unauthorized' }))}
+  />)
+  fireEvent.click(screen.getByRole('button', { name: en.testConnection }))
+  expect(await screen.findByText('unauthorized')).toBeTruthy()
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+it('treats an empty listing as a successful connection', async () => {
+  render(<ModelListEditor
+    models={[]} onChange={vi.fn()}
+    probe={{ settingsNs: 'llm-pi-ai', provider: 'acme', baseURL: 'https://acme.test/v1' }}
+    disabled={false} t={key => en[key]} onBusyChange={() => {}}
+    operations={operations(() => Promise.resolve({ kind: 'found', models: [] }))}
+  />)
+  fireEvent.click(screen.getByRole('button', { name: en.testConnection }))
+  expect((await screen.findByRole('status')).textContent).toBe(en.testOk)
+})
+
+it('applies cached listing input types after a connection test', async () => {
+  const discover = vi.fn(() => Promise.resolve({
+    kind: 'found' as const, models: [{ id: 'vision', inputModalities: ['text', 'image'] as const }],
+  }))
+  render(<ModelListEditor
+    models={[{ id: 'vision' }]} onChange={vi.fn()}
+    probe={{ settingsNs: 'llm-pi-ai', provider: 'acme', baseURL: 'https://acme.test/v1', api: 'openai-completions' }}
+    disabled={false} t={key => en[key]} onBusyChange={() => {}}
+    operations={operations(discover)}
+  />)
+  fireEvent.click(screen.getByRole('button', { name: `${en.modelAdvanced} 1` }))
+  const image = screen.getByRole<HTMLInputElement>('checkbox', { name: en.modelInputImage })
+  expect(image.checked).toBe(false)
+  fireEvent.click(screen.getByRole('button', { name: en.testConnection }))
+  await waitFor(() => { expect(image.checked).toBe(true) })
+  expect(screen.queryByRole('dialog')).toBeNull()
+})

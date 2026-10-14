@@ -366,6 +366,131 @@ abstract getDeviceIdentity(): Promise<{ deviceId?: string; userId?: AccountUserI
 
 Source: [`packages/credentials/deepseek-account/src/index.ts`](../../packages/credentials/deepseek-account/src/index.ts)
 
+<a id="ctxoauthbridge--oauthbridge"></a>
+
+### `ctx.oauthBridge` — `OAuthBridge`
+
+`ctx.oauthBridge`: UI-driven browser OAuth over `ctx.authorization`.
+
+```ts cordis-catalog
+/**
+ * Begin an authorization attempt for `key`. A second start while one is
+ * running returns the current view instead of joining the in-flight flow.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @param method - flow method to run; omitted uses the flow's first method.
+ * @returns snapshot after the attempt is claimed.
+ */
+async start(key: string, method?: string): Promise<OAuthAttemptView>
+
+/**
+ * Withdraw the attempt running for `key`, if any.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns snapshot after cancellation is requested.
+ */
+async cancel(key: string): Promise<OAuthAttemptView>
+
+/**
+ * Forget the stored credential for `key` after withdrawing any running attempt.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns snapshot after the record is removed.
+ */
+async signOut(key: string): Promise<OAuthAttemptView>
+
+/**
+ * Read the safe projection for `key`.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns current attempt and credential presence.
+ */
+async getState(key: string): Promise<OAuthAttemptView>
+
+/**
+ * Stream the safe projection for `key`.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @param signal - stream lifetime.
+ * @returns initial snapshot and subsequent changes.
+ */
+async *watch(key: string, signal: AbortSignal): AsyncIterable<OAuthAttemptView>
+
+/**
+ * Answer the pending prompt for `key`.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @param value - typed text or chosen option id.
+ * @returns snapshot after the prompt is handed to the flow.
+ */
+async answerPrompt(key: string, value: string): Promise<OAuthAttemptView>
+
+/**
+ * Decline the pending prompt for `key`.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns snapshot after the decline is handed to the flow.
+ */
+async declinePrompt(key: string): Promise<OAuthAttemptView>
+```
+
+Source: [`packages/llm/llm-oauth-bridge/src/index.ts`](../../packages/llm/llm-oauth-bridge/src/index.ts)
+
+<a id="ctxoauthcontroller--oauthcontroller"></a>
+
+### `ctx.oauthController` — `OAuthController`
+
+OAuth commands and reconnect-safe state stream, keyed by credential record.
+
+```ts cordis-catalog
+/**
+ * Read the safe OAuth projection for one credential.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns current attempt and credential presence.
+ */
+@Remote async getState(key: string): Promise<OAuthAttemptView>
+
+/**
+ * Begin browser sign-in for one credential.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @param method - flow method to run; omitted uses the flow's first method.
+ * @returns snapshot after the attempt is claimed.
+ */
+@Remote async start(key: string, method?: string): Promise<OAuthAttemptView>
+
+/**
+ * Withdraw the attempt running for one credential.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns snapshot after cancellation is requested.
+ */
+@Remote async cancel(key: string): Promise<OAuthAttemptView>
+
+/**
+ * Remove the local credential record after withdrawing any running attempt.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns snapshot after the record is removed.
+ */
+@Remote async signOut(key: string): Promise<OAuthAttemptView>
+
+/**
+ * Answer the pending prompt for one credential.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @param value - typed text or chosen option id.
+ * @returns snapshot after the prompt is handed to the flow.
+ */
+@Remote async answerPrompt(key: string, value: string): Promise<OAuthAttemptView>
+
+/**
+ * Decline the pending prompt for one credential.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @returns snapshot after the decline is handed to the flow.
+ */
+@Remote async declinePrompt(key: string): Promise<OAuthAttemptView>
+
+/**
+ * Stream the safe OAuth projection for one credential.
+ * @param key - credential record address (`<scope>/<id>`).
+ * @param signal - stream lifetime.
+ * @returns initial snapshot and subsequent changes.
+ */
+@Remote({ mode: 'stream' }) async *watch(key: string, signal: AbortSignal): AsyncIterable<OAuthAttemptView>
+```
+
+Source: [`packages/api/oauth-controller/src/index.ts`](../../packages/api/oauth-controller/src/index.ts)
+
 <a id="authorization-events"></a>
 
 ### `authorization/*` events

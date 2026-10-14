@@ -36,6 +36,7 @@
     "packages/*/*/tests/**/*.client.ts",
     // Client package outside packages/client with a local CSS module face.
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
+    "packages/sync/client-ui-sync/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
     "scripts/client-build-environment.ts",
     "scripts/bundle-input-isolation.ts",
@@ -137,6 +138,7 @@
     { "path": "./packages/client/ui-settings/tsconfig.client.json" },
     { "path": "./packages/client/ui-settings-general/tsconfig.client.json" },
     { "path": "./packages/client/ui-settings-models" },
+    { "path": "./packages/client/ui-settings-oauth" },
     { "path": "./packages/client/ui-plugin-manager/tsconfig.client.json" },
     { "path": "./packages/client/ui-settings-plugin-inventory" },
     { "path": "./packages/client/locale/tsconfig.client.json" },
@@ -146,6 +148,7 @@
     { "path": "./packages/api/workspace-files/tsconfig.client.json" },
     { "path": "./packages/client/web" },
     { "path": "./packages/context/file-reference" },
+    { "path": "./packages/sync/client-ui-sync" },
     { "path": "./apps/web" }
   ]
 }

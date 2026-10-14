@@ -1560,6 +1560,104 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'oauthBridge',
+    summary: '`ctx.oauthBridge`: UI-driven browser OAuth over `ctx.authorization`.',
+    description: '`ctx.oauthBridge`: UI-driven browser OAuth over `ctx.authorization`.',
+    methods: [
+      {
+        signature: 'async start(key: string, method?: string): Promise<OAuthAttemptView>',
+        description: 'Begin an authorization attempt for `key`. A second start while one is running returns the current view instead of joining the in-flight flow.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }, { name: 'method', description: 'flow method to run; omitted uses the flow\'s first method.' }],
+        returns: 'snapshot after the attempt is claimed.',
+      },
+      {
+        signature: 'async cancel(key: string): Promise<OAuthAttemptView>',
+        description: 'Withdraw the attempt running for `key`, if any.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'snapshot after cancellation is requested.',
+      },
+      {
+        signature: 'async signOut(key: string): Promise<OAuthAttemptView>',
+        description: 'Forget the stored credential for `key` after withdrawing any running attempt.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'snapshot after the record is removed.',
+      },
+      {
+        signature: 'async getState(key: string): Promise<OAuthAttemptView>',
+        description: 'Read the safe projection for `key`.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'current attempt and credential presence.',
+      },
+      {
+        signature: 'async *watch(key: string, signal: AbortSignal): AsyncIterable<OAuthAttemptView>',
+        description: 'Stream the safe projection for `key`.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }, { name: 'signal', description: 'stream lifetime.' }],
+        returns: 'initial snapshot and subsequent changes.',
+      },
+      {
+        signature: 'async answerPrompt(key: string, value: string): Promise<OAuthAttemptView>',
+        description: 'Answer the pending prompt for `key`.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }, { name: 'value', description: 'typed text or chosen option id.' }],
+        returns: 'snapshot after the prompt is handed to the flow.',
+      },
+      {
+        signature: 'async declinePrompt(key: string): Promise<OAuthAttemptView>',
+        description: 'Decline the pending prompt for `key`.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'snapshot after the decline is handed to the flow.',
+      },
+    ],
+  },
+  {
+    key: 'oauthController',
+    summary: 'OAuth commands and reconnect-safe state stream, keyed by credential record.',
+    description: 'OAuth commands and reconnect-safe state stream, keyed by credential record.',
+    methods: [
+      {
+        signature: '@Remote async getState(key: string): Promise<OAuthAttemptView>',
+        description: 'Read the safe OAuth projection for one credential.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'current attempt and credential presence.',
+      },
+      {
+        signature: '@Remote async start(key: string, method?: string): Promise<OAuthAttemptView>',
+        description: 'Begin browser sign-in for one credential.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }, { name: 'method', description: 'flow method to run; omitted uses the flow\'s first method.' }],
+        returns: 'snapshot after the attempt is claimed.',
+      },
+      {
+        signature: '@Remote async cancel(key: string): Promise<OAuthAttemptView>',
+        description: 'Withdraw the attempt running for one credential.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'snapshot after cancellation is requested.',
+      },
+      {
+        signature: '@Remote async signOut(key: string): Promise<OAuthAttemptView>',
+        description: 'Remove the local credential record after withdrawing any running attempt.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'snapshot after the record is removed.',
+      },
+      {
+        signature: '@Remote async answerPrompt(key: string, value: string): Promise<OAuthAttemptView>',
+        description: 'Answer the pending prompt for one credential.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }, { name: 'value', description: 'typed text or chosen option id.' }],
+        returns: 'snapshot after the prompt is handed to the flow.',
+      },
+      {
+        signature: '@Remote async declinePrompt(key: string): Promise<OAuthAttemptView>',
+        description: 'Decline the pending prompt for one credential.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }],
+        returns: 'snapshot after the decline is handed to the flow.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *watch(key: string, signal: AbortSignal): AsyncIterable<OAuthAttemptView>',
+        description: 'Stream the safe OAuth projection for one credential.',
+        parameters: [{ name: 'key', description: 'credential record address (`<scope>/<id>`).' }, { name: 'signal', description: 'stream lifetime.' }],
+        returns: 'initial snapshot and subsequent changes.',
+      },
+    ],
+  },
+  {
     key: 'officeToPdf',
     summary: 'A provider lifetime owns all converters, queued calls, and temporary files.',
     description: 'A provider lifetime owns all converters, queued calls, and temporary files.',
@@ -3037,6 +3135,68 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Allocate a real terminal and start one owned process session. This is the only non-pipe process primitive: implementations own terminal byte I/O, foreground groups, signals, and whole-session quiescence.',
         parameters: [{ name: 'spec', description: 'fully specified argv, cwd, environment, dimensions, grace, and allocation cancellation.' }],
         returns: 'the live terminal handle after allocation succeeds.',
+      },
+    ],
+  },
+  {
+    key: 'syncMemory',
+    summary: 'Project memory store (`ctx.syncMemory`) with logged model injection.',
+    description: 'Project memory store (`ctx.syncMemory`) with logged model injection.',
+    methods: [
+      {
+        signature: 'async create(request: CreateMemoryRequest): Promise<MemoryRecord>',
+        description: 'Create a redacted memory record.',
+        parameters: [{ name: 'request', description: 'kind, text, and optional source.' }],
+        returns: 'the stored record.',
+      },
+      {
+        signature: 'async revise(id: MemoryId, request: CreateMemoryRequest): Promise<MemoryRecord>',
+        description: 'Replace a live record by writing a successor and pointing the predecessor at it.',
+        parameters: [{ name: 'id', description: 'live record to supersede.' }, { name: 'request', description: 'successor fields.' }],
+        returns: 'the successor.',
+      },
+      {
+        signature: 'async search(query: string): Promise<MemoryRecord[]>',
+        description: 'Search live records. An empty query lists the most recently updated rows.',
+        parameters: [{ name: 'query', description: 'FTS query.' }],
+        returns: 'matching live records, newest first, capped by `maxInjectRecords`.',
+      },
+      {
+        signature: 'async remove(id: MemoryId): Promise<void>',
+        description: 'Delete one record and its FTS document.',
+        parameters: [{ name: 'id', description: 'stored record.' }],
+        returns: 'after the row is gone.',
+      },
+    ],
+  },
+  {
+    key: 'syncOutbox',
+    summary: 'Local durable cloud-sync queue (`ctx.syncOutbox`).',
+    description: 'Local durable cloud-sync queue (`ctx.syncOutbox`).',
+    methods: [
+      {
+        signature: 'async enqueue(request: EnqueueRequest): Promise<SyncBatch>',
+        description: 'Redact, validate, and append one batch. Duplicate batch ids return the existing row without changing its status.',
+        parameters: [{ name: 'request', description: 'events plus optional ids.' }],
+        returns: 'the stored batch after redaction.',
+      },
+      {
+        signature: 'status(): SyncOutboxSnapshot',
+        description: 'Read aggregated queue counts. Empty queues report `synced`.',
+        parameters: [],
+        returns: 'a detached snapshot.',
+      },
+      {
+        signature: 'async retryFailed(): Promise<void>',
+        description: 'Requeue every `failed` row as `pending` and start delivery.',
+        parameters: [],
+        returns: 'after the document is saved.',
+      },
+      {
+        signature: 'async drain(): Promise<void>',
+        description: 'Run delivery until the queue has no pending rows or the service is disposed.',
+        parameters: [],
+        returns: 'after the current drain finishes.',
       },
     ],
   },
@@ -5134,6 +5294,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface CreateGoalResult {\n    readonly ref: GoalRef;\n}',
   },
   {
+    name: 'CreateMemoryRequest',
+    declaration: 'export interface CreateMemoryRequest {\n    readonly kind: MemoryKind;\n    readonly text: string;\n    readonly source?: string;\n    readonly gitRev?: string;\n    readonly id?: string;\n}',
+  },
+  {
     name: 'CreateSessionOptions',
     declaration: 'export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly inheritedEventCount?: SessionLogOffset;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly createdAt?: number;\n        readonly isSeeded?: boolean;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n}',
   },
@@ -5208,6 +5372,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DeveloperMessage',
     declaration: 'export interface DeveloperMessage extends MessageBase {\n    readonly role: \'developer\';\n}',
+  },
+  {
+    name: 'DeviceId',
+    declaration: 'export type DeviceId = Branded<\'DeviceId\'>;',
   },
   {
     name: 'DiffCallView',
@@ -5328,6 +5496,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'EncodedImageAttachment',
     declaration: 'export interface EncodedImageAttachment {\n    mediaType: ImageMediaType;\n    data: string;\n    name?: string;\n}',
+  },
+  {
+    name: 'EnqueueRequest',
+    declaration: 'export interface EnqueueRequest {\n    readonly id?: string;\n    readonly projectId?: string;\n    readonly deviceId?: string;\n    readonly events: readonly SyncEventEnvelope[];\n}',
   },
   {
     name: 'EpochHeader',
@@ -5910,6 +6082,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type McpResourceRequest = {\n    method: \'resources/list\' | \'resources/templates/list\';\n    cursor?: string;\n} | {\n    method: \'resources/read\';\n    uri: string;\n};',
   },
   {
+    name: 'MemoryId',
+    declaration: 'export type MemoryId = Branded<\'MemoryId\'>;',
+  },
+  {
+    name: 'MemoryKind',
+    declaration: 'export type MemoryKind = \'goal\' | \'constraint\' | \'decision\' | \'fact\' | \'progress\' | \'blocker\';',
+  },
+  {
+    name: 'MemoryRecord',
+    declaration: 'export interface MemoryRecord {\n    readonly id: MemoryId;\n    readonly projectId: StudioProjectId;\n    readonly kind: MemoryKind;\n    readonly text: string;\n    readonly source: string;\n    readonly createdAt: number;\n    readonly updatedAt: number;\n    readonly supersededBy?: MemoryId;\n    readonly gitRev?: string;\n}',
+  },
+  {
     name: 'Message',
     declaration: 'export type Message = MessageRoleMap[keyof MessageRoleMap];',
   },
@@ -6072,6 +6256,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'NotFutureError',
     declaration: 'export interface NotFutureError {\n    readonly code: \'not_future\';\n    readonly message: string;\n}',
+  },
+  {
+    name: 'OAuthAttemptStatus',
+    declaration: 'export type OAuthAttemptStatus = \'idle\' | \'waiting-browser\' | \'prompting\' | \'authorized\' | \'failed\' | \'cancelled\';',
+  },
+  {
+    name: 'OAuthAttemptView',
+    declaration: 'export interface OAuthAttemptView {\n    readonly status: OAuthAttemptStatus;\n    readonly authorizeUrl?: string;\n    readonly message?: string;\n    readonly error?: string;\n    readonly code?: string;\n    readonly prompt?: OAuthPromptView;\n    readonly inFlight: boolean;\n    readonly credentialConfigured: boolean;\n}',
+  },
+  {
+    name: 'OAuthPromptOptionView',
+    declaration: 'export interface OAuthPromptOptionView {\n    readonly id: string;\n    readonly label: string;\n    readonly description?: string;\n}',
+  },
+  {
+    name: 'OAuthPromptView',
+    declaration: 'export type OAuthPromptView = {\n    readonly message: string;\n} & ({\n    readonly kind: \'text\' | \'secret\';\n    readonly placeholder?: string;\n} | {\n    readonly kind: \'select\';\n    readonly options: readonly OAuthPromptOptionView[];\n});',
   },
   {
     name: 'ObjectJsonSchema',
@@ -7522,6 +7722,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type StreamChunk = {\n    type: \'block-start\';\n    index: number;\n    blockType: ContentBlockType;\n} | {\n    type: \'text-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'reasoning-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'tool-call-delta\';\n    index: number;\n    id: ToolCallId;\n    name?: string;\n    argumentsDelta: string;\n} | {\n    type: \'block-end\';\n    index: number;\n    block: ContentBlock;\n} | {\n    type: \'usage\';\n    usage: TokenUsage;\n} | {\n    type: \'finish\';\n    reason: FinishReason;\n    replayState?: ReplayEnvelope;\n};',
   },
   {
+    name: 'StudioProjectId',
+    declaration: 'export type StudioProjectId = Branded<\'StudioProjectId\'>;',
+  },
+  {
     name: 'SubagentActivation',
     declaration: 'export interface SubagentActivation {\n    readonly childId: SessionId;\n    readonly messageId?: MessageId;\n    readonly result: Promise<SubagentResult>;\n    dispose(): Promise<void>;\n}',
   },
@@ -7700,6 +7904,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SurfaceSnapshot',
     declaration: 'export interface SurfaceSnapshot {\n    readonly generation: number;\n    readonly tree: readonly SerializedNode[] | null;\n}',
+  },
+  {
+    name: 'SyncBatch',
+    declaration: 'export interface SyncBatch {\n    readonly id: SyncBatchId;\n    readonly projectId: StudioProjectId;\n    readonly deviceId: DeviceId;\n    readonly baseSeq: number;\n    readonly events: readonly SyncEventEnvelope[];\n}',
+  },
+  {
+    name: 'SyncBatchId',
+    declaration: 'export type SyncBatchId = Branded<\'SyncBatchId\'>;',
+  },
+  {
+    name: 'SyncEventEnvelope',
+    declaration: 'export interface SyncEventEnvelope {\n    readonly id: string;\n    readonly seq: number;\n    readonly type: string;\n    readonly time: number;\n    readonly data: unknown;\n    readonly sessionId?: string;\n}',
+  },
+  {
+    name: 'SyncOutboxSnapshot',
+    declaration: 'export interface SyncOutboxSnapshot {\n    readonly status: SyncStatus;\n    readonly pendingCount: number;\n    readonly syncingCount: number;\n    readonly syncedCount: number;\n    readonly failedCount: number;\n}',
+  },
+  {
+    name: 'SyncStatus',
+    declaration: 'export type SyncStatus = \'pending\' | \'syncing\' | \'synced\' | \'failed\';',
   },
   {
     name: 'SystemMessage',

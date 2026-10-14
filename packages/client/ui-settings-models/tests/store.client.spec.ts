@@ -4,7 +4,7 @@ import type { RpcResponse } from '@deepseek-ai/dsh-api-remotes/client'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { SettingsDescribeMirror } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-mirror.ts'
 import { settingsSchema } from './settings-schema.client.ts'
-import { joinProviderDirectory, ModelsSettingsStore, providerUsable } from '../src/client/store.ts'
+import { isOauthAccountProvider, joinProviderDirectory, ModelsSettingsStore, providerUsable } from '../src/client/store.ts'
 
 it.each([false, true])('retains configuration diagnostics when the route is active: %s', (active) => {
   expect(joinProviderDirectory(active ? [{ id: 'openai', name: 'openai' }] : [], [{
@@ -17,12 +17,12 @@ it.each([false, true])('retains configuration diagnostics when the route is acti
 })
 
 it('places account and official before third-party providers', () => {
-  const providers = ['custom', 'deepseek-official', 'deepseek-account', 'openai']
+  const providers = ['custom', 'deepseek-official', 'antigravity', 'deepseek-account', 'openai-codex', 'openai']
   const directory = providers.map(provider => ({
     provider, displayName: provider, settingsNs: 'fixture', settingsPath: [],
   }))
   expect(joinProviderDirectory([], directory).map(row => row.provider))
-    .toEqual(['deepseek-account', 'deepseek-official', 'custom', 'openai'])
+    .toEqual(['deepseek-account', 'openai-codex', 'antigravity', 'deepseek-official', 'custom', 'openai'])
   expect(directory.map(row => row.provider)).toEqual(providers)
 })
 
@@ -169,6 +169,35 @@ describe('ModelsSettingsStore', () => {
     expect(byProvider.get('anthropic')?.apiKeyEnv).toBeUndefined()
     expect(byProvider.get('ghost')).toMatchObject({ configured: false, removable: false })
     expect(state.namespaces.get('llm-pi-ai')?.ns).toBe('llm-pi-ai')
+  })
+
+  it('keeps Codex as a first-class account row outside the catalog add list', async () => {
+    expect(isOauthAccountProvider('openai-codex')).toBe(true)
+    expect(isOauthAccountProvider('antigravity')).toBe(true)
+    expect(isOauthAccountProvider('openai')).toBe(false)
+    const { ctx, mirror, seenRefs } = api({
+      providers: async () => ok({ providers: [
+        ...DIRECTORY,
+        {
+          provider: 'openai-codex',
+          displayName: 'openai-codex',
+          settingsNs: 'llm-pi-ai',
+          settingsPath: ['providers', 'openai-codex'],
+          active: true,
+        },
+      ] }),
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    const row = store.store.getSnapshot().rows.find(candidate => candidate.entry.provider === 'openai-codex')
+    expect(row).toMatchObject({
+      configured: true,
+      removable: false,
+      apiKeyEnv: undefined,
+      credential: undefined,
+    })
+    expect(providerUsable(row!)).toBe(false)
+    expect(seenRefs.flat()).not.toContain('OPENAI_CODEX_API_KEY')
   })
 
   it('degrades the credential badge, not the page, when the credential domain fails', async () => {

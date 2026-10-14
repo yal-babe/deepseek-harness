@@ -4,6 +4,8 @@ export type {
   TeamMemberPhase,
   TeamMemberProjection,
   TeamMemberView,
+  TeamMessageId,
+  TeamMessageView,
   TeamProjection,
   TeamTaskId,
   TeamTaskStatus,

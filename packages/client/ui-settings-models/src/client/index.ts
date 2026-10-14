@@ -47,6 +47,7 @@ const NS = 'settings.models'
 export type {
   ModelsSettingsState, ProviderDirectoryEntry, ProviderRow,
 } from './store.ts'
+export { isOauthAccountProvider, OAUTH_ACCOUNT_PROVIDERS } from './store.ts'
 export type { ModelDiscoveryOutcome, ModelsOperations, SettingsWriteOutcome } from './operations.ts'
 
 /**

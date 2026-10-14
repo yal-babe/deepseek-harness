@@ -2406,6 +2406,26 @@
       "doc": "docs/subsystems/worktrees.md",
       "symbol": "CreatedWorktree",
       "source": "packages/experimental/worktree/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/sync.md",
+      "symbol": "SyncEventEnvelope",
+      "source": "packages/sync/sync-protocol/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/sync.md",
+      "symbol": "SyncBatch",
+      "source": "packages/sync/sync-protocol/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/sync.md",
+      "symbol": "DeviceLease",
+      "source": "packages/sync/sync-protocol/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/sync.md",
+      "symbol": "MemoryRecord",
+      "source": "packages/sync/sync-protocol/src/types.ts"
     }
   ]
 }

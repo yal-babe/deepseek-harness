@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Cloud sync status",
+    "description": "Shows pending, syncing, synced, or failed cloud-sync status in the session header."
+  }
+}
