@@ -6,12 +6,13 @@ import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
 import { productWebBundleIsolation } from './product-isolation.ts'
+import { katexWoff2Fonts } from './katex-fonts.ts'
 
 const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url))
 const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite cannot inject window.__DSH_BOOT__. '
   + 'From a repository checkout, run `pnpm dsh web`; an installed package uses `dsh web`. '
   + 'For client-plugin HMR, run `pnpm run dev:web`, which starts `dsh web` and the rebuild watchers together.'
-const DEFAULT_CLIENT_TITLE = 'DSH Local Build'
+const DEFAULT_CLIENT_TITLE = 'DSH Studio'
 
 /** Escape build-time text before placing it in the HTML title element. */
 function escapeHtmlText(value: string): string {
@@ -24,7 +25,7 @@ function clientDocumentTitle(): Plugin {
   return {
     name: 'dsh-client-document-title',
     transformIndexHtml(html) {
-      return html.replace('<title>DSH Local Build</title>', `<title>${title}</title>`)
+      return html.replace('<title>DSH Studio</title>', `<title>${title}</title>`)
     },
   }
 }
@@ -149,7 +150,7 @@ const BOOT_GRAMMAR_FILES: readonly string[] = [
   'dist/json.mjs',
 ]
 
-/** Font asset extensions routed to assets/fonts/ (KaTeX's woff2/woff/ttf faces). */
+/** Font asset extensions routed to assets/fonts/. */
 const FONT_EXTENSIONS: readonly string[] = ['.woff2', '.woff', '.ttf']
 
 /**
@@ -170,7 +171,7 @@ export default defineConfig({
   // directory, and the served index resolves identically from the site root.
   base: './',
   plugins: [
-    rejectStandaloneServe(), clientDocumentTitle(), brandFontLicense(), react(), emitPreviewPage(),
+    rejectStandaloneServe(), clientDocumentTitle(), brandFontLicense(), katexWoff2Fonts(), react(), emitPreviewPage(),
     productWebBundleIsolation(src('../..'), src('.')),
   ],
   build: {

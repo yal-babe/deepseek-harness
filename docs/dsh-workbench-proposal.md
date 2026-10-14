@@ -1,191 +1,193 @@
-# DSH Studio 实现方案
+# DSH Studio implementation proposal
 
-## 1. 产品与技术基础
+English | [中文](dsh-workbench-proposal.zh.md)
 
-DSH Studio 是基于 DeepSeek Harness 源码定制的桌面 Agent 软件，支持对话、项目开发、工具执行、模型接入、Agent Teams 和云端记忆。
+## 1. Product and technical foundation
 
-- 软件名称：DSH Studio。
-- 仓库名称：`dsh-studio`。
-- 命令行：`dsh`。
-- 运行平台：Intel macOS、Apple Silicon macOS、Windows。
-- 桌面框架：沿用 DSH 的 Electron 桌面与 Web UI。
-- 执行运行时：沿用 DSH 的 Agent 执行循环、文件工具、终端工具、审批、取消和会话机制。
-- 扩展方式：通过 DSH 插件和内部接口实现定制功能。
-- 源码管理：固定上游提交，保留定制改动与上游更新的追踪记录。
+DSH Studio is a desktop agent application customized from DeepSeek Harness source, supporting conversations, project development, tool execution, model integration, Agent Teams, and cloud memory.
 
-## 2. 模块划分
+- Application name: DSH Studio.
+- Repository name: `dsh-studio`.
+- Command line: `dsh`.
+- Platforms: Intel macOS, Apple Silicon macOS, and Windows.
+- Desktop framework: retain DSH's Electron desktop and Web UI.
+- Execution runtime: retain DSH's agent loop, file tools, terminal tools, approval, cancellation, and session mechanisms.
+- Extension approach: implement custom features through DSH plugins and internal interfaces.
+- Source management: pin the upstream commit and retain tracking records for customizations and upstream updates.
 
-| 模块 | 实现内容 |
+## 2. Modules
+
+| Module | Scope |
 | --- | --- |
-| 桌面应用 | 项目、对话、工具执行、审批、任务进度、文件与改动查看 |
-| 认证 | Codex、Antigravity 浏览器登录、凭据保存、续期、退出 |
-| 模型接入 | 模型目录、模型选择、流式请求、工具调用、错误处理 |
-| Agent Teams | 官方 Lead、teammates、成员消息、任务板与任务依赖 |
-| 云端记忆 | 会话记录、共享记忆、任务上下文与检索 |
-| 同步与恢复 | 本地缓存、事件同步、设备目录绑定、团队与会话恢复 |
-| 管理端 | 数据检索、设备管理、存储配置、备份恢复与运行日志 |
+| Desktop application | Projects, conversations, tool execution, approvals, task progress, files, and changes |
+| Authentication | Codex and Antigravity browser login, credential storage, renewal, and sign-out |
+| Model integration | Model catalogs, selection, streaming requests, tool calls, and error handling |
+| Agent Teams | Official Lead, teammates, member messages, task board, and task dependencies |
+| Cloud memory | Session records, shared memory, task context, and retrieval |
+| Sync and recovery | Local cache, event sync, device directory bindings, team and session recovery |
+| Administration | Data retrieval, device management, storage settings, backup and recovery, and runtime logs |
 
-桌面负责本地开发执行，云端负责数据持久化、同步和恢复。
+The desktop executes local development tasks; the cloud handles data persistence, sync, and recovery.
 
-## 3. 认证与模型接入
+## 3. Authentication and model integration
 
-### 3.1 Codex 与 Antigravity
+### 3.1 Codex and Antigravity
 
-在 DSH 内部增加对应的认证适配和模型适配。
+Add the corresponding authentication and model adapters within DSH.
 
-认证流程：点击登录 → 打开系统浏览器 → 完成授权 → 接收回调 → 保存凭据 → 获取模型列表 → 选择模型。
+Authentication flow: select sign-in → open the system browser → authorize → receive the callback → save credentials → fetch the model list → select a model.
 
-认证功能包括：
+Authentication features include:
 
-- 登录、取消登录、退出登录和重新授权。
-- 展示登录状态、凭据有效状态及失败原因。
-- 自动刷新凭据，对并发刷新进行合并。
-- 重启后恢复认证状态和模型选择。
-- 各来源独立保存配置，切换来源后恢复对应设置。
-- macOS Keychain / Windows Credential Manager 保存敏感凭据。
+- Sign-in, cancellation, sign-out, and reauthorization.
+- Login status, credential validity, and failure reasons.
+- Automatic credential refresh with concurrent refresh requests coalesced.
+- Authentication state and model selection restored after restart.
+- Independent settings per source, restored when switching sources.
+- Sensitive credentials stored in macOS Keychain / Windows Credential Manager.
 
-模型适配功能包括：
+Model adapter features include:
 
-- 获取并缓存可用模型列表。
-- 携带对应授权发起模型请求。
-- 将上游响应转换为 DSH 的模型事件。
-- 支持文本流、工具调用、工具结果、多轮执行和取消。
-- 输出明确的授权、限额、网络及协议错误。
+- Fetch and cache available models.
+- Send model requests with the corresponding authorization.
+- Convert upstream responses into DSH model events.
+- Support text streaming, tool calls, tool results, multiple turns, and cancellation.
+- Report explicit authorization, quota, network, and protocol errors.
 
-浏览器授权与协议适配参考 CLIProxyAPI 实现，在 DSH 的认证及模型接口中完成开发。
+Use CLIProxyAPI as a reference for browser authorization and protocol adaptation, implementing them through DSH's authentication and model interfaces.
 
-### 3.2 自定义 API
+### 3.2 Custom APIs
 
-沿用 DSH 的 Chat Completions、Responses、Anthropic Messages 接入能力。
+Retain DSH's Chat Completions, Responses, and Anthropic Messages integrations.
 
-提供 Base URL、API Key、协议、模型列表获取、手动添加模型和连接测试。保存模型列表与当前选择，后台刷新目录。
+Provide Base URL, API Key, protocol, model-list discovery, manual model entry, and connection testing. Save the model list and current selection, and refresh the catalog in the background.
 
 ## 4. Agent Teams
 
-使用 DSH 官方 Agent Teams。
+Use the official DSH Agent Teams.
 
-- Lead 创建和管理 teammates。
-- 成员通过官方消息机制协作。
-- 使用官方任务板进行分派、认领、依赖管理和完成登记。
-- 团队和任务状态由官方持久事件生成。
-- 成果文档、改动说明及验证结果关联到对应任务和会话。
-- Lead 检查成果后完成任务，或通过成员消息要求补充。
-- 桌面展示成员状态、任务进展、消息和关联成果。
+- The Lead creates and manages teammates.
+- Members collaborate through the official messaging mechanism.
+- Use the official task board for assignment, claiming, dependencies, and completion.
+- Derive team and task state from official durable events.
+- Associate deliverable documents, change descriptions, and validation results with their tasks and sessions.
+- The Lead reviews results and completes tasks or requests additions through member messages.
+- Show member state, task progress, messages, and related deliverables on the desktop.
 
-同一团队由一个本地运行时执行，共用工作目录。Lead 协调成员可能重叠的文件修改，桌面展示官方文件范围警告。
+One local runtime executes each team in a shared working directory. The Lead coordinates potentially overlapping file edits, and the desktop displays official file-scope warnings.
 
-## 5. 云端记忆
+## 5. Cloud memory
 
-### 5.1 数据内容
+### 5.1 Data
 
-| 数据 | 保存内容 |
+| Data | Stored content |
 | --- | --- |
-| 会话记录 | 用户消息、模型输出、工具调用与结果、执行状态 |
-| 项目记忆 | 目标、约束、决定、已验证事实和关联代码版本 |
-| 工作上下文 | 进度、尝试、阻塞、待办和验证依据 |
-| 团队记录 | 官方成员、任务、依赖和关联消息的持久事件 |
-| 交付材料 | 成果说明、文档引用、附件及检查记录 |
+| Session records | User messages, model output, tool calls and results, and execution state |
+| Project memory | Goals, constraints, decisions, verified facts, and related code revisions |
+| Work context | Progress, attempts, blockers, pending tasks, and validation evidence |
+| Team records | Durable events for official members, tasks, dependencies, and related messages |
+| Deliverables | Result descriptions, document references, attachments, and check records |
 
-记忆记录包含来源、时间、关联项目、任务、会话和代码版本。支持修订、废弃和历史查看。
+Memory records include source, time, associated project, task, session, and code revision. Support revisions, deprecation, and history browsing.
 
-### 5.2 使用与检索
+### 5.2 Use and retrieval
 
-- 采用结构化索引与全文搜索。
-- 按当前项目、任务和会话检索相关记忆。
-- 将相关内容加入模型上下文。
-- 从记忆记录定位原始会话和验证依据。
-- 对会话、工具结果和日志中的敏感凭据进行脱敏。
+- Use structured indexes and full-text search.
+- Retrieve relevant memory by current project, task, and session.
+- Add relevant content to model context.
+- Trace memory records back to original sessions and validation evidence.
+- Redact sensitive credentials in sessions, tool results, and logs.
 
-## 6. 同步与跨设备恢复
+## 6. Sync and cross-device recovery
 
-### 6.1 同步
+### 6.1 Sync
 
-通过 DSH 的持久化接口和会话生命周期扩展实现同步。
+Implement sync through DSH's persistence interfaces and session lifecycle extensions.
 
-- 本地保存会话日志和同步队列。
-- 事件使用稳定 ID、顺序号和幂等提交。
-- 断网时暂存，恢复连接后重试。
-- 展示待同步、同步中、已同步和失败状态。
-- 云端项目使用稳定 ID，各设备独立绑定本地目录。
-- 成果文档保存可访问引用及代码版本，或上传为附件。
+- Store session logs and sync queues locally.
+- Use stable event IDs, sequence numbers, and idempotent commits.
+- Queue while offline and retry when connectivity returns.
+- Display pending, syncing, synced, and failed states.
+- Give cloud projects stable IDs, with independent local directory bindings per device.
+- Store accessible deliverable references and code revisions, or upload attachments.
 
-### 6.2 恢复流程
+### 6.2 Recovery flow
 
-1. 停止当前设备上的团队执行。
-2. 将会话、团队事件和记忆同步到云端。
-3. 在另一设备打开对应项目并绑定本地目录。
-4. 核对 Git 版本和开发环境。
-5. 恢复会话与团队状态，加载相关工作上下文。
-6. 继续执行未完成任务。
+1. Stop team execution on the current device.
+2. Sync sessions, team events, and memory to the cloud.
+3. Open the project on another device and bind its local directory.
+4. Verify the Git revision and development environment.
+5. Restore session and team state and load relevant work context.
+6. Continue unfinished tasks.
 
-使用同步版本和设备接管机制保证同一团队的单实例执行。恢复过程保留已完成工具调用的结果，待执行操作由新运行实例处理。代码版本发生变化时提示核对关联记忆。恢复失败时保留原始数据并显示具体原因。
+Use sync versions and device takeover to ensure one executing instance per team. Retain completed tool-call results during recovery; the new runtime handles pending operations. Prompt users to check associated memory when the code revision changes. Preserve original data and report the specific reason if recovery fails.
 
-## 7. 服务端与 Web 管理台
+## 7. Server and Web administration
 
-服务端采用 TypeScript、Node.js、SQLite WAL 和全文索引，通过 Docker 部署。会话事件按批次、稳定序号和事务写入。附件支持服务端目录和 S3 兼容对象存储。
+Use TypeScript, Node.js, SQLite WAL, and full-text indexes on a Docker-deployed server. Write session events in batches with stable sequence numbers and transactions. Support server directories and S3-compatible object storage for attachments.
 
-服务启动时提供 Web 管理台。管理密钥支持首次生成和环境配置，桌面设备凭据支持撤销。
+Provide a Web administration console when the server starts. Support first-run generation and environment configuration of the admin key, and revocation of desktop device credentials.
 
-管理台功能：
+Administration features:
 
-- 项目、会话和团队记录查询。
-- 官方任务状态及成果查看。
-- 共享记忆搜索、编辑和历史追溯。
-- 设备、同步状态和接管状态管理。
-- 同步失败、模型调用失败及运行日志诊断。
-- 存储用量、保留策略和 S3 配置。
-- 数据备份、恢复和完整性检查。
+- Query projects, sessions, and team records.
+- View official task state and deliverables.
+- Search, edit, and trace shared memory history.
+- Manage devices, sync state, and takeover state.
+- Diagnose sync failures, model-call failures, and runtime logs.
+- Manage storage usage, retention policies, and S3 settings.
+- Back up and restore data and check integrity.
 
-## 8. 桌面交互
+## 8. Desktop interaction
 
-沿用 DSH 的项目与对话界面，统一模型认证、工具执行、审批和任务状态展示。Agent Teams 提供成员、任务和消息视图，支持切换成员会话查看工作进展。
+Retain DSH's project and conversation interface, with consistent model authentication, tool execution, approval, and task-state presentation. Agent Teams provides member, task, and message views, with member-session switching to inspect progress.
 
-### 弹窗
+### Dialogs
 
-- Esc 关闭最上层弹窗、菜单或浮层。
-- 编辑内容未保存时确认是否放弃。
-- 关闭进度窗口后任务继续执行。
-- 取消任务使用明确的取消操作。
+- Esc closes the topmost dialog, menu, or overlay.
+- Confirm discarding unsaved edits.
+- Closing a progress window leaves the task running.
+- Use an explicit cancel action to cancel a task.
 
-### 快捷键
+### Shortcuts
 
-| 快捷键 | 操作 |
+| Shortcut | Action |
 | --- | --- |
-| Cmd/Ctrl+K | 搜索与操作面板 |
-| Cmd/Ctrl+S | 保存当前编辑内容 |
-| Cmd/Ctrl+Enter | 提交或确认 |
-| Tab / Shift+Tab | 切换焦点 |
-| 方向键 / Enter | 列表、菜单及选择操作 |
-| Esc | 关闭最上层界面 |
+| Cmd/Ctrl+K | Search and command palette |
+| Cmd/Ctrl+S | Save the current edits |
+| Cmd/Ctrl+Enter | Submit or confirm |
+| Tab / Shift+Tab | Move focus |
+| Arrow keys / Enter | Lists, menus, and selection |
+| Esc | Close the topmost interface |
 
-快捷键支持查看和调整，遵循终端、输入法及编辑器的输入优先级。
+Support inspecting and adjusting shortcuts, respecting terminal, input-method, and editor input priorities.
 
-## 9. 实施阶段
+## 9. Implementation stages
 
-1. 固定 DSH 源码基线，验证各平台构建、插件接口、工具执行和持久化。
-2. 完成 Codex、Antigravity 内部认证及模型适配，完善自定义 API 配置。
-3. 接入官方 Agent Teams，完成团队界面与成果关联。
-4. 实现云端记忆、事件同步、设备绑定和恢复。
-5. 完成管理台、Esc、快捷键、日志、安装和更新。
+1. Pin the DSH source baseline and validate platform builds, plugin interfaces, tool execution, and persistence.
+2. Complete internal Codex and Antigravity authentication and model adapters and improve custom API settings.
+3. Integrate official Agent Teams and complete team views and deliverable associations.
+4. Implement cloud memory, event sync, device bindings, and recovery.
+5. Complete administration, Esc behavior, shortcuts, logs, installation, and updates.
 
-## 10. 验收标准
+## 10. Acceptance criteria
 
-- macOS 与 Windows 安装后可运行，命令行 `dsh` 可用。
-- Codex、Antigravity 登录、退出、刷新和重启恢复正常。
-- 各模型来源支持流式输出、文件工具、命令执行、多轮调用和取消。
-- 官方 Agent Teams 完成 Lead 与两个 teammate 的分派、消息和任务执行。
-- 云端记忆可检索、修订，并可追溯原始依据。
-- macOS 与 Windows 之间恢复会话及团队后，可以继续未完成工作。
-- 断网重试保持事件和交付数据一致。
-- 所有应用弹窗支持 Esc，快捷键可通过键盘完成对应操作。
-- 管理台可查看记录、诊断失败、管理存储并完成备份恢复。
+- macOS and Windows installations run, and the `dsh` command is available.
+- Codex and Antigravity support sign-in, sign-out, refresh, and restart recovery.
+- Every model source supports streaming, file tools, command execution, multiple tool rounds, and cancellation.
+- Official Agent Teams completes assignment, messaging, and task execution with a Lead and two teammates.
+- Cloud memory supports retrieval, revision, and tracing original evidence.
+- Sessions and teams recovered between macOS and Windows can continue unfinished work.
+- Offline retries preserve event and deliverable consistency.
+- All application dialogs support Esc, and shortcuts support the corresponding keyboard operations.
+- Administration supports browsing records, diagnosing failures, managing storage, and backup and recovery.
 
-## 11. 技术资料
+## 11. Technical references
 
-- [DSH 源码](https://github.com/deepseek-ai/deepseek-harness)
-- [DSH 桌面架构](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md)
-- [DSH 模型配置](https://deepseek-harness.github.io/deepseek-harness/en/guide/providers)
+- [DSH source](https://github.com/deepseek-ai/deepseek-harness)
+- [DSH desktop architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/desktop/README.md)
+- [DSH model configuration](https://deepseek-harness.github.io/deepseek-harness/en/guide/providers)
 - [DSH Agent Teams](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/experimental/agent-team/README.md)
-- [DSH 持久化接口](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/persistence.md)
+- [DSH persistence interfaces](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/persistence.md)
 - [OpenAI Sign in with ChatGPT](https://developers.openai.com/siwc/token-sharing-open-source)
-- [CLIProxyAPI 认证与协议参考](https://github.com/router-for-me/CLIProxyAPI)
+- [CLIProxyAPI authentication and protocol reference](https://github.com/router-for-me/CLIProxyAPI)

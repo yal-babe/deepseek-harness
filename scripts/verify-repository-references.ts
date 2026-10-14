@@ -14,6 +14,8 @@ const kitRepositoryUrl = new RegExp(`\\bgithub\\.com/${organization}/libreoffice
 const commitCandidate = /(?<![a-z0-9])[\da-f]{7,40}(?![a-z0-9])/gi
 const excludedPrefixes = ['vendor/', '.agents/notes/archived/']
 const gitOutputLimit = 64 * 1024 * 1024
+// One 41-byte line per object; 1.2 million objects produce about 49 MiB.
+const objectListingLimit = 1024 * 1024 * 1024
 
 /** One prohibited reference in a maintained source file. */
 export interface RepositoryReference {
@@ -34,6 +36,7 @@ function isMaintained(file: string): boolean {
  * @param file - Repository-relative path used in diagnostics and exclusions.
  * @param source - File text or a symlink's stored target.
  * @param commits - Lowercase, unambiguous full or abbreviated commit identifiers.
+ * The upstream-pin table field and numeric lockfile artifact sizes are accepted.
  * @returns One finding per line and reference kind; digests and other Git object types are accepted.
  */
 export function findRepositoryReferences(
@@ -47,7 +50,14 @@ export function findRepositoryReferences(
     if (organizationUrl.test(canonicalReferenceText(line).replace(kitRepositoryUrl, ''))) {
       references.push({ file, line: index + 1, kind: 'organization-url' })
     }
-    if ([...line.matchAll(commitCandidate)].some(match => commits.has(match[0].toLowerCase()))) {
+    const pinnedCommit = /^docs\/upstream-pin(?:\.zh)?\.md$/u.test(file)
+      && /^\| (?:Pinned commit|固定提交) \| `[a-f\d]{40}` \|$/u.test(line)
+    if (!pinnedCommit && [...line.matchAll(commitCandidate)].some((match) => {
+      // Artifact byte counts in dependency lockfiles can coincide with a hexadecimal commit prefix.
+      if (file.endsWith('.lock') && /^\d+$/u.test(match[0])
+        && /\bsize\s*=\s*$/u.test(line.slice(0, match.index))) return false
+      return commits.has(match[0].toLowerCase())
+    })) {
       references.push({ file, line: index + 1, kind: 'commit-hash' })
     }
   }
@@ -70,24 +80,63 @@ function readMaintainedFiles(repoRoot: string): Map<string, string> {
   return sources
 }
 
-function repositoryCommits(repoRoot: string, sources: Iterable<string>): Set<string> {
-  const candidates = [...new Set([...sources].flatMap(source =>
-    [...source.matchAll(commitCandidate)].map(match => match[0].toLowerCase())))]
-  if (candidates.length === 0) return new Set()
-  const results = execFileSync('git', ['cat-file', '--batch-check=%(objectname) %(objecttype)'], {
+function gitLines(repoRoot: string, args: readonly string[], maxBuffer: number, input?: string): string[] {
+  const output = execFileSync('git', args, {
     cwd: repoRoot,
     env: { ...process.env, GIT_NO_LAZY_FETCH: '1' },
     encoding: 'utf8',
-    input: `${candidates.join('\n')}\n`,
-    maxBuffer: gitOutputLimit,
+    input,
+    maxBuffer,
     stdio: ['pipe', 'pipe', 'pipe'],
-  }).trimEnd().split('\n')
-  // Git resolves prefixes across all available objects, including unreachable ones.
+  }).trimEnd()
+  return output === '' ? [] : output.split('\n')
+}
+
+/**
+ * Find the one object whose name starts with a prefix.
+ * @param objects - Every object name in the local object database, sorted.
+ * @param prefix - Lowercase hexadecimal prefix.
+ * @returns The matching object name, or `undefined` when none or several match.
+ */
+export function uniquePrefixMatch(objects: readonly string[], prefix: string): string | undefined {
+  let low = 0
+  let high = objects.length
+  while (low < high) {
+    const middle = (low + high) >>> 1
+    if ((objects[middle] ?? prefix) < prefix) low = middle + 1
+    else high = middle
+  }
+  const match = objects[low]
+  if (match?.startsWith(prefix) !== true || objects[low + 1]?.startsWith(prefix) === true) return undefined
+  return match
+}
+
+/**
+ * Resolve commit-identifier candidates in maintained sources against the local object database.
+ * @param repoRoot - Working tree whose Git objects are inspected.
+ * @param sources - File texts or symlink targets to extract candidates from.
+ * @returns Lowercase candidates that name exactly one available object, which is a commit.
+ */
+export function repositoryCommits(repoRoot: string, sources: Iterable<string>): Set<string> {
+  const candidates = [...new Set([...sources].flatMap(source =>
+    [...source.matchAll(commitCandidate)].map(match => match[0].toLowerCase())))]
+  if (candidates.length === 0) return new Set()
+  // Git resolves prefixes across all available objects, including unreachable and alternate ones;
+  // one listing of those objects replaces one Git prefix lookup per candidate.
   // Ambiguous prefixes do not identify one object and cannot establish a commit reference.
-  return new Set(candidates.filter((candidate, index) => {
-    const [object, type] = results[index]?.split(' ') ?? []
-    return type === 'commit' && object?.startsWith(candidate) === true
-  }))
+  const objects = gitLines(repoRoot, ['cat-file', '--batch-all-objects', '--batch-check=%(objectname)'], objectListingLimit).sort()
+  const matches = new Map<string, string>()
+  for (const candidate of candidates) {
+    const object = uniquePrefixMatch(objects, candidate)
+    if (object !== undefined) matches.set(candidate, object)
+  }
+  if (matches.size === 0) return new Set()
+  const matched = [...new Set(matches.values())]
+  const commits = new Set(gitLines(repoRoot, ['cat-file', '--batch-check=%(objectname) %(objecttype)'], gitOutputLimit, `${matched.join('\n')}\n`)
+    .map(line => line.split(' '))
+    .filter(([, type]) => type === 'commit')
+    .map(([object]) => object))
+  return new Set([...matches].filter(([, object]) => commits.has(object)).map(([candidate]) => candidate))
 }
 
 /**
@@ -105,7 +154,7 @@ const invokedPath = process.argv[1]
 if (invokedPath !== undefined && import.meta.url === pathToFileURL(resolve(invokedPath)).href) {
   const references = scanRepositoryReferences(root)
   if (references.length === 0) {
-    console.log('verify-repository-references: maintained files contain no repository commit identifiers or disallowed organization URLs.')
+    console.log('verify-repository-references: maintained files contain no prohibited repository references.')
   } else {
     console.error('verify-repository-references: use release tags or maintained repository links:')
     for (const { file, line, kind } of references) console.error(`  ${file}:${String(line)} ${kind}`)

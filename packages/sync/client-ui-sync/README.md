@@ -60,6 +60,8 @@ None; the package never assembles or sends provider requests.
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - **Live Host status is not wired** — the chip shows the injected snapshot, which defaults to `synced` until a Host→Client remote exists.
 
 <a id="dev-note"></a>

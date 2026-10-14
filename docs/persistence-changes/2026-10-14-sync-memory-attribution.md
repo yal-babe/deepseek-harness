@@ -9,7 +9,7 @@ English | [中文](2026-10-14-sync-memory-attribution.zh.md)
 
 ## Summary
 
-Adds producer-owned sync-memory snapshot attribution.
+Adds producer-owned sync-memory snapshot attribution after the upstream user-rpc principal change.
 
 ## Table of Contents
 
@@ -27,20 +27,20 @@ id: 2026-10-14-sync-memory-attribution
 baseline: false
 changes:
   - root: "event:agent/inbox/spliced"
-    previous: "2026-10-05-working-directory-attribution"
-    after: "227089ad663f1eb1bcebf70def82a808391a6a9ae54fc42e0044bb7e21989c94"
+    previous: "2026-10-13-user-rpc-principal"
+    after: "70d75ead14ac748fff324f7ef4cc9fc872b1cbc7c5cb304a73b7ed6dba2adf0e"
     decision: same-version
   - root: "event:developer/message"
-    previous: "2026-10-05-working-directory-attribution"
-    after: "3718350b3cad03d3f0cce09b85e0f744262d85e51f06c82b0e98300c0b0a459c"
+    previous: "2026-10-13-user-rpc-principal"
+    after: "5a5ba0a24d3ad04dcd597de7889a71153754309cd12a9a022a41ca3ad235fcdf"
     decision: same-version
   - root: "event:session/title-llm-request"
-    previous: "2026-10-07-title-reasoning-effort"
-    after: "4cc97c7b4b1f0e1c9396e2c73a2664b1fe12ead54ce975b9efe01ed20c101963"
+    previous: "2026-10-13-user-rpc-principal"
+    after: "2c7304a5a6b8acb1204b166ed461e493963ab3036738ec39a019cc47726bbc49"
     decision: same-version
   - root: "event:user/message"
-    previous: "2026-10-05-working-directory-attribution"
-    after: "265f9d81ebad792342389e575e2502ce32db49baebbf661a42f0c07481864c8a"
+    previous: "2026-10-13-user-rpc-principal"
+    after: "f7dec4f39819f874c7c6ea41bce88f78750bbeb0b499666b1e8e1f29746bb635"
     decision: same-version
 ```
 
@@ -52,7 +52,7 @@ Existing records remain valid. The additive sync-memory source kind is attributi
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/sync --coverage.enabled=false: 6 files and 69 tests passed.
+`pnpm exec vitest run scripts/doc-standard.spec.ts packages/sync`: 7 files and 98 tests passed. `pnpm exec tsx scripts/persistence-changes.ts --check`: all 65 roots match the acknowledgement history.
 
 <a id="dev-note"></a>
 ## Dev Note

@@ -18,6 +18,12 @@
 
 **Codex 账号**和 **Antigravity 账号**是本页的一等行，不在第三方目录里。在各自行上使用**登录**，分别完成 ChatGPT 或 Google 授权。Antigravity 登录后，模型选择器会列出该账号的 Cloud Code 目录。
 
+认证 **?** 说明已保存凭据的优先级和环境后备。密钥留空时，使用已保存凭据，或尝试读取列出的环境变量。绿色提示标明已检测到环境变量。黄色提示表示未检测到凭据变量；请输入 API 密钥或配置列出的变量。状态未确认表示读取失败。检测不验证凭据，也不测试连接。AWS profile 和 Google 应用默认凭据等提供商管理的凭据文件不在检查范围内。没有原生密钥认证的提供商（例如 `openai-codex`）不显示密钥字段，除非 profile 显式指定了凭据引用。
+
+已保存凭据使用**留空使用已保存凭据**占位文字，输入框下方不显示状态文字。环境后备使用**留空使用环境认证**占位文字，输入留空时显示一条检测提示。输入非空时，不显示认证状态文字。地址配置变量显示在**基础 URL**下方，不计作凭据。
+
+密钥输入非空时，输入框内显示眼睛按钮。选择**显示密钥**检查当前输入，选择**隐藏密钥**重新遮住输入。修改输入后会重新遮住密钥。已保存凭据仍保持只写。
+
 ## 添加自定义模型 API
 
 对于中转站、公司网关、自建服务器或已安装目录中不存在的提供商，把卡片切换到**自定义模型 API**。提供小写 Provider ID、基础 URL、API 协议、凭据和至少一个模型。**API 协议**必须选网关实际使用的那一种，选择框提供三种：OpenAI Chat Completions、OpenAI Responses 和 Anthropic Messages，在当前 profile 的 `cordis.patch.yml` 中分别存为 `openai-completions`、`openai-responses` 和 `anthropic-messages`。一个提供商只使用一种协议，网关同时提供两种时需要建两个提供商。
@@ -107,6 +113,21 @@ DeepSeek 将省略的 `inputModalities` 视为纯文本，并拒绝空列表。�
 在 pi-ai 配置中，除模型自身的 `input` 外，每个列表都至少要写一项模态；模型自身的空列表与省略它同义。未知模态在任何位置写入都会被拒绝。
 
 这两个字段都是对你端点的断言，而不是对它的检查。声明了端点并不提供的图片能力的模型不会在这里被拦下，改由提供商拒绝该请求。
+
+### DeepSeek 账号的模型
+
+已登录 DeepSeek 账号的模型列表来自账号服务，因此模型页不为它提供模型编辑器。要调整单个模型，在 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 中使用 `modelOverrides`；字段与 DeepSeek 的 `models` 条目相同，未设置的字段沿用列表中的值：
+
+```yaml
+- id: llm-deepseek-account
+  config:
+    modelOverrides:
+      deepseek-flash:
+        contextWindow: 524288
+        maxTokens: 131072
+```
+
+需要更新版 DeepSeek Harness 的模型会以 `CLIENT_UPGRADE_REQUIRED` 失败，并写明需要安装的版本。列表、兜底和门控规则见[账号提供方参考](../../../packages/llm/llm-deepseek-account/README.zh.md)。
 
 ### 推理等级
 

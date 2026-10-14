@@ -46,3 +46,8 @@ Host 上的 OAuth 桥拥有尝试生命周期。本包只负责展示：通过 i
 <a id="known-limitations-and-deferred-work"></a>
 
 - 目前只接了已随包提供的 `openai-codex` 行和 Antigravity 账号行。其他 llm-pi-ai OAuth 提供商不会渲染这些控件。Host 重启会放弃进行中的尝试。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。

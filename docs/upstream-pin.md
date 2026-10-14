@@ -1,5 +1,7 @@
 # DSH Studio upstream pin
 
+English | [中文](upstream-pin.zh.md)
+
 English reference for the DeepSeek Harness commit this Studio fork tracks.
 
 ## Pin
@@ -7,9 +9,11 @@ English reference for the DeepSeek Harness commit this Studio fork tracks.
 | Field | Value |
 | --- | --- |
 | Upstream remote | `upstream` → `https://github.com/deepseek-ai/deepseek-harness.git` |
-| Pinned commit | `d743267388641bc76f17c45ce8b4c231aed1d32c` |
-| Upstream version | `0.2.1-alpha.2` |
+| Pinned commit | `571902028a75c64c1d767f4ae5fd099485f0ddf0` |
+| Upstream version | `0.2.1-alpha.3` |
 | Studio branch | `studio/main` |
+
+The pinned-commit table field is an explicit exception to the repository reference check.
 
 ## Sync procedure
 

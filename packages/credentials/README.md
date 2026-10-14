@@ -9,7 +9,9 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The `credentials/` group lets configuration name secrets instead of embedding their values. Use `credentials/` to store, look up, and remove credentials, `credentials-local/` for private on-machine YAML storage with per-run environment overrides, `credentials-os/` when Desktop should keep secrets in the OS keychain, and `authorization/` when obtaining a credential requires asking a human. Rotated stored values apply to the next model request, while `DEEPSEEK_API_KEY=… dsh` takes precedence for that run. Configuration files contain only credential names; local secret values remain readable only by the same OS user.
+The `credentials/` group lets configuration name secrets instead of embedding their values. Use `credentials/` to store, look up, and remove credentials, `credentials-local/` for private on-machine storage with environment fallbacks, and `authorization/` when obtaining a credential requires asking a human. Rotated stored values apply to the next model request, and a stored value takes precedence over `DEEPSEEK_API_KEY=… dsh`. Configuration files contain only credential names; local secret values remain readable only by the same OS user.
+
+Desktop uses `credentials-os/` for OS-keychain storage; that backend retains launch-environment priority.
 
 ## Table of Contents
 
@@ -27,7 +29,7 @@ Four packages provide the credential feature: one stores, looks up, and removes 
 | Package | Role | ctx key |
 |---|---|---|
 | [`credentials/`](credentials/README.md) | Store, look up, and remove secrets at runtime while configuration only names them | `ctx.credentials` |
-| [`credentials-local/`](credentials-local/README.md) | The default on-machine store: a private YAML file, environment overrides win | registers `ctx.credentials` |
+| [`credentials-local/`](credentials-local/README.md) | The default on-machine store: a private YAML file that outranks environment fallbacks | registers `ctx.credentials` |
 | [`credentials-os/`](credentials-os/README.md) | Desktop OS-keychain store: secrets stay out of YAML | registers `ctx.credentials` |
 | [`authorization/`](authorization/README.md) | Plugin-owned flows that obtain a credential by asking a human | `ctx.authorization` |
 

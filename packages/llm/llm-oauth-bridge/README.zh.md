@@ -48,3 +48,8 @@ kind: "package-reference"
 <a id="known-limitations-and-deferred-work"></a>
 
 - 尝试只存在于发起它的进程中，因此界面重载或 Host 退出会放弃该尝试，需要重新开始。退出登录只删除本地记录，不会向签发方撤销授权。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。

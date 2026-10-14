@@ -35,10 +35,13 @@ kind: "package-reference"
 
 ```yaml
 - id: credentials
-  name: '@deepseek-ai/dsh-credentials-os'
-  config:
-    backend: os
-    service: dsh-studio
+  disabled: true
+- insert:
+    - id: credentials-os
+      name: '@deepseek-ai/dsh-credentials-os'
+      config:
+        backend: os
+        service: dsh-studio
 ```
 
 | 字段 | 默认值 | 含义 |

@@ -19,7 +19,7 @@ export const CLIENT_BUILD_PROFILE_SELECTOR = 'DSH_BUILD_CLIENT_PROFILE'
 /** Public client environment required by official DSH artifacts. */
 const OFFICIAL_CLIENT_BUILD_ENVIRONMENT = {
   DSH_CLIENT_BUILD_PROFILE: 'official',
-  DSH_CLIENT_TITLE: 'DeepSeek Harness',
+  DSH_CLIENT_TITLE: 'DSH Studio',
 } as const
 
 /** Public variable carrying the source commit embedded in client artifacts. */
@@ -331,7 +331,7 @@ export function readClientBuildRecord(
 function clientArtifactDigest(root: string): ClientArtifactDigest {
   const paths = globSync([...CLIENT_ARTIFACT_PATTERNS], { cwd: root })
     .map(path => path.replaceAll('\\', '/'))
-    .filter(path => statSync(resolve(root, path)).isFile())
+    .filter(path => !/\/lib\/client\.node(?:\.|$)/.test(path) && statSync(resolve(root, path)).isFile())
     .sort()
   if (paths.length === 0) throw new Error('complete client build produced no Vite or dynamic client artifacts')
 

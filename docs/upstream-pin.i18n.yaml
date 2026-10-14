@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for upstream-pin.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upstream-pin.md
+/dsh-studio-upstream-pin:
+  en: 5a91cb92a04140b1
+  zh: c98777f1de676457
+/dsh-studio-upstream-pin/pin:
+  en: afb1b8f08d9f0cc2
+  zh: 80c6d1d50cea8fcd
+/dsh-studio-upstream-pin/sync-procedure:
+  en: 3d96d7dca8606d48
+  zh: aa42fcf8edb3730f
+/dsh-studio-upstream-pin/extension-seams-verified-for-studio:
+  en: aa6125ffffda9555
+  zh: 811faffe4feee458

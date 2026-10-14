@@ -1,6 +1,6 @@
 ---
 description: "Shared Studio cloud-sync types and pure helpers: branded ids, batch validation, and secret redaction."
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @deepseek-ai/dsh-sync-protocol
@@ -64,6 +64,8 @@ None, as this package only brands identifiers, validates batches, and redacts st
 None; the package never assembles or sends provider requests.
 
 ## Known Limitations and Deferred Work
+
+<a id="known-limitations-and-deferred-work"></a>
 
 - **Redaction is pattern-based** — values that do not match the listed secret forms remain in the payload; callers must not treat redaction as a confidentiality proof.
 

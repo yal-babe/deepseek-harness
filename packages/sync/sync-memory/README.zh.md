@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 `dsh-sync-memory` 即 `ctx.syncMemory`：用于脱敏项目记忆的本地 SQLite FTS 存储。在合格的 `agent/pre-step` 进入时，它追加一条持久 `user/message`，其 source kind 为 `sync-memory`。除该已记录快照外，没有任何内容进入模型。
 
@@ -91,6 +91,8 @@ Relevant project memory:
 仅追加；新可见内容位于可复用请求前缀之后，不会使现有 KV Cache 条目失效。
 
 ## 已知限制与延期工作
+
+<a id="known-limitations-and-deferred-work"></a>
 
 - **检索是词法 FTS** — 没有嵌入排序；仅含标点的查询回退为按新近度排序。
 

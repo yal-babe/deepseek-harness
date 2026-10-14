@@ -101,6 +101,8 @@ flowchart LR
   svc_typert["ctx.typert<br/>Runtime type registry"]
   pkg_typert_loader["typert-loader"]
   svc_typertGateway["ctx.typertGateway<br/>Typert Host invocation gateway"]
+  pkg_api_remote_access["api-remote-access"]
+  svc_remoteAccess["ctx.remoteAccess<br/>Remote method access control"]
   svc_sessionPersistence["ctx.sessionPersistence<br/>Durable session persistence seam"]
   pkg_session_persistence_jsonl["session-persistence-jsonl"]
   pkg_hooks_claude_code["hooks-claude-code"]
@@ -115,12 +117,21 @@ flowchart LR
   pkg_credentials["credentials"]
   svc_credentials["ctx.credentials<br/>Credential seam"]
   pkg_credentials_local["credentials-local"]
+  pkg_credentials_os["credentials-os"]
+  pkg_llm_oauth_bridge["llm-oauth-bridge"]
   pkg_deepseek_account["deepseek-account"]
   svc_deepseekAccount["ctx.deepseekAccount<br/>DeepSeek account"]
   pkg_deepseek_account_platform["deepseek-account-platform"]
   pkg_api_account_controller["api-account-controller"]
   pkg_authorization["authorization"]
   svc_authorization["ctx.authorization<br/>Authorization flow registry"]
+  svc_oauthBridge["ctx.oauthBridge<br/>UI-driven OAuth attempts"]
+  pkg_api_oauth_controller["api-oauth-controller"]
+  svc_oauthController["ctx.oauthController<br/>OAuth account controller"]
+  pkg_sync_outbox["sync-outbox"]
+  svc_syncOutbox["ctx.syncOutbox<br/>Studio sync outbox"]
+  pkg_sync_memory["sync-memory"]
+  svc_syncMemory["ctx.syncMemory<br/>Studio project memory"]
   pkg_client_product_analytics["client-product-analytics"]
   svc_productAnalytics["ctx.productAnalytics<br/>Desktop interaction collection"]
   pkg_otel["otel"]
@@ -272,6 +283,9 @@ flowchart LR
   svc_webServer["ctx.webServer<br/>HTTP route registration"]
   pkg_client_modules["client-modules"]
   pkg_client_hmr["client-hmr"]
+  pkg_web_app["web-app"]
+  svc_webApp["ctx.webApp<br/>Served Web GUI"]
+  pkg_harness_dev_context["harness-dev-context"]
   svc_clientModules["ctx.clientModules<br/>Client plugin graph host"]
   pkg_workflow["workflow"]
   svc_workflowEngine["ctx.workflowEngine<br/>Workflow script engine"]
@@ -291,6 +305,8 @@ flowchart LR
   pkg_agent_preset_registry --> svc_agentPresets
   pkg_api_gateway --> svc_typertGateway
   pkg_api_job_controller --> svc_jobController
+  pkg_api_oauth_controller --> svc_oauthController
+  pkg_api_remote_access --> svc_remoteAccess
   pkg_api_session_controller --> svc_sessionController
   pkg_api_session_controller --> svc_sessionFileReferences
   pkg_api_session_controller --> svc_sessionSkillCatalog
@@ -323,6 +339,7 @@ flowchart LR
   pkg_cordis_host_runner --> svc_dynamicCordisRunner
   pkg_credentials --> svc_credentials
   pkg_credentials_local --> svc_credentials
+  pkg_credentials_os --> svc_credentials
   pkg_deepseek_account --> svc_deepseekAccount
   pkg_deepseek_account_platform --> svc_deepseekAccount
   pkg_deepseek_llm_api_extensions --> svc_deepseekLlmApiExtensions
@@ -358,6 +375,7 @@ flowchart LR
   pkg_jobs_local --> svc_jobs
   pkg_llm --> svc_llm
   pkg_llm_deepseek --> svc_llm
+  pkg_llm_oauth_bridge --> svc_oauthBridge
   pkg_llm_pi_ai --> svc_llm
   pkg_llm_replay --> svc_llm
   pkg_lsp --> svc_lsp
@@ -418,6 +436,8 @@ flowchart LR
   pkg_subprocess --> svc_subprocess
   pkg_subprocess_local --> svc_subprocess
   pkg_subprocess_ssh --> svc_subprocess
+  pkg_sync_memory --> svc_syncMemory
+  pkg_sync_outbox --> svc_syncOutbox
   pkg_system_prompt --> svc_systemPrompt
   pkg_terminal --> svc_terminals
   pkg_terminal_bash --> svc_terminals
@@ -428,6 +448,7 @@ flowchart LR
   pkg_user_approval --> svc_approval
   pkg_user_questions --> svc_userQuestions
   pkg_web --> svc_web
+  pkg_web_app --> svc_webApp
   pkg_web_fetch_http --> svc_web
   pkg_web_search_deepseek --> svc_web
   pkg_web_search_exa --> svc_web
@@ -453,6 +474,7 @@ flowchart LR
   svc_attachments --> pkg_llm_deepseek
   svc_attachments --> pkg_llm_pi_ai
   svc_attachments --> pkg_tool_fs
+  svc_authorization --> pkg_llm_oauth_bridge
   svc_authorization --> pkg_llm_pi_ai
   svc_browserUse --> pkg_experimental_browser_use_chrome_devtools_mcp
   svc_browserUse --> pkg_experimental_browser_use_playwright_mcp
@@ -468,6 +490,7 @@ flowchart LR
   svc_cordisInspect --> pkg_tool_cordis
   svc_credentials --> pkg_api_settings_controller
   svc_credentials --> pkg_llm_deepseek
+  svc_credentials --> pkg_llm_oauth_bridge
   svc_credentials --> pkg_llm_pi_ai
   svc_deepseekAccount --> pkg_api_account_controller
   svc_deepseekAccount --> pkg_llm_deepseek
@@ -487,6 +510,7 @@ flowchart LR
   svc_llm --> pkg_compaction_basic
   svc_lsp --> pkg_tool_lsp
   svc_mcpResources --> pkg_mcp_resources
+  svc_oauthBridge --> pkg_api_oauth_controller
   svc_officeToPdf --> pkg_client_ui_sidebar_documentpreview
   svc_otel --> pkg_host_product_telemetry_otel
   svc_otel --> pkg_session_telemetry_otel
@@ -496,6 +520,9 @@ flowchart LR
   svc_profileContext --> pkg_plugin_manager
   svc_ptcRuntime --> pkg_tools
   svc_ptcRuntime --> pkg_workflow_ptc
+  svc_remoteAccess --> pkg_api_gateway
+  svc_remoteAccess --> pkg_api_session_controller
+  svc_remoteAccess --> pkg_api_workspace_controller
   svc_sandbox --> pkg_bash_sandbox
   svc_sandbox --> pkg_terminal_bash
   svc_sandboxPolicy --> pkg_bash_sandbox
@@ -572,6 +599,7 @@ flowchart LR
   svc_typert --> pkg_typert_loader
   svc_userQuestions --> pkg_tool_ask_user
   svc_web --> pkg_tool_web
+  svc_webApp --> pkg_harness_dev_context
   svc_webServer --> pkg_client_connection
   svc_webServer --> pkg_client_hmr
   svc_webServer --> pkg_client_modules
@@ -626,13 +654,18 @@ flowchart LR
 | `ctx.directoryPickerController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | Carries the picking seam onto the wire: capability gating, cancellation, and the seam-coded failures a browser directory flow discriminates on. |
 | `ctx.typert` | `core` | [`typert-registry`](../packages/typert/registry) | - | [`typert-loader`](../packages/typert/loader), [`api-gateway`](../packages/api/gateway) | - | Plugins register live zod contributions directly or through dsh-typert-loader; the API gateway consumes invocation descriptors and providers, while other runtime consumers query schemas and reflection metadata at their own edges. |
 | `ctx.typertGateway` | `core` | [`api-gateway`](../packages/api/gateway) | - | - | - | Associates generated Remote descriptors with live Cordis services, resolves registered identities, and exposes unary calls through the shared Connection RPC carrier. |
+| `ctx.remoteAccess` | `core` | [`api-remote-access`](../packages/api/remote-access) | - | [`api-gateway`](../packages/api/gateway), [`api-session-controller`](../packages/api/session-controller), [`api-workspace-controller`](../packages/api/workspace-controller) | - | Decides which Remote methods a non-owner Peer may call through business-registered role-based policies, filters list results, and streams each Peer access snapshot. |
 | `ctx.sessionPersistence` | `seam` | [`session-persistence`](../packages/session/session-persistence) | [`session-persistence-jsonl`](../packages/session/session-persistence-jsonl) | [`agent-loop`](../packages/core/agent-loop), [`tool-bash`](../packages/shell/tool-bash), [`hooks-claude-code`](../packages/experimental/hooks-claude-code), [`hooks-codex`](../packages/experimental/hooks-codex), [`session-query`](../packages/session-query/session-query), [`session-query-sqlite`](../packages/session-query/session-query-sqlite), [`message-feedback`](../packages/feedback/message-feedback) | - | The JSONL backend persists the SessionEvent vocabulary as one artifact per Session. |
 | `ctx.configEditor` | `core` | [`config-editor`](../packages/boot/config-editor) | - | [`settings`](../packages/settings/settings), [`agent-default-model`](../packages/core/agent-default-model) | - | Persists profile config patches under the application file lock and HMR queue, then reconciles Loader entries. |
 | `ctx.settings` | `core` | [`settings`](../packages/settings/settings) | - | [`api-settings-controller`](../packages/api/settings-controller) | - | Forms project volatile Config fields from active profile entries and delegate validated edits to config-editor. Plugins consume their own Config references. |
 | `ctx.subagentModelSelection` | `core` | [`tool-subagent`](../packages/subagent/tool-subagent) | - | [`tool-subagent`](../packages/subagent/tool-subagent) | - | Owns the default-off settings namespace that Agent-scoped delegation tools sample when composing a new top-level Session. |
-| `ctx.credentials` | `seam` | [`credentials`](../packages/credentials/credentials) | [`credentials-local`](../packages/credentials/credentials-local) | [`api-settings-controller`](../packages/api/settings-controller), [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | Configuration carries references to secrets; providers own the values. Consumers resolve per operation, so a rotated credential reaches the very next request; the settings controller exposes value-free views and write-only storage. |
+| `ctx.credentials` | `seam` | [`credentials`](../packages/credentials/credentials) | [`credentials-local`](../packages/credentials/credentials-local), [`credentials-os`](../packages/credentials/credentials-os) | [`api-settings-controller`](../packages/api/settings-controller), [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-oauth-bridge`](../packages/llm/llm-oauth-bridge) | - | Configuration carries references to secrets; providers own the values. Consumers resolve per operation, so a rotated credential reaches the very next request; the settings controller exposes value-free views and write-only storage. |
 | `ctx.deepseekAccount` | `seam` | [`deepseek-account`](../packages/credentials/deepseek-account) | [`deepseek-account-platform`](../packages/credentials/deepseek-account-platform) | [`api-account-controller`](../packages/api/account-controller), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | The Host owns browser authorization and local credentials; UI consumers receive state without tokens. |
-| `ctx.authorization` | `seam` | [`authorization`](../packages/credentials/authorization) | - | [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | Flows are registered by the plugin that knows how to obtain one credential and keyed by the record they write; the seam owns the conversation and the one-attempt-per-key lifecycle, never the protocol. |
+| `ctx.authorization` | `seam` | [`authorization`](../packages/credentials/authorization) | - | [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-oauth-bridge`](../packages/llm/llm-oauth-bridge) | - | Flows are registered by the plugin that knows how to obtain one credential and keyed by the record they write; the seam owns the conversation and the one-attempt-per-key lifecycle, never the protocol. |
+| `ctx.oauthBridge` | `service` | [`llm-oauth-bridge`](../packages/llm/llm-oauth-bridge) | - | [`api-oauth-controller`](../packages/api/oauth-controller) | - | Runs authorization attempts for a UI: one attempt per credential key, with notices and prompts buffered into a safe view. |
+| `ctx.oauthController` | `service` | [`api-oauth-controller`](../packages/api/oauth-controller) | - | - | - | Exposes safe authorization attempt state and account actions through the authenticated gateway. |
+| `ctx.syncOutbox` | `service` | [`sync-outbox`](../packages/sync/sync-outbox) | - | - | - | Persists redacted project-event batches and retries delivery to the sync server. |
+| `ctx.syncMemory` | `service` | [`sync-memory`](../packages/sync/sync-memory) | - | - | - | Stores project memory with full-text search and injects selected records through logged messages. |
 | `ctx.productAnalytics` | `service` | [`client-product-analytics`](../packages/client/product-analytics) | - | - | - | Accepts selected Desktop events, enriches available login identity, and observes live compaction under the live Host collection policy. |
 | `ctx.otel` | `service` | [`otel`](../packages/telemetry/otel) | - | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel), [`session-telemetry-otel`](../packages/session/session-telemetry-otel) | - | Product analytics and Session feedback adapters create independent reporting channels through one injected service. |
 | `ctx.productTelemetry` | `service` | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel) | - | - | - | Exports explicitly submitted analytics events through OTLP/HTTP; mounting alone collects nothing. |
@@ -682,6 +715,7 @@ flowchart LR
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | The backend saves oversized tool text and returns a model-facing locator plus retrieval hint; spill-policy is the tools/post-execute consumer that decides when to spill. |
 | `ctx.directoryPicker` | `seam` | [`host-directory-picker`](../packages/host/directory-picker) | [`host-directory-picker-native`](../packages/host/directory-picker-native), [`host-directory-picker-browse`](../packages/host/directory-picker-browse) | [`api-workspace-controller`](../packages/api/workspace-controller) | - | Discriminated interaction capability: the native backend opens one OS chooser on the host display, the browse backend serves listing/creation primitives for the in-app browser; dual-face backends fill ui-workspace directory-flow slots from their browser halves (no wire advertisement). |
 | `ctx.webServer` | `core` | [`host-webserver`](../packages/host/webserver) | - | [`client-connection`](../packages/client/connection), [`client-modules`](../packages/client/modules), [`client-hmr`](../packages/client/hmr) | - | Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. |
+| `ctx.webApp` | `core` | [`web-app`](../packages/bundle/web-app) | - | [`harness-dev-context`](../packages/context/harness-dev-context) | - | The web-runtime row advertises one URL for its Web GUI: the configured publicUrl, otherwise the listener origin; DSH_WEB_URL, the startup URL, and harness-dev-context read the same value. |
 | `ctx.clientModules` | `core` | [`client-modules`](../packages/client/modules) | - | [`client-hmr`](../packages/client/hmr) | - | Composes the __DSH_BOOT__ entry graph from an incremental dsh.client scan, serves plugin bundles, and notifies rebuilt/graph-changed subscribers. |
 | `ctx.workflowEngine` | `seam` | [`workflow`](../packages/workflow/workflow) | [`workflow-ptc`](../packages/workflow/workflow-ptc) | [`tool-workflow`](../packages/workflow/tool-workflow), [`tool-ralph`](../packages/experimental/tool-ralph) | - | One engine per context, as in bash, with no named-provider registry; the general workflow and fixed Ralph consumers start runs whose agent() calls fan out through ctx.subagents. |
 | `ctx.webhookRuntime` | `core` | [`webhook`](../packages/experimental/webhook) | - | [`webhook-github`](../packages/experimental/webhook-github) | - | Provider adapters dispatch authenticated deliveries; trusted plugins register independent process-local rules, and the runtime turns non-null results into ordinary Workspace-backed Sessions without delivery or completion state. |

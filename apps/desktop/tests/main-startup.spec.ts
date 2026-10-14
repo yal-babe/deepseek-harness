@@ -158,6 +158,7 @@ const harness = await vi.hoisted(async () => {
     getPreferredSystemLanguages: () => ['en-US'],
     getVersion: () => '1.0.0',
     getAppPath: (): string => 'desktop-test-app',
+    setName: vi.fn(),
     setAppLogsPath: vi.fn(),
     getPath: vi.fn<(name: string) => string>(),
     setAboutPanelOptions: vi.fn<(options: Electron.AboutPanelOptionsOptions) => void>(),

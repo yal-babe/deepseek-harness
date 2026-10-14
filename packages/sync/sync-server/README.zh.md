@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 `dsh-sync-server` 是建立在 SQLite WAL 上的 Node HTTP 服务器。它提交幂等批次、列出事件与设备、发放独占项目租约、存储 FTS 项目记忆，并提供首次运行的 `/admin` 控制台。通过 `listenSyncServer`、已构建的 `lib/index.js` 入口或已发布的 Dockerfile 启动。
 
@@ -83,6 +83,8 @@ const server = await listenSyncServer({ dbPath: '/data/studio-sync.sqlite', port
 无；本包从不组装或发送 provider 请求。
 
 ## 已知限制与延期工作
+
+<a id="known-limitations-and-deferred-work"></a>
 
 - **S3 备份是占位** — 管理控制台存储端点设置，并不上传 zip。
 - **没有 TLS 终结器** — 在反向代理中终结 TLS；本进程绑定明文 HTTP。

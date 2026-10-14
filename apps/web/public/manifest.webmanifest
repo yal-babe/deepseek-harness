@@ -1,6 +1,6 @@
 {
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "DSH Studio",
+  "short_name": "DSH Studio",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

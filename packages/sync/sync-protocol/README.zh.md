@@ -1,13 +1,13 @@
 ---
 description: "共享的 Studio 云同步类型与纯函数：品牌化 id、批次校验与密钥脱敏。"
-kind: "package-library"
+kind: "package-reference"
 ---
 
 # @deepseek-ai/dsh-sync-protocol
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 `dsh-sync-protocol` 是 Studio 云同步的无 Cordis 库。调用方品牌化 `StudioProjectId`、`DeviceId`、`SyncBatchId` 与 `MemoryId`，校验 `SyncBatch` 载荷，并在入队或 HTTP 提交前脱敏密钥。它不拥有插件、队列或 HTTP 监听器。
 
@@ -64,6 +64,8 @@ kind: "package-library"
 无；本包从不组装或发送 provider 请求。
 
 ## 已知限制与延期工作
+
+<a id="known-limitations-and-deferred-work"></a>
 
 - **脱敏基于模式** — 未匹配所列密钥形式的值仍留在载荷中；调用方不得把脱敏当作保密证明。
 

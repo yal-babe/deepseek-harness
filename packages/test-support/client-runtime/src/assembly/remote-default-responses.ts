@@ -57,5 +57,7 @@ export const remoteDefaultResponses: RemoteTable = {
     'oauth/watch': openStream([{ status: 'idle', inFlight: false, credentialConfigured: false }]),
     // api-workspace-controller client `apply`: the follow stream's opening baseline, then open.
     'workspace/follow': openStream([{ type: 'baseline', value: { items: [], archivedSessionIds: [], pinnedSessionIds: [] } }]),
+    // api-remote-access client `mountAccess`: the owner's access snapshot, then open.
+    'remoteAccess/follow': openStream([{ type: 'baseline', owner: true }]),
   },
 }

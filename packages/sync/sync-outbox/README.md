@@ -81,6 +81,8 @@ None; the package never assembles or sends provider requests.
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - **No Host-to-Client remote** — the header chip cannot read live outbox status until a later transporter exists.
 
 <a id="dev-note"></a>

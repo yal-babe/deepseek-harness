@@ -28,6 +28,7 @@ const ORDER_EN = '44444444-4444-4444-8444-444444444444'
 const ORDER_RETRY = '55555555-5555-4555-8555-555555555555'
 const ORDER_REPEAT = '66666666-6666-4666-8666-666666666666'
 const ORDER_TOPUP = '77777777-7777-4777-8777-777777777777'
+const ORDER_WEB = '99999999-9999-4999-8999-999999999999'
 
 const CLAIM_DAYS = 30
 
@@ -424,7 +425,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     observations.push(`topup.open gets=${String(platform.gets.length - topUpGetsBefore)} summaries=${String(platform.summaries.length - topUpSummariesBefore)}`)
     const callsBefore = (await platformCalls(page)).length
     await topUpSettings.getByRole('link', { name: '充值', exact: true }).click()
-    const topUpOverlay = page.getByRole('dialog', { name: '返回 DeepSeek Harness', exact: true })
+    const topUpOverlay = page.getByRole('dialog', { name: '返回 DSH Studio', exact: true })
     await topUpOverlay.waitFor()
     // Opening the native view reads nothing by itself.
     expect(platform.gets.length).toBe(topUpGetsBefore + 1)
@@ -436,7 +437,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     platform.grant(ORDER_TOPUP, '11.00')
     // Holding the notice read proves the return does not wait for the refresh it starts.
     platform.holdNextGet()
-    await topUpOverlay.getByRole('button', { name: '返回 DeepSeek Harness', exact: true }).click()
+    await topUpOverlay.getByRole('button', { name: '返回 DSH Studio', exact: true }).click()
     await topUpOverlay.waitFor({ state: 'detached', timeout: 30_000 })
     const topUpCalls = (await platformCalls(page)).slice(callsBefore).join(',')
     observations.push(`topup.returned bridge=${topUpCalls} cards=${String(await noticeCards(page).count())}`)
@@ -540,9 +541,9 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     // Returning from usage refreshes nothing, because only a payment changes the account.
     for (const index of [0, 1]) {
       await failedLinks.nth(index).click()
-      const usageOverlay = page.getByRole('dialog', { name: '返回 DeepSeek Harness', exact: true })
+      const usageOverlay = page.getByRole('dialog', { name: '返回 DSH Studio', exact: true })
       await usageOverlay.waitFor()
-      await usageOverlay.getByRole('button', { name: '返回 DeepSeek Harness', exact: true }).click()
+      await usageOverlay.getByRole('button', { name: '返回 DSH Studio', exact: true }).click()
       await usageOverlay.waitFor({ state: 'detached', timeout: 30_000 })
     }
     const failedUsages = (await platformCalls(page)).filter(call => call === 'open:usage').length - failedUsagesBefore
@@ -566,6 +567,18 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     observations.push(`en.get locale=${String(enGet.locale)} query=${enGet.query}`)
     expect(enGet.locale).toBe('en_US')
     expect(enGet.query).toBe('')
+
+    await enPage.close()
+    await page.close()
+    platform.clearUnnotified()
+    platform.grant(ORDER_WEB, '4.00')
+    const webPage = await browser.newPage({ viewport: { width: 1440, height: 960 }, locale: 'zh-CN' })
+    tripwires.push(watchConsole(webPage))
+    await webPage.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+    const webNotice = await shownNotice(webPage, '已赠送您 4.00 元 DSH 体验赠金。')
+    await expect.poll(() => platform.acks.filter(item => item.orderId === ORDER_WEB).length).toBe(1)
+    observations.push(`web.notice=${webNotice} acks=1`)
+    await webPage.close()
 
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'notice-flow.expected.md'), observations.join('\n'), MODE)
     for (const tripwire of tripwires) {

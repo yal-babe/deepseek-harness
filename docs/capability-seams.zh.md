@@ -103,6 +103,8 @@ flowchart LR
   svc_typert["ctx.typert<br/>Runtime type registry"]
   pkg_typert_loader["typert-loader"]
   svc_typertGateway["ctx.typertGateway<br/>Typert Host invocation gateway"]
+  pkg_api_remote_access["api-remote-access"]
+  svc_remoteAccess["ctx.remoteAccess<br/>Remote method access control"]
   svc_sessionPersistence["ctx.sessionPersistence<br/>Durable session persistence seam"]
   pkg_session_persistence_jsonl["session-persistence-jsonl"]
   pkg_hooks_claude_code["hooks-claude-code"]
@@ -117,12 +119,21 @@ flowchart LR
   pkg_credentials["credentials"]
   svc_credentials["ctx.credentials<br/>Credential seam"]
   pkg_credentials_local["credentials-local"]
+  pkg_credentials_os["credentials-os"]
+  pkg_llm_oauth_bridge["llm-oauth-bridge"]
   pkg_deepseek_account["deepseek-account"]
   svc_deepseekAccount["ctx.deepseekAccount<br/>DeepSeek account"]
   pkg_deepseek_account_platform["deepseek-account-platform"]
   pkg_api_account_controller["api-account-controller"]
   pkg_authorization["authorization"]
   svc_authorization["ctx.authorization<br/>Authorization flow registry"]
+  svc_oauthBridge["ctx.oauthBridge<br/>UI-driven OAuth attempts"]
+  pkg_api_oauth_controller["api-oauth-controller"]
+  svc_oauthController["ctx.oauthController<br/>OAuth account controller"]
+  pkg_sync_outbox["sync-outbox"]
+  svc_syncOutbox["ctx.syncOutbox<br/>Studio sync outbox"]
+  pkg_sync_memory["sync-memory"]
+  svc_syncMemory["ctx.syncMemory<br/>Studio project memory"]
   pkg_client_product_analytics["client-product-analytics"]
   svc_productAnalytics["ctx.productAnalytics<br/>Desktop interaction collection"]
   pkg_otel["otel"]
@@ -274,6 +285,9 @@ flowchart LR
   svc_webServer["ctx.webServer<br/>HTTP route registration"]
   pkg_client_modules["client-modules"]
   pkg_client_hmr["client-hmr"]
+  pkg_web_app["web-app"]
+  svc_webApp["ctx.webApp<br/>Served Web GUI"]
+  pkg_harness_dev_context["harness-dev-context"]
   svc_clientModules["ctx.clientModules<br/>Client plugin graph host"]
   pkg_workflow["workflow"]
   svc_workflowEngine["ctx.workflowEngine<br/>Workflow script engine"]
@@ -293,6 +307,8 @@ flowchart LR
   pkg_agent_preset_registry --> svc_agentPresets
   pkg_api_gateway --> svc_typertGateway
   pkg_api_job_controller --> svc_jobController
+  pkg_api_oauth_controller --> svc_oauthController
+  pkg_api_remote_access --> svc_remoteAccess
   pkg_api_session_controller --> svc_sessionController
   pkg_api_session_controller --> svc_sessionFileReferences
   pkg_api_session_controller --> svc_sessionSkillCatalog
@@ -325,6 +341,7 @@ flowchart LR
   pkg_cordis_host_runner --> svc_dynamicCordisRunner
   pkg_credentials --> svc_credentials
   pkg_credentials_local --> svc_credentials
+  pkg_credentials_os --> svc_credentials
   pkg_deepseek_account --> svc_deepseekAccount
   pkg_deepseek_account_platform --> svc_deepseekAccount
   pkg_deepseek_llm_api_extensions --> svc_deepseekLlmApiExtensions
@@ -360,6 +377,7 @@ flowchart LR
   pkg_jobs_local --> svc_jobs
   pkg_llm --> svc_llm
   pkg_llm_deepseek --> svc_llm
+  pkg_llm_oauth_bridge --> svc_oauthBridge
   pkg_llm_pi_ai --> svc_llm
   pkg_llm_replay --> svc_llm
   pkg_lsp --> svc_lsp
@@ -420,6 +438,8 @@ flowchart LR
   pkg_subprocess --> svc_subprocess
   pkg_subprocess_local --> svc_subprocess
   pkg_subprocess_ssh --> svc_subprocess
+  pkg_sync_memory --> svc_syncMemory
+  pkg_sync_outbox --> svc_syncOutbox
   pkg_system_prompt --> svc_systemPrompt
   pkg_terminal --> svc_terminals
   pkg_terminal_bash --> svc_terminals
@@ -430,6 +450,7 @@ flowchart LR
   pkg_user_approval --> svc_approval
   pkg_user_questions --> svc_userQuestions
   pkg_web --> svc_web
+  pkg_web_app --> svc_webApp
   pkg_web_fetch_http --> svc_web
   pkg_web_search_deepseek --> svc_web
   pkg_web_search_exa --> svc_web
@@ -455,6 +476,7 @@ flowchart LR
   svc_attachments --> pkg_llm_deepseek
   svc_attachments --> pkg_llm_pi_ai
   svc_attachments --> pkg_tool_fs
+  svc_authorization --> pkg_llm_oauth_bridge
   svc_authorization --> pkg_llm_pi_ai
   svc_browserUse --> pkg_experimental_browser_use_chrome_devtools_mcp
   svc_browserUse --> pkg_experimental_browser_use_playwright_mcp
@@ -470,6 +492,7 @@ flowchart LR
   svc_cordisInspect --> pkg_tool_cordis
   svc_credentials --> pkg_api_settings_controller
   svc_credentials --> pkg_llm_deepseek
+  svc_credentials --> pkg_llm_oauth_bridge
   svc_credentials --> pkg_llm_pi_ai
   svc_deepseekAccount --> pkg_api_account_controller
   svc_deepseekAccount --> pkg_llm_deepseek
@@ -489,6 +512,7 @@ flowchart LR
   svc_llm --> pkg_compaction_basic
   svc_lsp --> pkg_tool_lsp
   svc_mcpResources --> pkg_mcp_resources
+  svc_oauthBridge --> pkg_api_oauth_controller
   svc_officeToPdf --> pkg_client_ui_sidebar_documentpreview
   svc_otel --> pkg_host_product_telemetry_otel
   svc_otel --> pkg_session_telemetry_otel
@@ -498,6 +522,9 @@ flowchart LR
   svc_profileContext --> pkg_plugin_manager
   svc_ptcRuntime --> pkg_tools
   svc_ptcRuntime --> pkg_workflow_ptc
+  svc_remoteAccess --> pkg_api_gateway
+  svc_remoteAccess --> pkg_api_session_controller
+  svc_remoteAccess --> pkg_api_workspace_controller
   svc_sandbox --> pkg_bash_sandbox
   svc_sandbox --> pkg_terminal_bash
   svc_sandboxPolicy --> pkg_bash_sandbox
@@ -574,6 +601,7 @@ flowchart LR
   svc_typert --> pkg_typert_loader
   svc_userQuestions --> pkg_tool_ask_user
   svc_web --> pkg_tool_web
+  svc_webApp --> pkg_harness_dev_context
   svc_webServer --> pkg_client_connection
   svc_webServer --> pkg_client_hmr
   svc_webServer --> pkg_client_modules
@@ -628,13 +656,18 @@ flowchart LR
 | `ctx.directoryPickerController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | 把选目录 seam 送上线：能力门禁、取消传播，以及浏览器目录流程用于分支判断的 seam 错误码。 |
 | `ctx.typert` | `core` | [`typert-registry`](../packages/typert/registry) | - | [`typert-loader`](../packages/typert/loader), [`api-gateway`](../packages/api/gateway) | - | 插件直接或通过 dsh-typert-loader 注册实时 zod 贡献；API 网关消费调用描述符和提供方，其他运行时消费方则在各自边界查询 schema 与反射元数据。 |
 | `ctx.typertGateway` | `core` | [`api-gateway`](../packages/api/gateway) | - | - | - | 将生成的 Remote 描述符与实时 Cordis 服务关联，解析已注册的身份，并通过共享的 Connection RPC 载体提供一元调用。 |
+| `ctx.remoteAccess` | `core` | [`api-remote-access`](../packages/api/remote-access) | - | [`api-gateway`](../packages/api/gateway), [`api-session-controller`](../packages/api/session-controller), [`api-workspace-controller`](../packages/api/workspace-controller) | - | 通过业务方注册的基于 role 的 policy 判定非 owner Peer 可调用哪些 Remote 方法，过滤列表结果，并为每个 Peer 推送访问快照。 |
 | `ctx.sessionPersistence` | `seam` | [`session-persistence`](../packages/session/session-persistence) | [`session-persistence-jsonl`](../packages/session/session-persistence-jsonl) | [`agent-loop`](../packages/core/agent-loop), [`tool-bash`](../packages/shell/tool-bash), [`hooks-claude-code`](../packages/experimental/hooks-claude-code), [`hooks-codex`](../packages/experimental/hooks-codex), [`session-query`](../packages/session-query/session-query), [`session-query-sqlite`](../packages/session-query/session-query-sqlite), [`message-feedback`](../packages/feedback/message-feedback) | - | JSONL backend 把 SessionEvent 词汇持久化为每个 Session 一份产物。 |
 | `ctx.configEditor` | `core` | [`config-editor`](../packages/boot/config-editor) | - | [`settings`](../packages/settings/settings), [`agent-default-model`](../packages/core/agent-default-model) | - | Persists profile config patches under the application file lock and HMR queue, then reconciles Loader entries. |
 | `ctx.settings` | `core` | [`settings`](../packages/settings/settings) | - | [`api-settings-controller`](../packages/api/settings-controller) | - | Forms project volatile Config fields from active profile entries and delegate validated edits to config-editor. Plugins consume their own Config references. |
 | `ctx.subagentModelSelection` | `core` | [`tool-subagent`](../packages/subagent/tool-subagent) | - | [`tool-subagent`](../packages/subagent/tool-subagent) | - | 拥有默认关闭的设置命名空间；Agent 作用域的委派工具会在组合新顶层 Session 时读取它。 |
-| `ctx.credentials` | `seam` | [`credentials`](../packages/credentials/credentials) | [`credentials-local`](../packages/credentials/credentials-local) | [`api-settings-controller`](../packages/api/settings-controller), [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | 配置携带对机密信息的引用；提供方拥有实际值。消费方按操作解析，因此轮换后的凭据会在紧接着的下一次请求中生效；settings controller 提供不含实际值的视图和只写存储。 |
+| `ctx.credentials` | `seam` | [`credentials`](../packages/credentials/credentials) | [`credentials-local`](../packages/credentials/credentials-local), [`credentials-os`](../packages/credentials/credentials-os) | [`api-settings-controller`](../packages/api/settings-controller), [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-oauth-bridge`](../packages/llm/llm-oauth-bridge) | - | 配置携带对机密信息的引用；提供方拥有实际值。消费方按操作解析，因此轮换后的凭据会在紧接着的下一次请求中生效；settings controller 提供不含实际值的视图和只写存储。 |
 | `ctx.deepseekAccount` | `seam` | [`deepseek-account`](../packages/credentials/deepseek-account) | [`deepseek-account-platform`](../packages/credentials/deepseek-account-platform) | [`api-account-controller`](../packages/api/account-controller), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | Host 负责浏览器授权和本地凭证；UI 使用方只接收不含 token 的状态。 |
-| `ctx.authorization` | `seam` | [`authorization`](../packages/credentials/authorization) | - | [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | flow 由知道如何取得某份凭据的插件注册，并以其写入的记录为键；seam 拥有这段对话与"每个键同时只跑一次尝试"的生命周期，而非协议本身。 |
+| `ctx.authorization` | `seam` | [`authorization`](../packages/credentials/authorization) | - | [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-oauth-bridge`](../packages/llm/llm-oauth-bridge) | - | flow 由知道如何取得某份凭据的插件注册，并以其写入的记录为键；seam 拥有这段对话与"每个键同时只跑一次尝试"的生命周期，而非协议本身。 |
+| `ctx.oauthBridge` | `service` | [`llm-oauth-bridge`](../packages/llm/llm-oauth-bridge) | - | [`api-oauth-controller`](../packages/api/oauth-controller) | - | 为界面执行授权尝试：每个凭据键对应一次尝试，通知和提问缓冲为不含机密的视图。 |
+| `ctx.oauthController` | `service` | [`api-oauth-controller`](../packages/api/oauth-controller) | - | - | - | 通过已认证的网关提供安全的授权尝试状态和账号操作。 |
+| `ctx.syncOutbox` | `service` | [`sync-outbox`](../packages/sync/sync-outbox) | - | - | - | 持久化已脱敏的项目事件批次，并重试向同步服务器投递。 |
+| `ctx.syncMemory` | `service` | [`sync-memory`](../packages/sync/sync-memory) | - | - | - | 通过全文搜索保存项目记忆，并以已记录的消息注入选中的记录。 |
 | `ctx.productAnalytics` | `service` | [`client-product-analytics`](../packages/client/product-analytics) | - | - | - | 根据 Host 动态采集策略接收指定桌面事件、补充可用登录身份并监听实时压缩。 |
 | `ctx.otel` | `service` | [`otel`](../packages/telemetry/otel) | - | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel), [`session-telemetry-otel`](../packages/session/session-telemetry-otel) | - | 产品埋点和 Session 反馈适配器通过同一个注入服务创建独立上报通道。 |
 | `ctx.productTelemetry` | `service` | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel) | - | - | - | 通过 OTLP/HTTP 发送显式提交的分析事件；仅挂载插件不会采集信息。 |
@@ -684,6 +717,7 @@ flowchart LR
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | 后端保存过大的工具文本，并返回面向模型的定位信息和取回提示；spill-policy 是 tools/post-execute 消费方，负责决定何时 spill。 |
 | `ctx.directoryPicker` | `seam` | [`host-directory-picker`](../packages/host/directory-picker) | [`host-directory-picker-native`](../packages/host/directory-picker-native), [`host-directory-picker-browse`](../packages/host/directory-picker-browse) | [`api-workspace-controller`](../packages/api/workspace-controller) | - | 带判别标记的交互能力：原生后端在 Host 显示设备上打开一个操作系统选择器，浏览后端为应用内浏览器提供列表与创建原语；双端后端通过其浏览器侧填充 ui-workspace 目录流程的 slot（不通过协议发布）。 |
 | `ctx.webServer` | `core` | [`host-webserver`](../packages/host/webserver) | - | [`client-connection`](../packages/client/connection), [`client-modules`](../packages/client/modules), [`client-hmr`](../packages/client/hmr) | - | 普通的 node:http 载体：具名路由注册表、索引转换 tap，以及静态 dist 回退；Web 传输插件注册自己的路由。 |
+| `ctx.webApp` | `core` | [`web-app`](../packages/bundle/web-app) | - | [`harness-dev-context`](../packages/context/harness-dev-context) | - | web-runtime 行为其 Web GUI 公告一个 URL：配置了 publicUrl 时用它，否则用监听器 origin；DSH_WEB_URL、启动 URL 与 harness-dev-context 读取同一个值。 |
 | `ctx.clientModules` | `core` | [`client-modules`](../packages/client/modules) | - | [`client-hmr`](../packages/client/hmr) | - | 通过增量 `dsh.client` 扫描组合 __DSH_BOOT__ 入口图，提供插件组合包，并通知重建／图变更订阅方。 |
 | `ctx.workflowEngine` | `seam` | [`workflow`](../packages/workflow/workflow) | [`workflow-ptc`](../packages/workflow/workflow-ptc) | [`tool-workflow`](../packages/workflow/tool-workflow), [`tool-ralph`](../packages/experimental/tool-ralph) | - | 每个上下文使用一个引擎，与 bash 相同，且没有具名提供方注册表；通用工作流与固定 Ralph 消费方启动运行，其中的 agent() 调用通过 ctx.subagents 扇出。 |
 | `ctx.webhookRuntime` | `core` | [`webhook`](../packages/experimental/webhook) | - | [`webhook-github`](../packages/experimental/webhook-github) | - | 提供方适配器分派已认证交付；可信插件注册独立的进程本地规则，runtime 把非 null 结果转换为普通的 Workspace-backed Session，不保留交付或完成状态。 |

@@ -61,7 +61,7 @@ import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import { catalogProvider } from './catalog.ts'
 import { rewriteCodexPayload } from './codex-payload.ts'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
-import { toPiContext } from './context.ts'
+import { requestImageTarget, toPiContext } from './context.ts'
 import { conversationUpdates, createModels, getSupportedThinkingLevels } from './models.ts'
 import { toStreamChunks } from './stream.ts'
 
@@ -89,7 +89,8 @@ export interface PiAiAdapterOptions {
   profiles: () => ReadonlyMap<string, ResolvedPiAiProviderProfile>
   /**
    * Resolve the credential for one already-resolved profile; called once per
-   * stream call and frozen for that call. `undefined` defers to the route's own
+   * stream call and frozen for that call, and by `listModels`, which offers no
+   * models while it throws `MISSING_CREDENTIAL`. `undefined` defers to the route's own
    * pi-ai auth, which for an installed catalog route is its provider-native
    * ambient discovery; the plugin allows that only for a profile naming no
    * credential at all, because a named reference that misses throws `LlmError`
@@ -236,6 +237,13 @@ export class PiAiAdapter extends LlmAdapter {
     super()
   }
 
+  override imageRequestTarget(provider: string, model: string, image: ImageAttachmentRef) {
+    const snapshot = this.current()
+    this.modelOf(snapshot, provider, model)
+    const profile = this.profileOf(snapshot, provider)
+    return requestImageTarget(image, { maxPixels: profile.requestImagePixelBudget, maxBytes: profile.requestImageMaxBytes })
+  }
+
   /**
    * The snapshot for the current profiles. Resolution memoizes its result, so
    * an unchanged configuration is recognized by identity; a changed one gets a
@@ -286,17 +294,24 @@ export class PiAiAdapter extends LlmAdapter {
     return this.current().profiles.get(provider)?.retryPolicy
   }
 
-  override async listModels(provider: string): Promise<readonly LlmModelInfo[]> {
-    const snapshot = this.current()
-    this.profileOf(snapshot, provider)
-    const profile = snapshot.profiles.get(provider)
-    if (profile !== undefined && await this.hideOauthCatalog(provider, profile)) return []
-    return snapshot.models.getModels(provider).map(model => ({
-      provider,
-      id: model.id,
-      name: model.name,
-      inputModalities: [...model.input],
-    }))
+  override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
+    return Promise.resolve().then(async () => {
+      const snapshot = this.current()
+      const profile = this.profileOf(snapshot, provider)
+      if (await this.hideOauthCatalog(provider, profile)) return []
+      try { await this.config.resolveApiKey(provider, profile) }
+      catch (error) {
+        // A route whose named key does not resolve cannot serve a request, so it offers no models until the key is stored.
+        if (error instanceof LlmError && error.code === 'MISSING_CREDENTIAL') return []
+        throw error
+      }
+      return snapshot.models.getModels(provider).map(model => ({
+        provider,
+        id: model.id,
+        name: model.name,
+        inputModalities: [...model.input],
+      }))
+    })
   }
 
   /**

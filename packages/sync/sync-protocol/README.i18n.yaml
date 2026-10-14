@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/sync/sync-protocol/README.md
 /:
-  en: 2bba883d4a25479b
-  zh: b0f9605443e4fe10
+  en: c6ea8d8615ebe028
+  zh: c5f07d645fa6b24f
 /deepseek-ai-dsh-sync-protocol:
   en: 2fe2ae069bcff45f
   zh: c9c4d1a454320b72
 /deepseek-ai-dsh-sync-protocol/summary:
   en: 15da7f6f5a85d687
-  zh: 6a84e63d05f5015a
+  zh: 20109bda7b738ea5
 /deepseek-ai-dsh-sync-protocol/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
@@ -30,8 +30,8 @@
   en: 47f982e326fe77fd
   zh: 9f2be5c9af23d759
 /deepseek-ai-dsh-sync-protocol/known-limitations-and-deferred-work:
-  en: 4d8505b9a0bb9686
-  zh: b45652e782c30863
+  en: 0de39b1f7df07fe3
+  zh: d0a495371049d196
 /deepseek-ai-dsh-sync-protocol/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 8ec3e73528ddb1a6

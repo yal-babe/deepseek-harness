@@ -30,6 +30,8 @@ flowchart LR
   cfg --> plugin_dsh_base_typert_loader
   plugin_dsh_base_typert_gateway["typert-gateway<br/>@deepseek-ai/dsh-api-gateway"]
   cfg --> plugin_dsh_base_typert_gateway
+  plugin_dsh_base_remote_access["remote-access<br/>@deepseek-ai/dsh-api-remote-access"]
+  cfg --> plugin_dsh_base_remote_access
   plugin_dsh_base_session_title["session-title<br/>@deepseek-ai/dsh-session-title"]
   cfg --> plugin_dsh_base_session_title
   plugin_dsh_base_session_title_llm["session-title-llm<br/>@deepseek-ai/dsh-session-title-first-prompt-llm"]
@@ -58,6 +60,8 @@ flowchart LR
   cfg --> plugin_dsh_base_credentials
   plugin_dsh_base_llm_pi_ai["llm-pi-ai<br/>@deepseek-ai/dsh-llm-pi-ai"]
   cfg --> plugin_dsh_base_llm_pi_ai
+  plugin_dsh_base_llm_antigravity["llm-antigravity<br/>@deepseek-ai/dsh-llm-antigravity"]
+  cfg --> plugin_dsh_base_llm_antigravity
   plugin_dsh_base_session_persistence_jsonl["session-persistence-jsonl<br/>@deepseek-ai/dsh-session-persistence-jsonl"]
   cfg --> plugin_dsh_base_session_persistence_jsonl
   plugin_dsh_base_attachment_local["attachment-local<br/>@deepseek-ai/dsh-attachment-local"]
@@ -211,6 +215,7 @@ flowchart LR
 | `typert` | `@deepseek-ai/dsh-typert-registry` |
 | `typert-loader` | `@deepseek-ai/dsh-typert-loader` |
 | `typert-gateway` | `@deepseek-ai/dsh-api-gateway` |
+| `remote-access` | `@deepseek-ai/dsh-api-remote-access` |
 | `session-title` | `@deepseek-ai/dsh-session-title` |
 | `session-title-llm` | `@deepseek-ai/dsh-session-title-first-prompt-llm` |
 | `user-questions` | `@deepseek-ai/dsh-user-questions` |
@@ -225,6 +230,7 @@ flowchart LR
 | `deepseek-account` | `@deepseek-ai/dsh-deepseek-account-platform` |
 | `credentials` | `@deepseek-ai/dsh-credentials-local` |
 | `llm-pi-ai` | `@deepseek-ai/dsh-llm-pi-ai` |
+| `llm-antigravity` | `@deepseek-ai/dsh-llm-antigravity` |
 | `session-persistence-jsonl` | `@deepseek-ai/dsh-session-persistence-jsonl` |
 | `attachment-local` | `@deepseek-ai/dsh-attachment-local` |
 | `session-query-sqlite` | `@deepseek-ai/dsh-session-query-sqlite` |

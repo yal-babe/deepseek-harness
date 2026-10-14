@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 `dsh-sync-outbox` 即 `ctx.syncOutbox`：一个 JSON 队列，先脱敏密钥、校验批次，再重试 `POST /v1/batches`。状态为 `pending`、`syncing`、`synced` 或 `failed`。空的 `serverUrl` 只在本地存储、不发 HTTP。会话日志捕获是可选的，需要 `projectId` 与 `deviceId`。
 
@@ -80,6 +80,8 @@ kind: "package-reference"
 无；本包从不组装或发送 provider 请求。
 
 ## 已知限制与延期工作
+
+<a id="known-limitations-and-deferred-work"></a>
 
 - **没有 Host 到 Client 的 remote** — 在后续传输层出现之前，标题栏芯片无法读取实时 outbox 状态。
 

@@ -48,3 +48,8 @@ OAuth 界面使用经过认证的 Remote 操作和快照流。控制器提供尝
 <a id="known-limitations-and-deferred-work"></a>
 
 - UI 断线后可通过 watch 恢复状态，但不能在 Host 退出后恢复尝试。凭据值不对 Remote 暴露。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。

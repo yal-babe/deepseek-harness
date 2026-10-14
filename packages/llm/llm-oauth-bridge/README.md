@@ -48,3 +48,8 @@ No model request prefix changes.
 <a id="known-limitations-and-deferred-work"></a>
 
 - An attempt lives in the process that started it, so a UI reload or Host exit abandons it and the human starts over. Sign-out deletes the local record and does not revoke the grant at the issuer.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.

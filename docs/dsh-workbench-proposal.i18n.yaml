@@ -1,0 +1,64 @@
+# Bilingual-pair consistency record for dsh-workbench-proposal.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/dsh-workbench-proposal.md
+/dsh-studio-implementation-proposal:
+  en: ced2ec90f94449c8
+  zh: 74758a25ea4df447
+/dsh-studio-implementation-proposal/1-product-and-technical-foundation:
+  en: a736d0bb6948888e
+  zh: dda5e55c4fb4936d
+/dsh-studio-implementation-proposal/2-modules:
+  en: 625c6a3a0f5136bc
+  zh: 859b4e73d4036d4a
+/dsh-studio-implementation-proposal/3-authentication-and-model-integration:
+  en: 1926abd7e393ceb0
+  zh: f6ffa3e765d61343
+/dsh-studio-implementation-proposal/3-authentication-and-model-integration/3-1-codex-and-antigravity:
+  en: 7fd3796e7d96ad77
+  zh: 7aea351146099e8f
+/dsh-studio-implementation-proposal/3-authentication-and-model-integration/3-2-custom-apis:
+  en: 6961f87fa69bd9ce
+  zh: 6efc40087afe96cd
+/dsh-studio-implementation-proposal/4-agent-teams:
+  en: 78e39c983c59455e
+  zh: ffda10efa4dbd67e
+/dsh-studio-implementation-proposal/5-cloud-memory:
+  en: 76bec18a60f23e2c
+  zh: 364bd7e05859ce51
+/dsh-studio-implementation-proposal/5-cloud-memory/5-1-data:
+  en: 3156c6f33ca325a1
+  zh: f37d930297f433ae
+/dsh-studio-implementation-proposal/5-cloud-memory/5-2-use-and-retrieval:
+  en: 101c9e9937a9b885
+  zh: e6a98b66b375814f
+/dsh-studio-implementation-proposal/6-sync-and-cross-device-recovery:
+  en: eb8d0f6edbd2f77e
+  zh: 50060534f2de5e65
+/dsh-studio-implementation-proposal/6-sync-and-cross-device-recovery/6-1-sync:
+  en: d2258d453bc8d154
+  zh: fa7845a8afeea76c
+/dsh-studio-implementation-proposal/6-sync-and-cross-device-recovery/6-2-recovery-flow:
+  en: 5bd19716ec7c3691
+  zh: a4a50cc28391743a
+/dsh-studio-implementation-proposal/7-server-and-web-administration:
+  en: f2dcf48dbe69718d
+  zh: 650349cc8296b3af
+/dsh-studio-implementation-proposal/8-desktop-interaction:
+  en: a93f82c4cca13b8d
+  zh: 2ab476ef1d39a76e
+/dsh-studio-implementation-proposal/8-desktop-interaction/dialogs:
+  en: 32910e20ac4727ff
+  zh: a3c1608a84195fe2
+/dsh-studio-implementation-proposal/8-desktop-interaction/shortcuts:
+  en: 8845beca04ab0370
+  zh: ebdb0dcc0abd960a
+/dsh-studio-implementation-proposal/9-implementation-stages:
+  en: 55bb9690cfe88996
+  zh: 317d11b4e6974c69
+/dsh-studio-implementation-proposal/10-acceptance-criteria:
+  en: cb6993c8747abf98
+  zh: 6c95a896b03f4241
+/dsh-studio-implementation-proposal/11-technical-references:
+  en: 1fdf73a6a1827ad9
+  zh: 86d5afa0f6e92ebb

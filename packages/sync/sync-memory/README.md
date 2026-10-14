@@ -92,6 +92,8 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - **Retrieval is lexical FTS** — there is no embedding ranker; punctuation-only queries fall back to recency order.
 
 <a id="dev-note"></a>

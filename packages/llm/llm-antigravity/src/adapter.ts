@@ -466,7 +466,12 @@ function textOf(content: readonly ContentBlock[]): string {
   return parts.join('')
 }
 
-/** Translate Cloud Code SSE into harness chunks. @param body - response bytes. @param activity - idle-watchdog pulse. */
+/**
+ * Translate Cloud Code SSE into harness chunks.
+ * @param body - response bytes.
+ * @param activity - idle-watchdog pulse.
+ * @returns translated model response chunks.
+ */
 export async function* translateSse(
   body: ReadableStream<BufferSource>,
   activity: () => void,

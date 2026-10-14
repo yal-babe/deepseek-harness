@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 `dsh-client-ui-sync` 在会话标题栏 utilities 带显示本地云同步状态。芯片始终渲染 pending、syncing、synced 或 failed 之一。浏览器半侧拥有 slot；Node 半侧是 Loader 空操作。
 
@@ -59,6 +59,8 @@ kind: "package-reference"
 无；本包从不组装或发送 provider 请求。
 
 ## 已知限制与延期工作
+
+<a id="known-limitations-and-deferred-work"></a>
 
 - **未接线实时 Host 状态** — 芯片显示注入的快照，在 Host→Client remote 出现之前默认为 `synced`。
 

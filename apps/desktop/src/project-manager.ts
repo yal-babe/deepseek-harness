@@ -44,10 +44,13 @@ const WORKSPACE_SETTINGS = 'nodeLinker: hoisted\nautoInstallPeers: false\n'
 const DESKTOP_CREDENTIALS_PATCH = `# Desktop stores API keys in the OS keychain (macOS Keychain / Windows DPAPI).
 # Use backend: file to keep $DSH_HOME/.credentials.yaml instead.
 - id: credentials
-  name: '@deepseek-ai/dsh-credentials-os'
-  config:
-    backend: os
-    service: dsh-studio
+  disabled: true
+- insert:
+    - id: credentials-os
+      name: '@deepseek-ai/dsh-credentials-os'
+      config:
+        backend: os
+        service: dsh-studio
 `
 
 function writeJson(path: string, value: unknown): void {

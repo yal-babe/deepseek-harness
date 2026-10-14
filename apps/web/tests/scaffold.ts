@@ -78,7 +78,7 @@ import {
   type SessionEvent,
   type SessionHeader,
 } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 // Empty type imports carry the webServer/agents/sessionPersistence Context merges.
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-agent'
@@ -117,7 +117,7 @@ export const WELCOME_NOTICE_VERSION = '2026-09-28.1'
 export const WELCOME_NOTICE_COPY = {
   zh: {
     title: '预览版说明',
-    body: 'DeepSeek Harness 目前的 0.2 版本仍处于预览阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者和用户的反馈建议。现在，新的桌面端面向广泛用户，开发者相关的进阶功能可在配置中开启使用。预计 DeepSeek Harness 的产品功能以及插件 API 都会继续快速迭代、持续演化，并逐渐趋于稳定。\n\n我们期待与全球用户和开发者一起，在开源、可复用、可组合的基础设施之上，共同探索智能上限。欢迎大家用 DeepSeek Harness 将想法变成现实，与社区一起丰富插件生态。',
+    body: 'DSH Studio 目前的 0.2 版本仍处于预览阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者和用户的反馈建议。现在，新的桌面端面向广泛用户，开发者相关的进阶功能可在配置中开启使用。预计 DSH Studio 的产品功能以及插件 API 都会继续快速迭代、持续演化，并逐渐趋于稳定。\n\n我们期待与全球用户和开发者一起，在开源、可复用、可组合的基础设施之上，共同探索智能上限。欢迎大家用 DSH Studio 将想法变成现实，与社区一起丰富插件生态。',
     continueLabel: '继续',
   },
 } as const
@@ -310,6 +310,8 @@ export interface LaunchOptions {
   openInAppEnvironment?: LaunchEnvironmentSnapshot
   /** Compare the replayed root Session; `read-only` also forbids refresh writes to a borrowed fixture. */
   compareReplaySession?: boolean | 'read-only'
+  /** Fixed JSON-quoted workspace path length for compaction estimates; omitted values use the ordinary prefix. */
+  workspacePathLength?: number
   /**
    * Optional product overlay applied after the shipped Web surface and before
    * the scaffold's hermetic test patches, matching the launcher's `--patch`
@@ -502,7 +504,15 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       process.env.DEEPSEEK_API_KEY = originalDeepSeekCredential
     }
   }
-  const workspaceCwd = await realpath(await mkdtemp(join(tmpdir(), 'dsh-web-e2e-ws-')))
+  const workspaceParent = await realpath(tmpdir())
+  let workspacePrefix = 'dsh-web-e2e-ws-'
+  if (options.workspacePathLength !== undefined) {
+    // mkdtemp appends six characters; JSON quoting is part of the runtime-context text.
+    const paddingLength = options.workspacePathLength - JSON.stringify(join(workspaceParent, `${workspacePrefix}XXXXXX`)).length
+    if (paddingLength < 0) throw new Error('compaction snapshot temporary root exceeds its fixed cwd text length')
+    workspacePrefix += '-'.repeat(paddingLength)
+  }
+  const workspaceCwd = await realpath(await mkdtemp(join(workspaceParent, workspacePrefix)))
   // Isolated harness home: the settings/credentials rows resolve $DSH_HOME
   // paths at load, and an in-process boot must NEVER touch the developer's
   // real ~/.dsh document or credential file.
@@ -887,10 +897,10 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       baseUrl = `http://${publicHost}:${String(publicProxy.port)}${publicPrefix}`
     }
     authenticatedUrl = ctx.connection.authenticatedUrl(baseUrl)
-    // Chromium resolves *.localhost itself; Node may not, so a mounted scaffold
-    // posts the exchange to loopback, the authority the Host fence always trusts.
+    // Chromium resolves *.localhost itself; Node may not. Both scaffold
+    // listeners bind loopback, including the optional prefix proxy.
     const loginUrl = new URL(authenticatedUrl)
-    if (publicPrefix !== undefined) loginUrl.hostname = '127.0.0.1'
+    loginUrl.hostname = '127.0.0.1'
     const login = await fetch(loginUrl, { redirect: 'manual' })
     const setCookie = login.headers.get('set-cookie')
     if (login.status !== 303 || login.headers.get('location') !== './' || setCookie === null) {
@@ -998,8 +1008,10 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
 /**
  * Serialize a live session to the canonical raw session-JSONL layout — the
  * in-memory record-mode harvest, so the on-disk zstd default never matters.
+ * @param session - Captured live Session, including any inherited fork prefix.
+ * @returns Current-writer Session JSONL.
  */
-function rawSessionLog(session: Session): string {
+export function rawSessionLog(session: Session): string {
   const encodedEvents = (session.snapshotEvents() as unknown as readonly SessionFormatEvent[])
     .map(event => sessionFormatCatalog.encodeCurrentEvent(event))
   const header = sessionFormatCatalog.encodeCurrentHeader({
@@ -1126,6 +1138,9 @@ export function normalizeWebSessionVolatiles(log: string, workspaceCwd?: string)
     let record = normalizeClientTimeZones(mapJsonStringValues(JSON.parse(line), (value) => {
       let normalized = value
         .replace(/Anonymous user: [0-9a-f-]{36}(?=\.$)/gi, 'Anonymous user: {{anonymousUserId}}')
+        // The checkout path and listener port differ per machine and run.
+        .replace(/Current DSH Studio implementation checkout: "(?:[^"\\]|\\.)*"\./g, 'Current DSH Studio implementation checkout: "{{sourceRoot}}".')
+        .replace(/Current DSH Studio Web GUI URL: "(?:[^"\\]|\\.)*"\./g, 'Current DSH Studio Web GUI URL: "{{webUrl}}".')
       for (const cwd of cwdSpellings) normalized = replaceWebCwd(normalized, cwd)
       return normalized
     })) as { type?: unknown; data?: { endpoint?: unknown } }
@@ -1545,6 +1560,7 @@ function normalizeAria(snapshot: string, workspaceCwd: string, age: boolean): st
     .split(workspaceCwd).join('{{cwd}}')
     .split(base).join('{{workspace}}')
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '{{uuid}}')
+    .replace(/(?<=-)[0-9a-f]{16}(?![0-9a-f])/gi, '{{uuid}}')
     // The optional space in `\d+m ?\d+s` covers both minute spellings: the
     // stats line's compact `2m42s` and the message-chrome template's `2m 42s`.
     .replace(

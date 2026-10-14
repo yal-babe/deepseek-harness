@@ -155,6 +155,7 @@ export async function exchangeToken(
 /**
  * Translate a token-endpoint JSON body into a stored grant.
  * @param raw - decoded token response.
+ * @param now - current epoch milliseconds used to calculate expiry.
  * @returns the grant to commit.
  */
 export function grantFromTokenResponse(raw: unknown, now = Date.now()): AntigravityGrant {
@@ -196,7 +197,7 @@ export function registerAntigravityFlow(
 interface HostCallbackServer {
   readonly protocol: string
   readonly host: string
-  readonly port: number
+  readonly port: number | undefined
   register(route: {
     kind: 'exact'
     path: string
@@ -240,6 +241,7 @@ function hostCallbackServer(ctx: Context): HostCallbackServer | undefined {
 }
 
 function callbackOrigin(webServer: HostCallbackServer): string {
+  if (webServer.port === undefined) throw new Error('Antigravity OAuth requires a listening Host callback server')
   const host = webServer.host.includes(':') ? `[${webServer.host}]` : webServer.host
   return `${webServer.protocol}//${host}:${String(webServer.port)}`
 }

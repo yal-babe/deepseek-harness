@@ -46,3 +46,8 @@ No model request prefix changes.
 <a id="known-limitations-and-deferred-work"></a>
 
 - Only the shipped `openai-codex` and Antigravity account rows are wired. Other llm-pi-ai OAuth providers do not render these controls. A Host restart abandons an in-flight attempt.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.

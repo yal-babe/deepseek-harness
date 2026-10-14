@@ -52,6 +52,11 @@
     - id: typert-gateway
       name: '@deepseek-ai/dsh-api-gateway'
 
+    # Method-level access control for non-owner Peers; the Gateway requires it,
+    # and its Client half publishes the standard access Hooks.
+    - id: remote-access
+      name: '@deepseek-ai/dsh-api-remote-access'
+
     - id: session-title
       name: '@deepseek-ai/dsh-session-title'
       config:
@@ -105,8 +110,8 @@
       name: '@deepseek-ai/dsh-settings'
       disabled: !!js "!ctx.get('profileContext')"
 
-    # Credential sources: inherited environment over the managed
-    # `$DSH_HOME/.credentials.yaml`, with project and user `.env` fallbacks.
+    # Credential sources: managed `$DSH_HOME/.credentials.yaml`, then inherited
+    # environment, project `.env`, and user `.env` fallbacks.
     # Adapters resolve references per request; the Models page writes only the
     # managed document, which is never materialized into the process environment.
     - id: authorization
@@ -117,7 +122,7 @@
       config:
         desktopPlatform: !!js "ctx.get('profileContext')?.name === 'desktop' && ['darwin', 'win32'].includes(process.platform) ? process.platform : null"
 
-    # Desktop replaces this row with `@deepseek-ai/dsh-credentials-os` (backend os)
+    # Desktop disables this row and inserts `@deepseek-ai/dsh-credentials-os` (backend os)
     # via the profile `cordis.patch.yml` seeded by apps/desktop project init.
     - id: credentials
       name: '@deepseek-ai/dsh-credentials-local'

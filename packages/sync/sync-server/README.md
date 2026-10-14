@@ -84,6 +84,8 @@ None; the package never assembles or sends provider requests.
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - **S3 backup is a stub** — the admin console stores endpoint settings and does not upload the zip.
 - **No TLS terminator** — terminate TLS in a reverse proxy; the process binds plain HTTP.
 

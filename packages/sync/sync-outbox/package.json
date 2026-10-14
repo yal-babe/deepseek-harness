@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sync-outbox",
   "description": "Local durable cloud-sync queue with retry, status, and secret redaction before enqueue",
-  "version": "0.2.1-alpha.2",
+  "version": "0.2.1-alpha.3",
   "publishConfig": {
     "access": "public"
   },

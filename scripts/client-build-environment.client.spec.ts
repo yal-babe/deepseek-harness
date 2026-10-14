@@ -82,7 +82,7 @@ describe('client build environment', () => {
     const expected = {
       DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_TITLE: 'DSH Studio',
       DSH_CLIENT_VERSION: '1.2.3',
     } as const
 
@@ -112,7 +112,7 @@ describe('client build environment', () => {
     expect(resolveClientBuildEnvironment(parent)).toEqual({
       DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_TITLE: 'DSH Studio',
       DSH_CLIENT_VERSION: '1.2.3',
     })
     expect(() => {
@@ -128,13 +128,13 @@ describe('client build environment', () => {
     expect(clientBuildProcessEnvironment(parent, {
       DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_TITLE: 'DSH Studio',
       DSH_CLIENT_VERSION: '1.2.3',
     })).toEqual({
       PATH: '/bin',
       DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_TITLE: 'DSH Studio',
       DSH_CLIENT_VERSION: '1.2.3',
     })
     expect(repositoryCommitHash('/unused', { DSH_CLIENT_COMMIT_HASH: COMMIT_HASH })).toBe(COMMIT_HASH.slice(0, 7))
@@ -159,7 +159,7 @@ describe('client build environment', () => {
     expect(officialClientBuildEnvironment(fixtureRoot)).toEqual({
       DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: commit,
-      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_TITLE: 'DSH Studio',
       DSH_CLIENT_VERSION: '1.2.3-rc.4',
     })
 
@@ -232,7 +232,7 @@ describe('client build environment', () => {
   it('feeds the same build-process value to dynamic tsdown bundles and the Vite shell', async () => {
     process.env[PROBE_NAME] = 'shared-value'
 
-    const configs = clientBundle('@deepseek-ai/dsh-client-ui-sidebar', [
+    const configs = clientBundle(join(import.meta.dirname, '../packages/client/ui-sidebar'), [
       'lib/types/index.js',
     ])({ env: { DSH_BUILD_FACE: 'client' } })
     if (!Array.isArray(configs)) throw new TypeError('client bundle config must be an array')
@@ -262,7 +262,7 @@ describe('client build environment', () => {
     const officialEnvironment = {
       DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_TITLE: 'DSH Studio',
       DSH_CLIENT_VERSION: '1.2.3',
     }
     const official = buildFixture(officialEnvironment)
@@ -278,6 +278,13 @@ describe('client build environment', () => {
     const chunked = buildFixture(officialEnvironment)
     write(join(chunked, 'packages/client/example/lib/client.pdf.js'), 'module.exports = {}\n')
     expect(() => { readClientBuildRecord(chunked) }).toThrow(/artifacts differ/)
+
+    const dual = buildFixture(officialEnvironment)
+    write(join(dual, 'packages/client/example/lib/client.node.js'), 'export const node = true\n')
+    write(join(dual, 'packages/client/example/lib/client.node.helper.js'), 'export const helper = true\n')
+    expect(() => { readClientBuildRecord(dual) }).not.toThrow()
+    write(join(dual, 'packages/client/example/lib/client.browser.js'), 'module.exports = { browser: true }\n')
+    expect(() => { readClientBuildRecord(dual) }).toThrow(/artifacts differ/)
   })
 
   it('keeps public client values out of workflow-wide environments', () => {

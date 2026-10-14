@@ -35,10 +35,13 @@ Choose it on Desktop when secrets should live in macOS Keychain or Windows DPAPI
 
 ```yaml
 - id: credentials
-  name: '@deepseek-ai/dsh-credentials-os'
-  config:
-    backend: os
-    service: dsh-studio
+  disabled: true
+- insert:
+    - id: credentials-os
+      name: '@deepseek-ai/dsh-credentials-os'
+      config:
+        backend: os
+        service: dsh-studio
 ```
 
 | Field | Default | Meaning |

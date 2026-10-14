@@ -22,5 +22,5 @@
   "windows": "studio.ico",
   "macOS": "studio.icns",
   "tray": "tray.ico",
-  "status": "Standalone resources; application references unchanged."
+  "status": "Active desktop application, tray, and Web artwork."
 }
