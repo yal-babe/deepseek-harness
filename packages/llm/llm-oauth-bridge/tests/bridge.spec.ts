@@ -195,7 +195,7 @@ it('does not finish start on a progress notice before the authorize URL', async 
   void pending.then(() => { settled = true })
   await Promise.resolve()
   expect(settled).toBe(false)
-  gate.resolve()
+  gate.resolve(undefined)
   await expect(pending).resolves.toMatchObject({
     status: 'waiting-browser',
     authorizeUrl: 'https://auth.example/start',
@@ -223,7 +223,7 @@ it('holds start until the flow prompts after an initial await', async () => {
   }))
   const pending = ctx.oauthBridge.start(KEY_TEXT)
   await expect.poll(() => ctx.authorization.describe(KEY)?.inFlight).toBe(true)
-  gate.resolve()
+  gate.resolve(undefined)
   await expect(pending).resolves.toMatchObject({ status: 'prompting', inFlight: true })
   await ctx.oauthBridge.cancel(KEY_TEXT)
 })

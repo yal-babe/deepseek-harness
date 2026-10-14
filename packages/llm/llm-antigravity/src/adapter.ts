@@ -429,17 +429,14 @@ function jsonObject(raw: unknown): Record<string, unknown> {
     try { parsed = JSON.parse(raw) } catch { return { value: raw } }
     return jsonObject(parsed)
   }
-  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) return raw
-  if (raw === undefined) return {}
-  return { value: raw }
+  return asObject(raw) ?? (raw === undefined ? {} : { value: raw })
 }
 
 function responsePayload(text: string): Record<string, unknown> {
   if (text.length === 0) return { output: '' }
   try {
     const parsed: unknown = JSON.parse(text)
-    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) return parsed
-    return { output: parsed }
+    return asObject(parsed) ?? { output: parsed }
   } catch {
     return { output: text }
   }

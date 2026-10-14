@@ -77,7 +77,7 @@ export async function mockServer(script: {
       requests.push(body.length === 0 ? undefined : JSON.parse(body))
       headers.push(request.headers)
       received += 1
-      requestReceived.resolve()
+      requestReceived.resolve(undefined)
       for (const waiter of waiters) {
         if (received >= waiter.count) waiter.resolve()
       }
