@@ -11,6 +11,12 @@
  * included in `outputTokens` and are not accumulated again.
  */
 export interface TokenUsageProjection {
+  /** Present when at least one request omitted cache-read accounting. */
+  cacheReadUnknown?: boolean | undefined
+  /** Present when at least one request omitted exact usage. */
+  incomplete?: boolean | undefined
+  /** Reported total when it differs from the sum of known buckets. */
+  totalTokens?: number | undefined
   uncachedInputTokens: number
   outputTokens: number
   cacheReadTokens: number

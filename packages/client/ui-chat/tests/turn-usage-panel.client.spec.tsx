@@ -105,3 +105,15 @@ describe('TurnUsagePanel', () => {
     expect(view.queryByRole('dialog')).toBeNull()
   })
 })
+
+
+describe('partial token accounting', () => {
+  it('labels known totals and hides an incomplete cache percentage', () => {
+    const usage: TurnTokenUsage = { uncachedInputTokens: 10, outputTokens: 2, totalTokens: 12, cacheReadTokens: 0, incomplete: true }
+    const view = render(<TurnUsagePanel usage={usage} t={t} />)
+    const trigger = view.getByRole('button')
+    expect(trigger.textContent).toContain('Known usage 12 tok (incomplete)')
+    fireEvent.click(trigger)
+    expect(view.getByRole('dialog').textContent).not.toContain('Cache hit')
+  })
+})

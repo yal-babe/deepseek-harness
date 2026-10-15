@@ -81,7 +81,7 @@ describe('deriveTurnTokenUsage', () => {
     })
   })
 
-  it('derives an exact total only when both cache buckets are present', () => {
+  it('labels derived totals as incomplete when cache buckets are missing', () => {
     expect(deriveTurnTokenUsage(completeAttempt(message(3, usage({
       totalTokens: undefined,
       inputTokens: 10,
@@ -93,7 +93,7 @@ describe('deriveTurnTokenUsage', () => {
     expect(deriveTurnTokenUsage(completeAttempt(message(3, usage({
       totalTokens: undefined,
       cacheWriteTokens: undefined,
-    }))))).toBeUndefined()
+    }))))).toMatchObject({ totalTokens: 170, incomplete: true })
   })
 
   it('lets final message usage replace the latest streaming sample', () => {

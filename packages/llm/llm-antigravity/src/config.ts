@@ -93,6 +93,8 @@ export interface Config {
   models: Volatile<AntigravityCatalogModel[]>
   /** Deadline for each HTTP request, including token exchange and refresh. */
   requestTimeoutMs: Volatile<number>
+  /** Maximum age of the credential-scoped model catalog before background refresh. */
+  catalogMaxAgeMs: Volatile<number>
   /** Maximum provider idle time while one stream read is outstanding. */
   streamIdleTimeoutMs: Volatile<number>
 }
@@ -115,6 +117,7 @@ export const Config = z.object({
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV).volatile(),
   models: z.array(catalogModel).default([]).volatile(),
   requestTimeoutMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(DEFAULT_REQUEST_TIMEOUT_MS).volatile(),
+  catalogMaxAgeMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(300_000).volatile(),
   streamIdleTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_STREAM_IDLE_TIMEOUT_MS).volatile(),
 })
 
@@ -138,6 +141,8 @@ export interface ResolvedAntigravityConfig {
   models: AntigravityCatalogModel[]
   /** HTTP request deadline in milliseconds. */
   requestTimeoutMs: number
+  /** Model catalog freshness in milliseconds. */
+  catalogMaxAgeMs: number
   /** Stream idle deadline in milliseconds. */
   streamIdleTimeoutMs: number
 }
@@ -159,6 +164,7 @@ export function resolvedConfig(config: Config): ResolvedAntigravityConfig {
     apiKeyEnv: config.apiKeyEnv.get(),
     models: config.models.get().map(model => ({ ...model })),
     requestTimeoutMs: config.requestTimeoutMs.get(),
+    catalogMaxAgeMs: config.catalogMaxAgeMs.get(),
     streamIdleTimeoutMs: config.streamIdleTimeoutMs.get(),
   }
 }

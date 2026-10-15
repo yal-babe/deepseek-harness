@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-15-session-team-activation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-15-session-team-activation.md
+/agent-note-session-local-team-activation:
+  en: ba4ebef97abe3157
+  zh: a1f7de689dfa4baf
+/agent-note-session-local-team-activation/problem:
+  en: 6039b4ecb83cfbe8
+  zh: 1432050cdf99d6ff
+/agent-note-session-local-team-activation/decision:
+  en: 3860ce2e01df9922
+  zh: ab3e42710243dfc8
+/agent-note-session-local-team-activation/alternatives-considered:
+  en: 31ce1ec81a63c602
+  zh: 70fe1ac63de3a818
+/agent-note-session-local-team-activation/consequences:
+  en: 013ae74ef496613a
+  zh: 366d3a1b6be9b99d

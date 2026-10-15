@@ -595,3 +595,15 @@ describe('Agent Teams projection events', () => {
     })
   })
 })
+
+
+describe('session Team activation', () => {
+  it('preserves legacy teams and accepts only a one-way ordinary-to-team transition', () => {
+    expect(teamProjectionView(project(ROOT, []))).not.toHaveProperty('enabled')
+    const normal = event('team/mode', { version: 2, teamId: TEAM, enabled: false }, SessionSeq(0))
+    const enabled = event('team/mode', { version: 2, teamId: TEAM, enabled: true }, SessionSeq(1))
+    expect(teamProjectionView(project(ROOT, [normal])).enabled).toBe(false)
+    expect(teamProjectionView(project(ROOT, [normal, enabled])).enabled).toBe(true)
+    expect(project(ROOT, [normal, enabled, normal]).failure).toContain('cannot be disabled')
+  })
+})

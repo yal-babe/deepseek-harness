@@ -212,6 +212,7 @@ describe('tokenUsage session projection', () => {
 
     expect(projected(ctx, session)).toEqual({
       uncachedInputTokens: 24,
+      incomplete: true,
       outputTokens: 7,
       cacheReadTokens: 11,
       cacheWriteTokens: 1,
@@ -249,6 +250,8 @@ describe('tokenUsage session projection', () => {
 
     expect(projected(ctx, session)).toEqual({
       uncachedInputTokens: 30,
+      cacheReadUnknown: true,
+      incomplete: true,
       outputTokens: 15,
       cacheReadTokens: 2,
       cacheWriteTokens: 4,
@@ -262,6 +265,8 @@ describe('tokenUsage session projection', () => {
     session.append('step/end', { turn: 1, step: 1 })
     expect(projected(ctx, session)).toEqual({
       uncachedInputTokens: 9,
+      cacheReadUnknown: true,
+      incomplete: true,
       outputTokens: 1,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
@@ -288,6 +293,8 @@ describe('tokenUsage session projection', () => {
 
     expect(projected(ctx, session)).toEqual({
       uncachedInputTokens: 12,
+      cacheReadUnknown: true,
+      incomplete: true,
       outputTokens: 3,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
@@ -308,6 +315,7 @@ describe('tokenUsage session projection', () => {
     await ctx.plugin(TokenMeter)
     expect(ctx.sessionProjections.viewCheckpoint(checkpoint).tokenUsage).toEqual({
       uncachedInputTokens: 8,
+      incomplete: true,
       outputTokens: 2,
       cacheReadTokens: 5,
       cacheWriteTokens: 0,
@@ -546,5 +554,35 @@ describe('contextPressure session projection', () => {
       sourceEventSeqs: [question],
     })
     expect(pressure(ctx, session).projectedTokens).toBe(0)
+  })
+})
+
+
+describe('provider usage completeness', () => {
+  it('distinguishes unknown cache reads from an explicit zero', async () => {
+    const { ctx, session } = await harness()
+    usageChunk(session, { inputTokens: 10, outputTokens: 2, totalTokens: 12 }, 1, 1)
+    expect(projected(ctx, session)).toMatchObject({ cacheReadUnknown: true })
+    finalUsage(session, { inputTokens: 10, outputTokens: 2, totalTokens: 12, cacheReadTokens: 0 }, 1, 1)
+    expect(projected(ctx, session)).not.toHaveProperty('cacheReadUnknown')
+    await ctx.fiber.dispose()
+  })
+
+  it('retains a provider total beyond disclosed cache buckets', async () => {
+    const { ctx, session } = await harness()
+    finalUsage(session, { inputTokens: 10, outputTokens: 2, totalTokens: 22 }, 1, 1)
+    expect(projected(ctx, session)).toMatchObject({ totalTokens: 22, cacheReadUnknown: true })
+    await ctx.fiber.dispose()
+  })
+})
+
+
+describe('invalid provider accounting', () => {
+  it('marks the session total incomplete when a later request contradicts its buckets', async () => {
+    const { ctx, session } = await harness()
+    finalUsage(session, { inputTokens: 10, outputTokens: 2, totalTokens: 12, cacheReadTokens: 0 }, 1, 1)
+    finalUsage(session, { inputTokens: 10, outputTokens: 2, totalTokens: 5 }, 2, 1)
+    expect(projected(ctx, session)).toMatchObject({ uncachedInputTokens: 10, outputTokens: 2, incomplete: true, cacheReadUnknown: true })
+    await ctx.fiber.dispose()
   })
 })

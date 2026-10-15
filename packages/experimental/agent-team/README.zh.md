@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+`defaultMode` 为新建根会话选择 `team`（服务默认值）或 `normal`。普通会话不会获得团队身份或工具，直到用户执行 `/team`；开启需要智能体空闲，对该会话永久生效并可在恢复后保留。没有 `team/mode` 的已有日志保持隐式团队。profile 组合包选择 `normal`；开启后的团队角色、提示词、工具和协作行为保持原样。
+
 当一个 agent 需要共享工作目录中的具名助手、直接 peer 消息以及持久 roster 与任务状态时，加入本包。与 `@deepseek-ai/dsh-experimental-tool-agent-team` 一起挂载可提供模型工具。
 
 ### 何时选择

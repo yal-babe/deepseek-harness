@@ -27,16 +27,15 @@ kind: "package-bundle"
 
 ### 安装到 profile
 
-将本包添加到已初始化的 profile，然后运行一个要求 Lead 委派工作的任务：
+将本包添加到已初始化的 profile：
 
 ```sh
 dsh plugin --profile headless add @deepseek-ai/dsh-experimental-agent-team-profile
-dsh --profile headless "Use Agent Teams to split this task between two teammates, wait, and summarize."
 ```
 
 profile 必须已经包含 `@deepseek-ai/dsh-base`，本层会使用其中的 Subagent 服务与提供方配置行。执行 `dsh plugin --profile <name> remove @deepseek-ai/dsh-experimental-agent-team-profile` 移除本包时，bundle 也会从 profile 的有序层列表中移除。
 
-在 Web 或 Desktop 的插件页开启「智能体团队」，即可同时启用工具与界面。CLI 的 Web profile 也可使用以下命令：
+安装组合包后即可使用团队协作。新对话默认普通模式，在对话中执行 `/team` 后为该会话永久开启官方工具与界面。已有对话保持原模式。没有交互式指令入口的 headless 组合可在 profile patch 中将 `agent-team.config.defaultMode` 设为 `team`。CLI 的 Web profile 可使用以下命令安装：
 
 ```sh
 dsh plugin --profile web add @deepseek-ai/dsh-experimental-agent-team-profile

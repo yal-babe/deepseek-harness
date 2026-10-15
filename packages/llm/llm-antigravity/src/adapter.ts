@@ -1,5 +1,6 @@
 /** Cloud Code `streamGenerateContent` SSE transport for the `antigravity` route. */
 
+import { createHash } from 'node:crypto'
 import { EventSourceParserStream } from 'eventsource-parser/stream'
 import type { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
@@ -67,6 +68,20 @@ export class AntigravityAdapter extends LlmAdapter {
     super()
   }
 
+  private catalog: {
+    scope: string
+    models?: readonly LlmModelInfo[]
+    loadedAt?: number
+    inflight?: Promise<readonly LlmModelInfo[]>
+  } | undefined
+  private readonly catalogAbort = new AbortController()
+
+  /** Abort catalog work when the adapter's owning plugin is disposed. */
+  disposeCatalog(): void {
+    this.catalogAbort.abort()
+    this.catalog = undefined
+  }
+
   override providerInfo(provider: string) {
     return { id: provider, name: 'Antigravity' }
   }
@@ -74,16 +89,36 @@ export class AntigravityAdapter extends LlmAdapter {
   override async listModels(provider: string): Promise<readonly LlmModelInfo[]> {
     if (this.dependencies.hasSelectableCredential !== undefined
       && !await this.dependencies.hasSelectableCredential()) {
+      this.catalog = undefined
       return []
     }
     const connection = this.dependencies.options()
     if (connection.models.length > 0) {
       return connection.models.map(model => catalogModelInfo(provider, model))
     }
-    const signal = AbortSignal.timeout(connection.requestTimeoutMs)
+    const signal = AbortSignal.any([this.catalogAbort.signal, AbortSignal.timeout(connection.requestTimeoutMs)])
     const token = await this.dependencies.resolveAccessToken(connection, signal)
-    const catalog = await fetchAvailableModels(connection, token, signal)
-    return catalog.map(model => catalogModelInfo(provider, model))
+    const scope = `${provider}\n${connection.baseURL}\n${createHash('sha256').update(token).digest('hex')}`
+    if (this.catalog?.scope !== scope) this.catalog = { scope }
+    const cache = this.catalog
+    const refresh = (): Promise<readonly LlmModelInfo[]> => {
+      if (cache.inflight !== undefined) return cache.inflight
+      const load = fetchAvailableModels(connection, token, signal).then((models) => {
+        const listing = models.map(model => catalogModelInfo(provider, model))
+        signal.throwIfAborted()
+        cache.models = listing
+        cache.loadedAt = Date.now()
+        return listing
+      }).finally(() => { delete cache.inflight })
+      cache.inflight = load
+      return load
+    }
+    if (cache.models === undefined) return refresh()
+    if (Date.now() - (cache.loadedAt ?? 0) >= connection.catalogMaxAgeMs) {
+      // A failed refresh retains this credential's last successful listing.
+      void refresh().catch(() => { cache.loadedAt = Date.now() })
+    }
+    return cache.models
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -581,13 +616,14 @@ function mapUsage(raw: Record<string, unknown>): TokenUsage {
   const completion = numberField(raw.candidatesTokenCount) ?? 0
   const cached = numberField(raw.cachedContentTokenCount)
   const reasoning = numberField(raw.thoughtsTokenCount)
-  const inputTokens = cached === undefined ? prompt : Math.max(0, prompt - cached)
-  const usage: TokenUsage = { inputTokens, outputTokens: completion }
+  const toolPrompt = numberField(raw.toolUsePromptTokenCount) ?? 0
+  const inputTokens = (cached === undefined ? prompt : Math.max(0, prompt - cached)) + toolPrompt
+  const usage: TokenUsage = { inputTokens, outputTokens: completion + (reasoning ?? 0) }
   const total = numberField(raw.totalTokenCount)
   if (total !== undefined) usage.totalTokens = total
-  else usage.totalTokens = inputTokens + completion + (cached ?? 0)
-  if (cached !== undefined && cached > 0) usage.cacheReadTokens = cached
-  if (reasoning !== undefined && reasoning > 0) usage.reasoningTokens = reasoning
+  else usage.totalTokens = prompt + usage.outputTokens + (numberField(raw.toolUsePromptTokenCount) ?? 0)
+  if (cached !== undefined) usage.cacheReadTokens = cached
+  if (reasoning !== undefined) usage.reasoningTokens = reasoning
   return usage
 }
 

@@ -294,3 +294,53 @@ describe('listing failures stay visible', () => {
     await expect(current.listModels(PROVIDER)).rejects.toMatchObject({ code: 'NETWORK' })
   })
 })
+
+
+describe('credential-scoped model catalog cache', () => {
+  it('coalesces cold loads and serves warm listings without another network request', async () => {
+    const server = await mockServer([assist, { json: listing }])
+    const current = new AntigravityAdapter({
+      options: () => resolvedConfig(Config({ baseURL: server.url })),
+      resolveAccessToken: () => Promise.resolve('first'),
+    })
+    const [first, concurrent] = await Promise.all([current.listModels(PROVIDER), current.listModels(PROVIDER)])
+    expect(concurrent).toEqual(first)
+    expect(server.requests).toHaveLength(2)
+    expect(await current.listModels(PROVIDER)).toEqual(first)
+    expect(server.requests).toHaveLength(2)
+    current.disposeCatalog()
+  })
+
+  it('does not reuse a listing after a credential change', async () => {
+    const server = await mockServer([assist, { json: listing }, assist, { json: listing }])
+    let token = 'first'
+    const current = new AntigravityAdapter({
+      options: () => resolvedConfig(Config({ baseURL: server.url })),
+      resolveAccessToken: () => Promise.resolve(token),
+    })
+    await current.listModels(PROVIDER)
+    token = 'second'
+    await current.listModels(PROVIDER)
+    expect(server.requests).toHaveLength(4)
+    current.disposeCatalog()
+  })
+})
+
+
+describe('model catalog background refresh', () => {
+  it('returns the previous listing while refreshing an expired directory', async () => {
+    let now = 1000
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const server = await mockServer([assist, { json: listing }, assist, { json: { models: { 'gemini-3-new': { displayName: 'New' } } }, delayMs: 20 }])
+    const current = new AntigravityAdapter({
+      options: () => resolvedConfig(Config({ baseURL: server.url, catalogMaxAgeMs: 100 })),
+      resolveAccessToken: () => Promise.resolve('token'),
+    })
+    const first = await current.listModels(PROVIDER)
+    now += 101
+    expect(await current.listModels(PROVIDER)).toEqual(first)
+    await vi.waitFor(async () => { expect((await current.listModels(PROVIDER))[0]?.id).toBe('gemini-3-new') })
+    expect(server.requests).toHaveLength(4)
+    current.disposeCatalog()
+  })
+})

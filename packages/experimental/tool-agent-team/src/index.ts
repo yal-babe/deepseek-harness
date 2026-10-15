@@ -421,6 +421,11 @@ export function apply(ctx: Context, config: Config = {}): void {
   }
   for (const agent of ctx.agents.list()) maybeInstall(agent)
   ctx.on('agent/created', ({ agent }) => { maybeInstall(agent) })
+  ctx.on('session/event', (session, event) => {
+    if (event.type !== 'team/mode' || !event.data.enabled) return
+    const agent = ctx.agents.get(session.id)
+    if (agent !== undefined) maybeInstall(agent)
+  })
   ctx.on('agent/disposed', ({ agent }) => {
     installed.get(agent)?.()
     installed.delete(agent)

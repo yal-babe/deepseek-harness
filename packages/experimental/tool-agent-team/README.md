@@ -29,6 +29,8 @@ Add this package on top of `@deepseek-ai/dsh-experimental-agent-team` when the m
 
 ### When to choose it
 
+Ordinary sessions receive none of these tools or runtime identity. A successful `/team` activation installs the same official scoped tool set for the next model request.
+
 Choose it when the model should create and coordinate teammates by itself rather than a human driving subagent controls. Avoid it when the legacy global subagent tools with the same names must stay available: the team tools replace them for team members, so a composition that wants both must disable the legacy definitions.
 
 ### Smallest working example

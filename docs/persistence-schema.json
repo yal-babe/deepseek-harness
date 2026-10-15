@@ -17401,6 +17401,94 @@
       }
     },
     {
+      "key": "event:team/mode",
+      "kind": "event",
+      "event": "team/mode",
+      "surface": false,
+      "digest": "e0b6b96289e5d7d3bcfb737cffe785d331ef26e95d2617f035c14f96a4067a35",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "enabled",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "teamId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "literal",
+            "value": 2
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "team/mode"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:team/task",
       "kind": "event",
       "event": "team/task",
@@ -23054,7 +23142,7 @@
       "digest": "0bcfaf5566d271028429ac7b562cb59053c9d78b8ae14708c35fac835108d1b1",
       "names": [],
       "sources": [
-        "packages/experimental/agent-team/src/types.ts:251"
+        "packages/experimental/agent-team/src/types.ts:257"
       ]
     },
     {
@@ -23425,7 +23513,7 @@
         "packages/experimental/agent-team/src/types.ts#TeamMessageSource"
       ],
       "sources": [
-        "packages/experimental/agent-team/src/types.ts:153"
+        "packages/experimental/agent-team/src/types.ts:155"
       ]
     },
     {
@@ -23615,7 +23703,7 @@
         "packages/experimental/agent-team/src/types.ts#TeamMessageSnapshot"
       ],
       "sources": [
-        "packages/experimental/agent-team/src/types.ts:144"
+        "packages/experimental/agent-team/src/types.ts:146"
       ]
     },
     {
@@ -25375,7 +25463,7 @@
       "digest": "a40d12070f6f4a124f32fb3cc86e7857554702e32f0eda3080a25c4b9ac9b18c",
       "names": [],
       "sources": [
-        "packages/experimental/agent-team/src/types.ts:247"
+        "packages/experimental/agent-team/src/types.ts:253"
       ]
     },
     {
@@ -25608,7 +25696,7 @@
       "digest": "b1ebd5cda47d90d980bb05bffc3f970c51537b9aff15b3bc3d639811727741b1",
       "names": [],
       "sources": [
-        "packages/experimental/agent-team/src/types.ts:245"
+        "packages/experimental/agent-team/src/types.ts:251"
       ]
     },
     {
@@ -26081,6 +26169,11 @@
       "sources": []
     },
     {
+      "digest": "d8a476d2c6fd30df6ec0e799f91716d1518c780d23b4121dce545abfcfb7c5a5",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d9196086e41e4dd5c2ce87f5c25529c8112a1731d258cf0728747d41a9ee3241",
       "names": [],
       "sources": []
@@ -26205,7 +26298,19 @@
       ]
     },
     {
+      "digest": "e067e00e3502fa0ec3d19f52a2e12a7ee96fc82a8572a467f1a0362144b9f57c",
+      "names": [],
+      "sources": [
+        "packages/experimental/agent-team/src/types.ts:249"
+      ]
+    },
+    {
       "digest": "e0a787e6ec76c7c94fecbc501b489164ab0293db05bc947914077ad01e674f05",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "e0b6b96289e5d7d3bcfb737cffe785d331ef26e95d2617f035c14f96a4067a35",
       "names": [],
       "sources": []
     },
@@ -26360,7 +26465,7 @@
       "digest": "ea08ec1df0c33108fd03345b9af199cf04dea450aa045d3c683f216311403403",
       "names": [],
       "sources": [
-        "packages/experimental/agent-team/src/types.ts:249"
+        "packages/experimental/agent-team/src/types.ts:255"
       ]
     },
     {

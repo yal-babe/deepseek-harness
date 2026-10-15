@@ -9,6 +9,7 @@ import { SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import type { ContextPressureProjection, TokenUsageProjection } from './projection.ts'
+import { normalizeUsage } from './turn-usage.ts'
 import { foldSurfaceProjection } from './surface-projection.ts'
 
 const zeroBuckets = (): TokenUsageProjection => ({
@@ -18,31 +19,27 @@ const zeroBuckets = (): TokenUsageProjection => ({
   cacheWriteTokens: 0,
 })
 
-const bucketsFrom = (usage: TokenUsage): TokenUsageProjection => ({
-  uncachedInputTokens: usage.inputTokens,
-  outputTokens: usage.outputTokens,
-  cacheReadTokens: usage.cacheReadTokens ?? 0,
-  cacheWriteTokens: usage.cacheWriteTokens ?? 0,
-})
+const totalOf = (usage: TokenUsageProjection): number => usage.totalTokens
+  ?? usage.uncachedInputTokens + usage.outputTokens + usage.cacheReadTokens + usage.cacheWriteTokens
 
-const bucketsEqual = (left: TokenUsageProjection, right: TokenUsageProjection): boolean =>
-  left.uncachedInputTokens === right.uncachedInputTokens
-  && left.outputTokens === right.outputTokens
-  && left.cacheReadTokens === right.cacheReadTokens
-  && left.cacheWriteTokens === right.cacheWriteTokens
-
-const addReplacing = (
-  totals: TokenUsageProjection,
-  previous: TokenUsageProjection | undefined,
-  next: TokenUsageProjection,
-): TokenUsageProjection => ({
-  uncachedInputTokens: totals.uncachedInputTokens - (previous?.uncachedInputTokens ?? 0) + next.uncachedInputTokens,
-  outputTokens: totals.outputTokens - (previous?.outputTokens ?? 0) + next.outputTokens,
-  cacheReadTokens: totals.cacheReadTokens - (previous?.cacheReadTokens ?? 0) + next.cacheReadTokens,
-  cacheWriteTokens: totals.cacheWriteTokens - (previous?.cacheWriteTokens ?? 0) + next.cacheWriteTokens,
-})
+const bucketsFrom = (usage: TokenUsage): TokenUsageProjection | undefined => {
+  const normalized = normalizeUsage(usage)
+  if (normalized === undefined) return undefined
+  const buckets: TokenUsageProjection = {
+    uncachedInputTokens: normalized.inputTokens,
+    outputTokens: normalized.outputTokens,
+    cacheReadTokens: normalized.cacheReadTokens ?? 0,
+    cacheWriteTokens: normalized.cacheWriteTokens ?? 0,
+    ...normalized.cacheReadTokens === undefined ? { cacheReadUnknown: true } : {},
+    ...normalized.incomplete ? { incomplete: true } : {},
+  }
+  return normalized.totalTokens === totalOf(buckets) ? buckets : { ...buckets, totalTokens: normalized.totalTokens }
+}
 
 const projectionSchema = z.object({
+  cacheReadUnknown: z.boolean().optional(),
+  incomplete: z.boolean().optional(),
+  totalTokens: z.number().int().nonnegative().optional(),
   uncachedInputTokens: z.number().int().nonnegative(),
   outputTokens: z.number().int().nonnegative(),
   cacheReadTokens: z.number().int().nonnegative(),
@@ -55,6 +52,8 @@ const projectionSchema = z.object({
  */
 const tokenUsageStateSchema = z.object({
   totals: projectionSchema,
+  unknownCacheReads: z.number().int().nonnegative(),
+  incompleteAttempts: z.number().int().nonnegative(),
   last: z.object({
     turn: z.number().int().nonnegative(),
     step: z.number().int().nonnegative(),
@@ -116,9 +115,9 @@ type ContextPressureState = z.infer<typeof contextPressureStateSchema>
  */
 export const tokenUsageProjectionDefinition = {
   key: 'tokenUsage',
-  stateVersion: 2,
+  stateVersion: 3,
   stateSchema: tokenUsageStateSchema,
-  init: () => ({ totals: zeroBuckets(), last: null }),
+  init: () => ({ totals: zeroBuckets(), unknownCacheReads: 0, incompleteAttempts: 0, last: null }),
   apply: (state, event) => {
     if (event.type === 'llm/retry-started') {
       return state.last?.turn === event.data.turn && state.last.step === event.data.step
@@ -129,22 +128,34 @@ export const tokenUsageProjectionDefinition = {
       return state
     }
     const sample = usageOf(event)
-    if (sample === undefined) return state
     const { turn, step } = event.data
-    const usage: TokenUsage = sample
-
-    const buckets = bucketsFrom(usage)
+    if (sample === undefined && state.last?.turn === turn && state.last.step === step) return state
+    const buckets = (sample === undefined ? undefined : bucketsFrom(sample))
+      ?? { ...zeroBuckets(), cacheReadUnknown: true, incomplete: true }
     const previous = state.last !== null
       && state.last.turn === turn
       && state.last.step === step
       ? state.last.buckets
       : undefined
-    if (previous !== undefined && bucketsEqual(previous, buckets)) return state
-
-    return {
-      totals: addReplacing(state.totals, previous, buckets),
-      last: { turn, step, buckets },
+    if (previous !== undefined && previous.uncachedInputTokens === buckets.uncachedInputTokens
+      && previous.outputTokens === buckets.outputTokens && previous.cacheReadTokens === buckets.cacheReadTokens
+      && previous.cacheWriteTokens === buckets.cacheWriteTokens && previous.totalTokens === buckets.totalTokens
+      && previous.cacheReadUnknown === buckets.cacheReadUnknown
+      && previous.incomplete === buckets.incomplete) return state
+    const unknownCacheReads = state.unknownCacheReads
+      - Number(previous?.cacheReadUnknown === true) + Number(buckets.cacheReadUnknown === true)
+    const incompleteAttempts = state.incompleteAttempts - Number(previous?.incomplete === true) + Number(buckets.incomplete === true)
+    const totals: TokenUsageProjection = {
+      uncachedInputTokens: state.totals.uncachedInputTokens - (previous?.uncachedInputTokens ?? 0) + buckets.uncachedInputTokens,
+      outputTokens: state.totals.outputTokens - (previous?.outputTokens ?? 0) + buckets.outputTokens,
+      cacheReadTokens: state.totals.cacheReadTokens - (previous?.cacheReadTokens ?? 0) + buckets.cacheReadTokens,
+      cacheWriteTokens: state.totals.cacheWriteTokens - (previous?.cacheWriteTokens ?? 0) + buckets.cacheWriteTokens,
+      ...unknownCacheReads > 0 ? { cacheReadUnknown: true } : {},
+      ...incompleteAttempts > 0 ? { incomplete: true } : {},
     }
+    const total = totalOf(state.totals) - (previous === undefined ? 0 : totalOf(previous)) + totalOf(buckets)
+    if (total !== totalOf(totals)) totals.totalTokens = total
+    return { totals, unknownCacheReads, incompleteAttempts, last: { turn, step, buckets } }
   },
   wire: { viewSchema: projectionSchema, view: state => state.totals },
 } satisfies ProjectionDefinition<'tokenUsage', TokenUsageState>

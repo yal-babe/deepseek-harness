@@ -73,12 +73,14 @@ export interface TurnTokenUsageRoute {
   readonly model: string
 }
 
-/** Exact provider-reported token accounting for every attempt in one completed Turn. */
+/** Validated completed-turn accounting, labeled when only known usage is available. */
 export interface TurnTokenUsage {
+  /** True when some request usage or an exact total was unavailable. */
+  readonly incomplete?: boolean
   /** Sum of uncached prompt input across all attempts. */
   readonly uncachedInputTokens: number
   readonly outputTokens: number
-  /** Exact aggregate prompt plus output total across all attempts. */
+  /** Aggregate prompt plus output; a lower bound when incomplete is true. */
   readonly totalTokens: number
   /** Present only when every attempt reported the bucket. */
   readonly cacheReadTokens?: number

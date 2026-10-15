@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import Commands from '@deepseek-ai/dsh-commands'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
@@ -69,7 +70,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-async function setup(script: ConstructorParameters<typeof MockAdapter>[0], legacyControl = false) {
+async function setup(script: ConstructorParameters<typeof MockAdapter>[0], legacyControl = false, normal = false) {
   const ctx = new Context()
   contexts.add(ctx)
   await mountAgentLoopTestDependencies(ctx)
@@ -83,7 +84,8 @@ async function setup(script: ConstructorParameters<typeof MockAdapter>[0], legac
   if (legacyControl) await ctx.plugin(ToolSubagentControl)
   await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
   await ctx.plugin(SubagentFork, { providerName: 'fork' })
-  await ctx.plugin(TeamService)
+  await ctx.plugin(Commands)
+  await ctx.plugin(TeamService, { defaultMode: normal ? 'normal' : 'team' })
   const fiber = await ctx.plugin(toolTeam)
   const adapter = new MockAdapter(script)
   ctx.llm.registerAdapter(['mock'], adapter)
@@ -777,5 +779,29 @@ describe('dsh-tool-team', () => {
     const childId = spawnedChildId(ctx, lead, result)
     await vi.waitFor(() => { expect(ctx.agents.get(childId)).toBeUndefined() }, { timeout: 5_000 })
     expect(ctx.agentTeams.listMembers(lead)[1]).toMatchObject({ provider: 'team-fresh' })
+  })
+})
+
+
+describe('ordinary sessions and /team', () => {
+  it('activates the official scoped tools once without changing another session', async () => {
+    const { ctx, lead } = await setup([textResponse('hello'), textResponse('helper')], false, true)
+    const other = await ctx.agentLoop.create(SessionId('ordinary-other'), { provider: 'mock', model: 'mock' })
+    await runTurn(lead, 'Hello before team activation')
+    expect(ctx.agentTeams.tryMembership(lead)).toBeUndefined()
+    expect(ctx.tools.schemas(scopeOf(lead.ctx)).map(tool => tool.name)).not.toContain('spawn_teammate')
+    expect(renderContextSnapshot(await assembly(ctx, lead))).not.toContain('Team Lead')
+    const activated = await ctx.commands.execute(lead, '/team', [], SIGNAL)
+    expect(activated?.result.kind).toBe('success')
+    expect(ctx.agentTeams.membership(lead).role).toBe('lead')
+    expect(ctx.tools.schemas(scopeOf(lead.ctx)).map(tool => tool.name)).toContain('spawn_teammate')
+    expect(renderContextSnapshot(await assembly(ctx, lead))).toContain('You are the Team Lead named "lead".')
+    expect(ctx.agentTeams.tryMembership(other)).toBeUndefined()
+    const reverse = await ctx.commands.execute(lead, '/team off', [], SIGNAL)
+    expect(reverse?.result.kind).toBe('error')
+    await ctx.commands.execute(lead, '/team', [], SIGNAL)
+    expect(lead.session.snapshotEvents().filter(event => event.type === 'team/mode' && event.data.enabled)).toHaveLength(1)
+    const result = await execute(ctx, lead, 'spawn_teammate', { name: 'helper', description: 'Read only', prompt: 'Say hello', context: 'fresh' })
+    expect(result).toBeDefined()
   })
 })

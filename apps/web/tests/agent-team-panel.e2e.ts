@@ -74,6 +74,12 @@ describe('web e2e: Agent Teams panel', () => {
     agent.session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
     await scaffold.ctx.sessions.flush(agent.session)
     await page.getByText('Ready.').waitFor({ timeout: 10_000 })
+    expect(await page.locator('[data-team-action]').count()).toBe(0)
+    const input = page.locator('[data-composer-input]').first()
+    await input.fill('/team ')
+    await input.press('Enter')
+    await page.getByText('Team collaboration enabled. This conversation cannot return to normal mode.', { exact: true }).waitFor()
+    await page.locator('[data-team-action]').waitFor()
   }, 120_000)
 
   afterAll(async () => {

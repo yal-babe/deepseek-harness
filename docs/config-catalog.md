@@ -863,11 +863,13 @@ export interface Config {
 ## `@deepseek-ai/dsh-experimental-agent-team`
 
 - `inject`: `agents` · `sessions` · `sessionPersistence` · `sessionProjections` · `subagents`
-- `source`: [`packages/experimental/agent-team/src/types.ts:168`](../packages/experimental/agent-team/src/types.ts)
+- `source`: [`packages/experimental/agent-team/src/types.ts:170`](../packages/experimental/agent-team/src/types.ts)
 
 ```ts config-catalog
 /** Team-service deployment limits. */
 export interface Config {
+  /** Initial mode for newly created root sessions; existing sessions retain their mode. */
+  readonly defaultMode?: 'normal' | 'team'
   /** Maximum immutable teammate names retained by one Team. */
   readonly maxMembers?: number
   /** Maximum non-deleted tasks retained by one Team. */
@@ -1783,6 +1785,8 @@ export interface Config {
   models: Volatile<AntigravityCatalogModel[]>
   /** Deadline for each HTTP request, including token exchange and refresh. */
   requestTimeoutMs: Volatile<number>
+  /** Maximum age of the credential-scoped model catalog before background refresh. */
+  catalogMaxAgeMs: Volatile<number>
   /** Maximum provider idle time while one stream read is outstanding. */
   streamIdleTimeoutMs: Volatile<number>
 }

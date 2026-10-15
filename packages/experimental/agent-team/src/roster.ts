@@ -101,7 +101,7 @@ export class TeamRoster {
           // host forks are independent roots; subagent descriptors distinguish
           // provider-owned workers that must not receive a nested Team identity.
           if (this.subagentDescriptor(agent)) return undefined
-          return { root: agent, id: TeamId(agent.id), role: 'lead', name: 'lead' }
+          return this.journal.state(agent).enabled === false ? undefined : { root: agent, id: TeamId(agent.id), role: 'lead', name: 'lead' }
         }
       }
       // A continuation can briefly outlive its parent during child-first teardown.
@@ -109,7 +109,7 @@ export class TeamRoster {
       // resumed ordinary fork has no descriptor in its own suffix and remains a
       // valid new root whose inherited Team records stay outside its projected Team state.
       if (this.subagentDescriptor(agent)) return undefined
-      return { root: agent, id: TeamId(agent.id), role: 'lead', name: 'lead' }
+      return this.journal.state(agent).enabled === false ? undefined : { root: agent, id: TeamId(agent.id), role: 'lead', name: 'lead' }
     } catch {
       // This method is used by lifecycle observers and teardown discovery. A
       // malformed durable stream is surfaced by authoritative Team operations;

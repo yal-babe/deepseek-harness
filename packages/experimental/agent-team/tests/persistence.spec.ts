@@ -98,6 +98,7 @@ async function stack(
   backend: PersistenceMount,
   root: string,
   script: ConstructorParameters<typeof MockAdapter>[0],
+  config: ConstructorParameters<typeof TeamService>[1] = {},
 ) {
   const ctx = new Context()
   contexts.add(ctx)
@@ -108,7 +109,7 @@ async function stack(
   await ctx.plugin(AgentLoop, { agents: [] })
   await ctx.plugin(SubagentService)
   await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
-  await ctx.plugin(TeamService)
+  await ctx.plugin(TeamService, config)
   const adapter = new MockAdapter(script)
   ctx.llm.registerAdapter(['mock'], adapter)
   return {
@@ -161,6 +162,27 @@ async function persistedChild(
 
 for (const backend of backends) {
   describe(`${backend.name} Agent Teams recovery`, () => {
+    it('restores ordinary mode and permanent Team activation across separate Hosts', async () => {
+      const root = mkdtempSync(join(tmpdir(), 'dsh-team-mode-'))
+      roots.push(root)
+      const first = await stack(backend, root, [], { defaultMode: 'normal' })
+      const handle = await first.ctx.agents.create({ sessionId: SessionId('mode-root'), agentOptions: { provider: 'mock', model: 'mock' } })
+      expect(first.ctx.agentTeams.tryMembership(handle.agent)).toBeUndefined()
+      await handle.dispose()
+      await first.dispose()
+      const second = await stack(backend, root, [], { defaultMode: 'normal' })
+      const ordinary = await second.ctx.agents.resume({ resumeSessionId: SessionId('mode-root'), agentOptions: { provider: 'mock', model: 'mock' } })
+      expect(second.ctx.agentTeams.tryMembership(ordinary.agent)).toBeUndefined()
+      await second.ctx.agentTeams.enableTeam(ordinary.agent)
+      await ordinary.dispose()
+      await second.dispose()
+      const third = await stack(backend, root, [], { defaultMode: 'normal' })
+      const team = await third.ctx.agents.resume({ resumeSessionId: SessionId('mode-root'), agentOptions: { provider: 'mock', model: 'mock' } })
+      expect(third.ctx.agentTeams.membership(team.agent).role).toBe('lead')
+      await team.dispose()
+      await third.dispose()
+    })
+
     it('restores a directly accepted target inbox from its flushed crash prefix without Team intent', async () => {
       const liveRoot = mkdtempSync(join(tmpdir(), 'dsh-team-live-'))
       const crashRoot = mkdtempSync(join(tmpdir(), 'dsh-team-crash-'))

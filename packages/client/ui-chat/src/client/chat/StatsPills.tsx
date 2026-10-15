@@ -106,7 +106,8 @@ export function formatDuration(ms: number, t: ChatViewSlotProps['t']): string {
  * 100, and no billed input returns null.
  */
 export function cacheHitPercent(usage: TokenUsageProjection): string | null {
-  const denominator = billedInputTokens(usage)
+  if (usage.cacheReadUnknown === true || usage.incomplete === true) return null
+  const denominator = usage.totalTokens === undefined ? billedInputTokens(usage) : usage.totalTokens - usage.outputTokens
   return formatCacheHitPercent(usage.cacheReadTokens, denominator)
 }
 
@@ -292,8 +293,9 @@ export const UsagePill = memo(function UsagePill({ useProjection, usePerformance
     return cacheHitText === null ? null : <PlainPill stat="usage" icon={icon} label={cacheHitText} />
   }
   // Same aggregate as the Turn pill's totalTokens: every prompt-side billing bucket plus output.
-  const total = billedInputTokens(usage) + usage.outputTokens
-  const totalText = t('message.turnUsage.count', { count: formatTokens(total, t) })
+  const total = usage.totalTokens ?? billedInputTokens(usage) + usage.outputTokens
+  const countText = t('message.turnUsage.count', { count: formatTokens(total, t) })
+  const totalText = usage.incomplete ? t('message.turnUsage.partial', { total: countText }) : countText
   return (
     <DialogPill
       stat="usage"
@@ -318,7 +320,7 @@ export const UsagePill = memo(function UsagePill({ useProjection, usePerformance
         <dt>{t('message.turnUsage.input')}</dt>
         <dd>{exactCount(usage.uncachedInputTokens, t)}</dd>
         <dt>{t('message.turnUsage.cacheRead')}</dt>
-        <dd>{exactCount(usage.cacheReadTokens, t)}</dd>
+        <dd>{usage.cacheReadUnknown ? t('message.turnUsage.unavailable') : exactCount(usage.cacheReadTokens, t)}</dd>
         {usage.cacheWriteTokens !== 0 && (
           <>
             <dt>{t('message.turnUsage.cacheWrite')}</dt>

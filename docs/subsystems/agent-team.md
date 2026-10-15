@@ -130,6 +130,8 @@ interface TeamMessageView {
  * lists historical `team/message/queued` rows when any exist.
  */
 interface TeamProjection {
+  /** False for an explicitly ordinary session; absent preserves legacy Teams. */
+  readonly enabled?: boolean
   readonly members: TeamMemberProjection[]
   readonly tasks: TeamTaskView[]
   readonly messages?: TeamMessageView[]
@@ -156,6 +158,13 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 Agent Teams service backed by the exact live Lead Session log.
 
 ```ts cordis-catalog
+/** Enable this root's official Team capability once, while idle.
+ * @param agent - exact live conversation Agent.
+ * @param signal - optional cancellation before the activation commits.
+ * @returns whether an ordinary session was activated.
+ */
+async enableTeam(agent: Agent, signal?: AbortSignal): Promise<boolean>
+
 /**
  * Resolve one exact live Agent's Team role.
  * @param agent - exact live Agent used as the authority credential.

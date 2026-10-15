@@ -323,6 +323,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Agent Teams service backed by the exact live Lead Session log.',
     methods: [
       {
+        signature: 'async enableTeam(agent: Agent, signal?: AbortSignal): Promise<boolean>',
+        description: 'Enable this root\'s official Team capability once, while idle.',
+        parameters: [{ name: 'agent', description: 'exact live conversation Agent.' }, { name: 'signal', description: 'optional cancellation before the activation commits.' }],
+        returns: 'whether an ordinary session was activated.',
+      },
+      {
         signature: 'membership(agent: Agent): TeamMembership',
         description: 'Resolve one exact live Agent\'s Team role.',
         parameters: [{ name: 'agent', description: 'exact live Agent used as the authority credential.' }],

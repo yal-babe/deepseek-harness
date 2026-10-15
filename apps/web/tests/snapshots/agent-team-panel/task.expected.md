@@ -1,9 +1,13 @@
 - dialog "Agent Team":
+  - tablist "Agent Team":
+    - tab "Team" [selected]
+    - tab "Messages"
   - heading "Members" [level=3]
   - button "lead Current chat Inactive" [disabled]
   - heading "Shared tasks 1" [level=3]
   - article:
-    - strong: Agent task
-    - text: In progress
+    - button "Task details":
+      - strong: Agent task
+      - text: In progress
     - paragraph: Created by the Team Lead
     - text: "task-1Owner: leadWrite scopes: src/web"

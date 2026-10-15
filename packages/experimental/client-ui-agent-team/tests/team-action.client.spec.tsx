@@ -618,3 +618,14 @@ it('updates expansion availability on paragraph resize and disconnects its obser
   view.unmount()
   expect(observer.disconnect).toHaveBeenCalledOnce()
 })
+
+
+describe('ordinary conversation header', () => {
+  it('hides Team controls until the activation projection arrives', () => {
+    const b = bench({ projections: { [SESSION]: { state: 'ready', error: null, values: { agentTeam: { ...team, enabled: false } } } } })
+    render(<TeamAction {...b.props} />)
+    expect(screen.queryByRole('button', { name: /智能体团队/u })).toBeNull()
+    setProjection(b.sessions, SESSION, { ...team, enabled: true })
+    expect(screen.getByRole('button', { name: /智能体团队/u })).toBeTruthy()
+  })
+})

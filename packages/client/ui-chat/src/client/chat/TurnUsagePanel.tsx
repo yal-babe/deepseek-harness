@@ -31,7 +31,7 @@ function formatExactCount(value: number, t: ChatViewSlotProps['t']): string {
 export function TurnUsagePanel({ usage, t }: TurnUsagePanelProps) {
   const { open, setOpen, rootRef, panelRef, pos } = useStatDialog()
 
-  const cacheHit = usage.cacheReadTokens === undefined
+  const cacheHit = usage.incomplete || usage.cacheReadTokens === undefined
     ? null
     : formatCacheHitPercent(usage.cacheReadTokens, usage.totalTokens - usage.outputTokens, 1)
   const total = formatCompactCount(usage.totalTokens, t)
@@ -47,7 +47,7 @@ export function TurnUsagePanel({ usage, t }: TurnUsagePanelProps) {
         onClick={() => { setOpen(!open) }}
       >
         <IconDatabaseOutlineRegular />
-        <span className={css.label}>{t('message.turnUsage.consumed', { total })}</span>
+        <span className={css.label}>{t(usage.incomplete ? 'message.turnUsage.partial' : 'message.turnUsage.consumed', { total })}</span>
       </button>
       {open && createPortal(
         <div

@@ -15,6 +15,7 @@
     - id: agent-team
       name: '@deepseek-ai/dsh-experimental-agent-team'
       config:
+        defaultMode: normal
         maxMembers: 8
         maxTasks: 256
         maxMessageBytes: 65536

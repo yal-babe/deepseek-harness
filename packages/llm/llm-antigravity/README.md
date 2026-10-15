@@ -52,6 +52,8 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### Sign in
 
+Model catalogs are cached per endpoint and credential. Cold loads coalesce; warm reads return immediately and refresh in the background after `catalogMaxAgeMs` (300000 ms by default). Failed background refreshes retain the last listing and retry after that interval. Sign-out clears the cache on the next read; plugin disposal aborts outstanding catalog work. Output usage includes candidate and thought tokens, with thoughts also disclosed as an output subset.
+
 When `ctx.authorization` is mounted, the plugin offers one flow keyed `llm-antigravity/default`. A Host composition that also mounts `webServer` registers the callback on `oauthRedirectPath` and notifies the human with the authorize URL. Other compositions ask the human to paste the redirected URL or the authorization code. The flow commits a version-1 grant with `accessToken`, optional `refreshToken`, and `expiresAt`. An expired grant refreshes once per in-flight batch; a grant that cannot refresh fails the next request with `AUTH`.
 
 ### Failures

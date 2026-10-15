@@ -25,6 +25,8 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
+The `defaultMode` setting selects `team` (the service default) or `normal` for new root sessions. Normal sessions receive no Team identity or tools until the human executes `/team`; activation is permanent for that session, requires an idle Agent, and survives restoration. Existing logs without `team/mode` retain implicit Teams. The profile bundle selects `normal`; Team roles, prompts, tools, and coordination behavior are unchanged after activation.
+
 Add this package when one agent needs named helpers in a shared working directory, direct peer messages, and durable roster and task state. Mount it with `@deepseek-ai/dsh-experimental-tool-agent-team` to expose the model tools.
 
 ### When to choose it

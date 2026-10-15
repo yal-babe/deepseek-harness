@@ -328,6 +328,8 @@ export function TeamAction({
   const mailbox = team?.messages ?? []
   const compact = team !== undefined && team.members.length === 1 && team.tasks.length === 0 && mailbox.length === 0
 
+  if (team?.enabled === false) return null
+
   return (
     <div
       ref={rootRef}

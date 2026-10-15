@@ -130,6 +130,7 @@ const teamMessageDeliveredEventSchema = z.object({
  * touched; untouched collections keep their references.
  */
 export interface TeamState {
+  readonly enabled?: boolean
   readonly id: TeamId
   readonly members: readonly TeamMemberSnapshot[]
   readonly tasks: readonly TeamTaskSnapshot[]
@@ -167,6 +168,7 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
 
 const teamProjectionEntrySchema = z.object({
   id: teamIdSchema,
+  enabled: z.boolean().optional(),
   members: z.array(teamMemberSnapshotSchema),
   tasks: z.array(teamTaskSnapshotSchema),
   messages: z.array(teamMessageSnapshotSchema),
@@ -177,6 +179,7 @@ const teamProjectionEntrySchema = z.object({
 
 /** Whether one event belongs to the Team domain. */
 export type TeamEventType =
+  | 'team/mode'
   | 'team/member'
   | 'team/task'
   | 'team/message/queued'
@@ -191,7 +194,7 @@ type TeamSessionEvent = SessionEvent<TeamEventType>
  * @returns whether the event has a Team-owned type.
  */
 export function isTeamEvent(event: SessionEvent): event is TeamSessionEvent {
-  return event.type === 'team/member'
+  return event.type === 'team/mode' || event.type === 'team/member'
     || event.type === 'team/task'
     || event.type === 'team/message/queued'
     || event.type === 'team/message/delivered'
@@ -209,6 +212,15 @@ function parsePersisted<T>(type: TeamEventType, schema: z.ZodType<T>, value: unk
 /** Decode the complete current-version payload selected by one Team event type. */
 function parseCurrentTeamEvent(event: TeamSessionEvent): TeamSessionEvent {
   switch (event.type) {
+    case 'team/mode':
+      return {
+        ...event,
+        data: parsePersisted(
+          event.type,
+          z.object({ version: z.literal(2), teamId: teamIdSchema, enabled: z.boolean() }).strict(),
+          event.data,
+        ),
+      }
     case 'team/member':
       return { ...event, data: parsePersisted(event.type, teamMemberEventSchema, event.data) }
     case 'team/task':
@@ -248,6 +260,12 @@ function replaceAt<T>(items: readonly T[], index: number, item: T): T[] {
 
 function applyCurrentTeamEvent(state: TeamProjectionState, event: TeamSessionEvent): TeamProjectionState {
   switch (event.type) {
+    case 'team/mode': {
+      if (!event.data.enabled && (state.enabled !== undefined || state.members.length > 0 || state.tasks.length > 0)) {
+        throw new Error('Team mode cannot be disabled after initialization')
+      }
+      return { ...state, enabled: event.data.enabled }
+    }
     case 'team/member': {
       const member = event.data.member
       const index = state.members.findIndex(candidate => candidate.id === member.id)
@@ -340,6 +358,7 @@ const teamMessageViewSchema = z.object({
 }).strict() as z.ZodType<TeamMessageView>
 
 const teamProjectionSchema = z.object({
+  enabled: z.boolean().optional(),
   members: z.array(teamMemberProjectionSchema),
   tasks: z.array(teamTaskViewSchema),
   messages: z.array(teamMessageViewSchema).optional(),
@@ -349,7 +368,7 @@ const teamProjectionSchema = z.object({
 /** Client views keyed by the member, task, and historical mailbox collections. */
 const teamProjectionViews = new WeakMap<
   readonly TeamMemberSnapshot[],
-  WeakMap<readonly TeamTaskSnapshot[], WeakMap<readonly TeamMessageSnapshot[], TeamProjection>>
+  WeakMap<readonly TeamTaskSnapshot[], WeakMap<readonly TeamMessageSnapshot[], Map<boolean | undefined, TeamProjection>>>
 >()
 
 function messagePreview(content: readonly ContentBlock[]): string {
@@ -376,6 +395,7 @@ function buildTeamProjection(state: TeamProjectionState): TeamProjection {
     text: messagePreview(message.content),
   }))
   return {
+    ...state.enabled === undefined ? {} : { enabled: state.enabled },
     members,
     tasks: state.tasks
       .filter(task => task.status !== 'deleted')
@@ -405,10 +425,15 @@ export function teamProjectionView(state: TeamProjectionState): TeamProjection {
     byMessages = new WeakMap()
     byTasks.set(state.tasks, byMessages)
   }
-  let view = byMessages.get(state.messages)
+  let byMode = byMessages.get(state.messages)
+  if (byMode === undefined) {
+    byMode = new Map()
+    byMessages.set(state.messages, byMode)
+  }
+  let view = byMode.get(state.enabled)
   if (view === undefined) {
     view = buildTeamProjection(state)
-    byMessages.set(state.messages, view)
+    byMode.set(state.enabled, view)
   }
   return view
 }
@@ -416,7 +441,7 @@ export function teamProjectionView(state: TeamProjectionState): TeamProjection {
 /** Team projection selected by the projected Session identity; the wire view carries durable roster, task, and historical mailbox state. */
 export const teamProjectionDefinition = {
   key: 'agentTeam',
-  stateVersion: 4,
+  stateVersion: 5,
   stateSchema: teamProjectionEntrySchema,
   init: header => emptyTeamState(header.id),
   apply: applyProjectionEvent,

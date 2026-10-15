@@ -9,12 +9,14 @@ export interface TurnTokenUsageRoute {
   readonly model: string
 }
 
-/** Exact provider-reported token accounting for every attempt in one completed Turn. */
+/** Validated completed-turn accounting, labeled when only known usage is available. */
 export interface TurnTokenUsage {
+  /** True when some request usage or an exact total was unavailable. */
+  readonly incomplete?: boolean
   /** Sum of uncached prompt input across all attempts. */
   readonly uncachedInputTokens: number
   readonly outputTokens: number
-  /** Exact aggregate prompt plus output total across all attempts. */
+  /** Aggregate prompt plus output; a lower bound when incomplete is true. */
   readonly totalTokens: number
   /** Present only when every attempt reported the bucket. */
   readonly cacheReadTokens?: number
@@ -26,7 +28,9 @@ export interface TurnTokenUsage {
   readonly routes?: readonly TurnTokenUsageRoute[]
 }
 
-interface NormalizedAttempt {
+/** Validated counts shared by session and completed-turn accounting. */
+export interface NormalizedAttempt {
+  readonly incomplete?: boolean
   readonly inputTokens: number
   readonly outputTokens: number
   readonly totalTokens: number
@@ -78,7 +82,12 @@ function streamUsage(stream: SessionEvent<'assistant/message'>['data']['stream']
   return lastAssistantStreamChunk(stream, 'usage')?.usage
 }
 
-function normalizeUsage(usage: TokenUsage, route?: TurnTokenUsageRoute): NormalizedAttempt | undefined {
+/** Validate disjoint provider buckets; missing cache details retain a labeled lower bound.
+ * @param usage - provider-normalized usage.
+ * @param route - optional provider/model attribution.
+ * @returns validated accounting, or undefined for contradictory counts.
+ */
+export function normalizeUsage(usage: TokenUsage, route?: TurnTokenUsageRoute): NormalizedAttempt | undefined {
   const {
     inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, reasoningTokens, totalTokens,
   } = usage
@@ -96,6 +105,7 @@ function normalizeUsage(usage: TokenUsage, route?: TurnTokenUsageRoute): Normali
   ])
   if (knownPrompt === undefined) return undefined
 
+  let incomplete = false
   let exactTotal: number
   if (totalTokens !== undefined) {
     if (!isCount(totalTokens)) return undefined
@@ -106,7 +116,7 @@ function normalizeUsage(usage: TokenUsage, route?: TurnTokenUsageRoute): Normali
     }
     exactTotal = totalTokens
   } else {
-    if (cacheReadTokens === undefined || cacheWriteTokens === undefined) return undefined
+    incomplete = cacheReadTokens === undefined || cacheWriteTokens === undefined
     const derivedTotal = safeSum([knownPrompt, outputTokens])
     if (derivedTotal === undefined) return undefined
     exactTotal = derivedTotal
@@ -116,6 +126,7 @@ function normalizeUsage(usage: TokenUsage, route?: TurnTokenUsageRoute): Normali
     inputTokens,
     outputTokens,
     totalTokens: exactTotal,
+    ...incomplete ? { incomplete: true } : {},
     ...cacheReadTokens === undefined ? {} : { cacheReadTokens },
     ...cacheWriteTokens === undefined ? {} : { cacheWriteTokens },
     ...reasoningTokens === undefined ? {} : { reasoningTokens },
@@ -151,6 +162,7 @@ function aggregateAttempts(attempts: readonly NormalizedAttempt[]): TurnTokenUsa
     uncachedInputTokens: inputTokens,
     outputTokens,
     totalTokens,
+    ...attempts.some(attempt => attempt.incomplete) ? { incomplete: true } : {},
     ...cacheReadTokens === undefined ? {} : { cacheReadTokens },
     ...cacheWriteTokens === undefined ? {} : { cacheWriteTokens },
     ...reasoningTokens === undefined ? {} : { reasoningTokens },
@@ -170,20 +182,25 @@ function sameAttempt(
  * Fold one complete Turn's durable attempt lifecycle into exact token accounting.
  *
  * No attempt is inferred from a usage sample. Any missing lifecycle boundary,
- * incomplete attempt usage, unsafe count, or contradictory exact total makes
- * the whole disclosure unavailable.
+ * unsafe count or contradictory total makes the disclosure unavailable. Missing
+ * usage and totals retain known counts with an incomplete disclosure.
  * @param events - Turn-local durable events from `turn/start` through `turn/end`.
- * @returns exact aggregate usage, or undefined when it cannot be proven.
+ * @returns aggregate usage with completeness, or undefined without valid accounting.
  */
 export function deriveTurnTokenUsage(events: readonly SessionEvent[]): TurnTokenUsage | undefined {
   let state: AttemptState = { kind: 'idle' }
   const attempts: NormalizedAttempt[] = []
   let turn: number | undefined
+  let missingUsage = false
   let sawEnd = false
   let invalid = false
 
   const closeOpen = (route?: TurnTokenUsageRoute): boolean => {
-    if (state.kind !== 'open' || state.sample === undefined) return false
+    if (state.kind !== 'open') return false
+    if (state.sample === undefined) {
+      missingUsage = true
+      return true
+    }
     const normalized = normalizeUsage(state.sample, route)
     if (normalized === undefined) return false
     attempts.push(normalized)
@@ -270,5 +287,9 @@ export function deriveTurnTokenUsage(events: readonly SessionEvent[]): TurnToken
     }
   }
 
-  return invalid || !sawEnd || state.kind !== 'idle' ? undefined : aggregateAttempts(attempts)
+  if (invalid || !sawEnd || state.kind !== 'idle') return undefined
+  const aggregate = aggregateAttempts(attempts)
+  if (aggregate === undefined || !missingUsage) return aggregate
+  const { cacheReadTokens: _read, cacheWriteTokens: _write, reasoningTokens: _reasoning, routes: _routes, ...known } = aggregate
+  return { ...known, incomplete: true }
 }

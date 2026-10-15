@@ -127,6 +127,8 @@ export interface TeamMessageView {
  * lists historical `team/message/queued` rows when any exist.
  */
 export interface TeamProjection {
+  /** False for an explicitly ordinary session; absent preserves legacy Teams. */
+  readonly enabled?: boolean
   readonly members: TeamMemberProjection[]
   readonly tasks: TeamTaskView[]
   readonly messages?: TeamMessageView[]
@@ -166,6 +168,8 @@ declare module '@deepseek-ai/dsh-llm' {
 
 /** Team-service deployment limits. */
 export interface Config {
+  /** Initial mode for newly created root sessions; existing sessions retain their mode. */
+  readonly defaultMode?: 'normal' | 'team'
   /** Maximum immutable teammate names retained by one Team. */
   readonly maxMembers?: number
   /** Maximum non-deleted tasks retained by one Team. */
@@ -241,6 +245,8 @@ export interface TeamWaitResult {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
+    /** Session-local activation; false may only initialize a new ordinary session. */
+    'team/mode': { version: 2; teamId: TeamId; enabled: boolean }
     /** Whole teammate lifecycle value, stored only in the Team Lead Session. */
     'team/member': { version: 2; teamId: TeamId; member: TeamMemberSnapshot }
     /** Whole shared-task value, stored only in the Team Lead Session. */

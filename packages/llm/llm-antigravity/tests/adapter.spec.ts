@@ -91,7 +91,7 @@ describe('AntigravityAdapter streaming', () => {
           candidatesTokenCount: 4,
           cachedContentTokenCount: 2,
           thoughtsTokenCount: 1,
-          totalTokenCount: 14,
+          totalTokenCount: 15,
         },
       ),
     ]
@@ -104,7 +104,7 @@ describe('AntigravityAdapter streaming', () => {
       .toEqual(['{"path":"a"}'])
     expect(output.at(-2)).toEqual({
       type: 'usage',
-      usage: { inputTokens: 8, outputTokens: 4, totalTokens: 14, cacheReadTokens: 2, reasoningTokens: 1 },
+      usage: { inputTokens: 8, outputTokens: 5, totalTokens: 15, cacheReadTokens: 2, reasoningTokens: 1 },
     })
     expect(output.at(-1)).toMatchObject({ type: 'finish', reason: { kind: 'tool-calls' } })
   })
@@ -675,5 +675,17 @@ describe('plugin registration', () => {
   it('does not default-export a plugin class', async () => {
     expect('default' in Antigravity).toBe(false)
     expect(credentialKey('llm-antigravity', 'default')).toBe(RECORD_KEY)
+  })
+})
+
+
+describe('Gemini usage accounting', () => {
+  it('includes thoughts in output and preserves explicit zero cache reads', async () => {
+    const output = await collect(translateSse(sseStream([
+      cloudEvent([{ text: 'answer' }], 'STOP', { promptTokenCount: 10, candidatesTokenCount: 2, thoughtsTokenCount: 20, cachedContentTokenCount: 0 }),
+    ]), () => {}))
+    expect(output.find(chunk => chunk.type === 'usage')).toEqual({
+      type: 'usage', usage: { inputTokens: 10, outputTokens: 22, reasoningTokens: 20, totalTokens: 32, cacheReadTokens: 0 },
+    })
   })
 })

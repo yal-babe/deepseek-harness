@@ -2,6 +2,7 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import type {} from '@deepseek-ai/dsh-commands'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-session-persistence'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -57,6 +58,7 @@ export class TeamService extends Service {
   static inject = ['agents', 'sessions', 'sessionPersistence', 'sessionProjections', 'subagents']
 
   static Config: z<Config> = z.object({
+    defaultMode: z.union(['normal', 'team']).default('team'),
     maxMembers: z.number().step(1).min(1).default(DEFAULT_MAX_MEMBERS),
     maxTasks: z.number().step(1).min(1).default(DEFAULT_MAX_TASKS),
     maxMessageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_MESSAGE_BYTES),
@@ -75,6 +77,7 @@ export class TeamService extends Service {
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'agentTeams')
     this.config = {
+      defaultMode: config.defaultMode ?? 'team',
       maxMembers: positiveLimit('maxMembers', config.maxMembers ?? DEFAULT_MAX_MEMBERS),
       maxTasks: positiveLimit('maxTasks', config.maxTasks ?? DEFAULT_MAX_TASKS),
       maxMessageBytes: positiveLimit('maxMessageBytes', config.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES),
@@ -90,7 +93,25 @@ export class TeamService extends Service {
     this.roster = new TeamRoster(ctx, this.journal, this.lifecycle, this.config.maxMembers)
     this.tasks = new TeamTaskBoard(this.journal, this.config.maxTasks)
 
-    ctx.on('agent/created', ({ agent }) => { this.scheduleRecovery(agent) })
+    ctx.on('agent/created', async ({ agent, source }) => {
+      if ((source === 'startup' || source === 'clear') && this.config.defaultMode === 'normal'
+        && agent.session.header.origin !== 'subagent' && !agent.session.header.isSeeded) {
+        await this.journal.appendAndFlush(agent, 'team/mode', { version: 2, teamId: TeamId(agent.id), enabled: false })
+      }
+      this.scheduleRecovery(agent)
+    })
+    ctx.inject(['commands'], (child) => {
+      child.effect(() => child.commands.register({
+        name: 'team',
+        description: 'Enable official team collaboration for this conversation (cannot be turned off).',
+        handler: async ({ agent, rawInput, signal }) => {
+          if (rawInput.trim() !== '') return { kind: 'error', text: 'Usage: /team' }
+          signal.throwIfAborted()
+          const changed = await this.enableTeam(agent, signal)
+          return { kind: 'success', text: changed ? 'Team collaboration enabled. This conversation cannot return to normal mode.' : 'Team collaboration is already enabled.' }
+        },
+      }), 'agentTeams.command()')
+    })
     ctx.on('agent/status', ({ agent }) => {
       const membership = this.roster.tryMembership(agent)
       if (membership !== undefined) this.activity.notify(membership.id)
@@ -106,6 +127,22 @@ export class TeamService extends Service {
       }
     }, 'agentTeams.runtimeLifecycle()')
     for (const agent of ctx.agents.list()) this.scheduleRecovery(agent)
+  }
+
+  /** Enable this root's official Team capability once, while idle.
+   * @param agent - exact live conversation Agent.
+   * @param signal - optional cancellation before the activation commits.
+   * @returns whether an ordinary session was activated.
+   */
+  async enableTeam(agent: Agent, signal?: AbortSignal): Promise<boolean> {
+    return this.journal.transact(agent.id, async () => {
+      if (this.ctx.agents.get(agent.id) !== agent) throw new TeamError('Conversation is no longer active', 'TEAM_NOT_MEMBER')
+      signal?.throwIfAborted()
+      if (this.journal.state(agent).enabled !== false) return false
+      if (agent.status === 'running') throw new TeamError('Wait for the current reply before enabling team collaboration', 'TEAM_BUSY')
+      await this.journal.appendAndFlush(agent, 'team/mode', { version: 2, teamId: TeamId(agent.id), enabled: true })
+      return true
+    })
   }
 
   /**

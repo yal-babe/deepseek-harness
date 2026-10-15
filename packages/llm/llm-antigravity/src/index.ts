@@ -80,6 +80,7 @@ export function apply(ctx: Context, config: Config): void {
     resolveAccessToken: (connection, signal) => resolveAccessToken(ctx, connection, signal, refreshing),
     hasSelectableCredential: () => antigravityCatalogVisible(ctx, options()),
   })
+  ctx.effect(() => () => { adapter.disposeCatalog() }, 'antigravity.catalog()')
   ctx.llm.registerAdapter([PROVIDER], adapter)
   ctx.llm.registerConfigurableProviders([{
     provider: PROVIDER,

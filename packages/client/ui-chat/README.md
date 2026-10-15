@@ -64,7 +64,7 @@ Generic command rows retain the ordinary command glyph in every lifecycle state;
 <a id="turn-token-usage"></a>
 ## Turn token usage
 
-A completed Turn shows an expandable usage row only when the loaded window includes `turn/start` and every started model attempt reports safe, exact usage. The row omits unavailable optional buckets. Incomplete or contradictory accounting hides the complete disclosure instead of presenting a partial total.
+A completed Turn shows an expandable usage row when the loaded window includes its complete lifecycle and at least one model attempt reports valid usage. Missing attempt usage or cache details without an exact total retain known counts with an explicit incomplete label. Unavailable optional buckets and unknown cache-hit rates are omitted; contradictory counts hide the disclosure.
 
 Settings → General → Performance & usage appears after Send behavior while busy and before Session Log upload, and stores `ui-chat.performanceUsage` as `detailed` (default) or `compact`. Compact shows only available output speed and cache-hit percentage beneath the composer, without interactive statistic dialogs or per-Turn usage. Detailed exposes session statistics and per-Turn token usage. Neither mode shows elapsed time in the completed-turn footer. The preference changes presentation only; accounting and Session events remain intact.
 

@@ -27,16 +27,15 @@ English | [中文](README.zh.md)
 
 ### Install into a profile
 
-Add the package to an initialized profile, then run a task that asks the Lead to delegate work:
+Add the package to an initialized profile:
 
 ```sh
 dsh plugin --profile headless add @deepseek-ai/dsh-experimental-agent-team-profile
-dsh --profile headless "Use Agent Teams to split this task between two teammates, wait, and summarize."
 ```
 
 The profile must already contain `@deepseek-ai/dsh-base`, whose Subagent services and provider rows this layer consumes. Removing the package with `dsh plugin --profile <name> remove @deepseek-ai/dsh-experimental-agent-team-profile` removes the bundle from the profile's ordered layer list.
 
-Enable Agent Teams on the Web or Desktop Plugins page to activate both tools and UI. For a CLI Web profile, use:
+Installing the bundle makes Team collaboration available. New conversations start in normal mode; execute `/team` in a conversation to enable the official tools and UI permanently for that conversation. Existing conversations retain their mode. Headless compositions without an interactive command surface can set `agent-team.config.defaultMode` to `team` in a profile patch. For a CLI Web profile, install with:
 
 ```sh
 dsh plugin --profile web add @deepseek-ai/dsh-experimental-agent-team-profile

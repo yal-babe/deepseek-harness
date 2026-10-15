@@ -1466,3 +1466,36 @@ describe('Team direct messages and waiting', () => {
     })
   })
 })
+
+
+describe('ordinary conversation activation', () => {
+  it('blocks Team operations until enabled and restores the persisted mode', async () => {
+    const { ctx, lead } = await setup([], { defaultMode: 'normal' })
+    expect(ctx.agentTeams.tryMembership(lead)).toBeUndefined()
+    expect(() => ctx.agentTeams.listMembers(lead)).toThrow('not a member')
+    const activations = await Promise.all([ctx.agentTeams.enableTeam(lead), ctx.agentTeams.enableTeam(lead)])
+    expect(activations).toEqual([true, false])
+    await ctx.sessions.flush(lead.session)
+    const events = await storedEvents(ctx, lead.id)
+    expect(events.filter(event => event.type === 'team/mode').map(event => event.data)).toEqual([
+      { version: 2, teamId: lead.id, enabled: false },
+      { version: 2, teamId: lead.id, enabled: true },
+    ])
+  })
+})
+
+
+describe('Team activation admission', () => {
+  it('rejects activation during a reply and after cancellation without changing mode', async () => {
+    const { ctx, lead } = await setup(['hang'], { defaultMode: 'normal' })
+    lead.followup(createUserMessage({ content: [{ type: 'text', text: 'Keep running' }], source: { kind: 'user' } }))
+    await vi.waitFor(() => { expect(lead.status).toBe('running') })
+    await expect(ctx.agentTeams.enableTeam(lead)).rejects.toMatchObject({ code: 'TEAM_BUSY' })
+    lead.cancel({ kind: 'user' })
+    await lead.whenIdle()
+    const controller = new AbortController()
+    controller.abort(new Error('cancel activation'))
+    await expect(ctx.agentTeams.enableTeam(lead, controller.signal)).rejects.toThrow('cancel activation')
+    expect(ctx.agentTeams.tryMembership(lead)).toBeUndefined()
+  })
+})

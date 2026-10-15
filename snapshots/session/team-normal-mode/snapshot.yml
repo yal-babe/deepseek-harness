@@ -1,0 +1,8 @@
+version: 1
+scenario: team-normal-mode
+profile: headless
+composition: team-normal-mode
+recording: authored
+header:
+  class: team-normal-mode
+  pin: true
