@@ -1,0 +1,29 @@
+{
+  "generatedWith": "built-in image_gen",
+  "concepts": [
+    {
+      "id": "A",
+      "name": "折带 S",
+      "designPrompt": "青紫渐变，突出 Studio 品牌",
+      "file": "A.png"
+    },
+    {
+      "id": "B",
+      "name": "几何工作台",
+      "designPrompt": "米白、靛蓝与橙色，强调工作空间",
+      "file": "B.png"
+    },
+    {
+      "id": "C",
+      "name": "终端符号",
+      "designPrompt": "黑白与荧光绿，简洁的开发工具风格",
+      "file": "C.png"
+    },
+    {
+      "id": "D",
+      "name": "协作环",
+      "designPrompt": "青绿色互联结构，强调 Agent Teams",
+      "file": "D.png"
+    }
+  ]
+}

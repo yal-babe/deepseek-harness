@@ -26,4 +26,4 @@
 
 用户能在一个入口查找不同来源的插件，完成受支持插件的安装、更新和卸载，并清楚了解插件来源与兼容情况。
 
-本次仅记录需求，不实施插件市场功能。
+实现入口在 **设置 → 插件市场**（[`ui-settings-plugin-marketplace`](../packages/client/ui-settings-plugin-marketplace/README.md)），Host 目录为 [`plugin-catalog`](../packages/boot/plugin-catalog/README.md)。侧边栏「插件」页保持为开关/配置/手动安装，不改成市场。

@@ -1,0 +1,24 @@
+{
+  "brand": "DSH Studio",
+  "version": "concept-01",
+  "generatedWith": "built-in image_gen",
+  "designPrompt": "Independent AI coding workspace app icon; geometric folded S ribbon with forward chevron negative space; midnight navy rounded tile; cyan to violet; transparent outer margins; no text or DeepSeek whale.",
+  "pngSizes": [
+    16,
+    20,
+    24,
+    32,
+    40,
+    48,
+    64,
+    96,
+    128,
+    256,
+    512,
+    1024
+  ],
+  "macOS": "dsh-studio.icns: 16, 32, 64, 128, 256, 512, 1024 px via 1x/2x iconset",
+  "windows": "dsh-studio.ico: 16, 20, 24, 32, 40, 48, 64, 96, 128, 256 px",
+  "windowsTray": "dsh-studio-tray.ico: 16, 20, 24, 32, 40, 48, 64 px",
+  "status": "Prepared design assets; application resource references unchanged."
+}

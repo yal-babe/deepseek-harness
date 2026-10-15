@@ -75,7 +75,7 @@
   backdrop-filter: var(--dsw-mask-blur);
 }
 
-/* Settings uses a shared 800×800 panel; longer sections scroll
+/* Settings uses a shared 1040×800 panel; longer sections scroll
    inside the options column; the navigation scrolls independently. One height for
    every section, taken from the viewport rather than the content, because a
    content-sized panel would resize under the pointer on every nav click.
@@ -86,7 +86,7 @@
   position: relative;
   z-index: 1;
   display: flex;
-  width: 800px;
+  width: 1040px;
   height: min(800px, calc(100vh - 2 * max(24px, var(--dsh-frame-overlay-top, 24px))));
   max-width: calc(100vw - 48px);
   border-radius: var(--dsw-radius-panel);
@@ -246,3 +246,15 @@
    ui-web base.css's `body > :not(#root)` subtraction covers it wherever it
    overlaps a chrome row's drag — including above every column, which an in-root
    overlay could not promise once a chrome row declares drag itself. */
+
+@media (max-width: 640px) {
+  .panel { flex-direction: column; max-width: calc(100vw - 24px); }
+  .nav { width: 100%; padding: 16px 16px 0; gap: 12px; }
+  .navTitle { padding: 0; }
+  .navList { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .navCell { flex: none; }
+  .navLabel { overflow: visible; }
+  .content { min-height: 0; }
+  .header { height: 44px; padding-top: 8px; }
+  .options { padding: 0 16px 16px; }
+}

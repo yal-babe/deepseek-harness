@@ -21,6 +21,10 @@
       name: '@deepseek-ai/dsh-plugin-manager'
       disabled: !!js "!ctx.get('profileContext')"
 
+    # Aggregated marketplace catalog (community + Codex) for Settings.
+    - id: plugin-catalog
+      name: '@deepseek-ai/dsh-plugin-catalog'
+
     - id: timer
       name: '@deepseek-ai/cordis-plugin-timer'
 

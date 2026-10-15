@@ -1,0 +1,22 @@
+{
+  "brand": "DSH Studio",
+  "generatedWith": "built-in image_gen",
+  "designPrompt": "Fruit pear icon in the simple organic silhouette style of DeepSeek; cobalt blue pear with curved stem, single leaf, white crescent negative-space highlight, off-white rounded-square tile, transparent outer margins, no text or whale elements.",
+  "pngSizes": [
+    16,
+    20,
+    24,
+    32,
+    40,
+    48,
+    64,
+    96,
+    128,
+    256,
+    512,
+    1024
+  ],
+  "macOS": "16–1024 px ICNS",
+  "windows": "16–256 px ICO",
+  "status": "Design resource pack; application references unchanged."
+}

@@ -455,6 +455,11 @@
     - id: ui-settings-plugins
       name: '@deepseek-ai/dsh-client-ui-settings-plugins'
 
+    # Hub-style remote marketplace (community + Codex); does not replace the
+    # sidebar Plugins page or the Built-in plugins settings section.
+    - id: ui-settings-plugin-marketplace
+      name: '@deepseek-ai/dsh-client-ui-settings-plugin-marketplace'
+
     # The official settings pages: one companion package per host-plane
     # namespace, each registering its page into the Plugins page while the
     # Host serves the namespace.

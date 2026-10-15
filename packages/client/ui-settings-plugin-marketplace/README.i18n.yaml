@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-settings-plugin-marketplace/README.md
+/:
+  en: a253c51247bd5c15
+  zh: abe5c7bd1aa4e222
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace:
+  en: adc43e119ae7673b
+  zh: a3f475efc1e55970
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/summary:
+  en: 6cd785e1c17ad384
+  zh: e53ea4a4ecfd8a2e
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/use-this-package:
+  en: 9f459d9e0a01da98
+  zh: cc6518942332c96d
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/understand-the-implementation:
+  en: bfaefe0f578bf43d
+  zh: 8ea612a3e2e9f7f3
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/further-exploration:
+  en: e3d74ad5d862d212
+  zh: 4634bd0ad3d2dbf2
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/model-experience:
+  en: 6b7c6f82ab6c8435
+  zh: 96b3c5b0c2523fdc
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 2064958b0754647e
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/known-limitations-and-deferred-work:
+  en: 0c009963a9cfa9cd
+  zh: 050dbfb4ad0dc0e8
+/deepseek-ai-dsh-client-ui-settings-plugin-marketplace/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6
