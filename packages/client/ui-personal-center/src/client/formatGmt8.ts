@@ -3,6 +3,7 @@
 /**
  * Format milliseconds as `YYYY-MM-DD HH:mm` in Asia/Shanghai.
  * @param ms - epoch milliseconds.
+ * @returns Formatted local timestamp string.
  */
 export function formatGmt8(ms: number): string {
   const parts = new Intl.DateTimeFormat('en-GB', {

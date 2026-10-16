@@ -1,0 +1,87 @@
+---
+description: "Studio account login and explicitly selected personal-object sync, with Host-owned credentials and isolated durable queues."
+kind: "package-reference"
+---
+
+# @deepseek-ai/dsh-studio-cloud
+
+English | [中文](README.zh.md)
+
+## Summary
+
+Host-owned Studio login, separate from model-provider authorization. Mount `@deepseek-ai/dsh-studio-cloud` in the Web or desktop profile. The service requires `credentials`; the browser calls its generated `studioCloud` Remote and never receives cloud tokens. Signing in does not enable uploads: account status remains `preview-required` until the user confirms the local and cloud preview. Refresh rotation is single-flight and persists pending rotation before sending requests. Signing out aborts active requests, deletes the local grant, and reports whether device revocation succeeded. Model credentials and local Sessions remain intact.
+
+## Table of Contents
+
+- [Use this package](#use-this-package)
+- [Understand the implementation](#understand-the-implementation)
+- [Further Exploration](#further-exploration)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
+
+<a id="use-this-package"></a>
+## Use this package
+
+The Web and Desktop profiles mount this service separately from the legacy batch outbox. The default state directory is located under `$DSH_HOME/studio-cloud`; service origin and account hashes isolate the persisted queue, cursor, and local project mappings. The sync loop default interval is 30000ms and executes only after explicit user selection.
+
+Contributions declare a namespace, payload version, top-level field allowlist, exporter, and importer. Export filters fields before text redaction. The built-in preference contributor includes theme and language fields; project metadata excludes local directory paths, and downloaded projects require an explicit workspace binding. Unknown payload versions remain visible in preview but cannot be imported. Unregistered plugin configuration and storage are never exported.
+
+Initial preview downloads a consistent cloud snapshot. Selection chooses local or cloud values explicitly; conflicts never silently overwrite either side. Subsequent sync uses the incremental cursor and retains immutable queued requests until acknowledgement. A failed import retains its checkpoint. Pausing retains all local data.
+
+-----
+
+<a id="understand-the-implementation"></a>
+## Understand the implementation
+
+<details>
+<summary>Implementation internals — click to expand</summary>
+
+The service implementation manages single-flight token rotation, durable outbox queues, incremental sync engine cycles, and session continuation receipts without coupling to model provider transports.
+
+| File | Role |
+|---|---|
+| [`src/index.ts`](src/index.ts) | Service lifecycle, Cordis registration, and Remote method handlers |
+| [`src/transport.ts`](src/transport.ts) | HTTP client, refresh rotation, and device revocation transport |
+| [`src/sync-engine.ts`](src/sync-engine.ts) | Durable outbox, incremental cursor processing, and contributor dispatch |
+| [`src/cloud-sessions.ts`](src/cloud-sessions.ts) | Cloud history streaming, snapshot previews, and session continuation fork |
+
+</details>
+
+-----
+
+<a id="further-exploration"></a>
+## Further Exploration
+
+- [Studio Cloud Service](../../../services/studio-cloud/README.md) — Backend HTTP server and PostgreSQL/S3 durable storage.
+- [Studio Account Settings](../../client/ui-settings-account/README.md) — Client UI for account login and sync preview controls.
+
+-----
+
+<a id="model-experience"></a>
+## Model Experience
+
+None, as personal cloud identity and object sync add no model context or tools.
+
+#### KV Cache effect
+
+None; synchronization does not modify model requests.
+
+## Known Limitations and Deferred Work
+
+<a id="known-limitations-and-deferred-work"></a>
+
+- Model credentials, execution permissions, environment variables, and local code directories remain local on this device and are never synchronized.
+- Arbitrary unapproved plugin code execution is prevented during restore.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+None.
+
+</details>

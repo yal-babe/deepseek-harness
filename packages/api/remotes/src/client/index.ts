@@ -8,6 +8,8 @@ import userQuestionsRemote from '@deepseek-ai/dsh-user-questions/remote'
 import commandsRemote from '@deepseek-ai/dsh-commands/remote'
 import accountRemote from '@deepseek-ai/dsh-api-account-controller/remote'
 import oauthRemote from '@deepseek-ai/dsh-api-oauth-controller/remote'
+import studioCloudRemote from '@deepseek-ai/dsh-studio-cloud/remote'
+export type {} from '@deepseek-ai/dsh-studio-cloud/remote'
 import providerQuotaRemote from '@deepseek-ai/dsh-api-provider-quota/remote'
 import usageStatsRemote from '@deepseek-ai/dsh-usage-stats/remote'
 import settingsControllerRemote from '@deepseek-ai/dsh-api-settings-controller/remote'
@@ -208,7 +210,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   try {
     for (const contribution of [
       productAnalyticsRemote, agentPresetsRemote, commandsRemote, settingsControllerRemote, accountRemote, oauthRemote,
-      providerQuotaRemote, usageStatsRemote,
+      providerQuotaRemote, usageStatsRemote, studioCloudRemote,
       goalsRemote, llmRemote, dynamicRemote, scheduleRemote,
       pluginInventoryRemote, pluginManagerRemote, pluginCatalogRemote, pluginMarketRemote, pluginRegistryProbeRemote,
       messageFeedbackRemote, sessionFeedbackRemote,

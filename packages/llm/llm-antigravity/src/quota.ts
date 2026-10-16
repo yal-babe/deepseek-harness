@@ -67,6 +67,7 @@ export interface AntigravityQuotaSnapshot {
 /**
  * Map a Cloud Code tier id onto the Management Center plan vocabulary.
  * @param tierId - `paidTier` or `currentTier` id.
+ * @returns Normalized Antigravity plan or null.
  */
 export function mapAntigravityPlan(tierId: string | null): AntigravityPlan | null {
   if (tierId === null || tierId.length === 0) return null
@@ -81,6 +82,7 @@ export function mapAntigravityPlan(tierId: string | null): AntigravityPlan | nul
 /**
  * Read `paidTier` then `currentTier` from a `loadCodeAssist` body.
  * @param raw - decoded JSON.
+ * @returns Subscription plan and raw tier id.
  */
 export function parseAntigravitySubscription(raw: unknown): { plan: AntigravityPlan | null; tierId: string | null } {
   const data = asObject(raw) ?? {}
@@ -94,6 +96,7 @@ export function parseAntigravitySubscription(raw: unknown): { plan: AntigravityP
  * Build quota groups: each group's buckets sorted `5h` then `weekly`.
  * `remainingFraction` is leftover; `resetTime` becomes `resetAtMs`.
  * @param raw - decoded `retrieveUserQuotaSummary` JSON.
+ * @returns Normalized quota groups array.
  */
 export function buildAntigravityQuotaGroups(raw: unknown): AntigravityQuotaGroup[] {
   const data = asObject(raw) ?? {}
@@ -131,6 +134,7 @@ export function buildAntigravityQuotaGroups(raw: unknown): AntigravityQuotaGroup
  * @param project - Cloud Code companion project id.
  * @param signal - optional caller cancellation.
  * @param fetchImpl - HTTP implementation; defaults to global fetch.
+ * @returns Fetched Antigravity quota snapshot.
  */
 export async function fetchAntigravityQuota(
   connection: ResolvedAntigravityConfig,
@@ -166,6 +170,7 @@ export async function fetchAntigravityQuota(
  * @param connection - current configuration.
  * @param token - Bearer token.
  * @param signal - optional cancellation.
+ * @returns Fetched quota snapshot for token.
  */
 export async function fetchAntigravityQuotaForToken(
   connection: ResolvedAntigravityConfig,
@@ -195,7 +200,10 @@ export async function fetchAntigravityQuotaForToken(
   }
 }
 
-/** Empty unsigned Antigravity snapshot. */
+/**
+ * Empty unsigned Antigravity snapshot.
+ * @returns Empty unsigned Antigravity quota snapshot.
+ */
 export function unsignedAntigravityQuota(): AntigravityQuotaSnapshot {
   return { status: 'unsigned', plan: null, tierId: null, groups: [] }
 }

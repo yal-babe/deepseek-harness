@@ -1802,6 +1802,43 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'pluginCatalog',
+    summary: 'Aggregated marketplace catalog served over Typert Remote.',
+    description: 'Aggregated marketplace catalog served over Typert Remote.',
+    methods: [
+      {
+        signature: '@Remote async search(query?: CatalogSearchQuery): Promise<CatalogSearchResult>',
+        description: 'Search the aggregated catalog.',
+        parameters: [{ name: 'query', description: 'text, source, Hub category, Codex kind, sort, and pagination.' }],
+        returns: 'one page of entries; feed failures throw a RemoteError.',
+      },
+      {
+        signature: '@Remote async get(id: string): Promise<CatalogEntry>',
+        description: 'Read one entry by id, enriching Codex rows with plugin.json detail.',
+        parameters: [{ name: 'id', description: '`community:…` or `codex:…`.' }],
+        returns: 'catalog entry matching the given identifier.',
+      },
+      {
+        signature: '@Remote async installEntry(id: string): Promise<CatalogInstallResult>',
+        description: 'Install a marketplace entry. Named `installEntry` because the client Remote namespace service already defines `install`.',
+        parameters: [{ name: 'id', description: 'catalog entry id.' }],
+        returns: 'installation outcome.',
+      },
+      {
+        signature: '@Remote async uninstall(id: string): Promise<CatalogInstallResult>',
+        description: 'Uninstall a marketplace entry.',
+        parameters: [{ name: 'id', description: 'catalog entry id.' }],
+        returns: 'uninstallation outcome.',
+      },
+      {
+        signature: '@Remote async setEnabled(id: string, enabled: boolean): Promise<CatalogInstallResult>',
+        description: 'Persist activation for an installed marketplace entry.',
+        parameters: [{ name: 'id', description: 'catalog entry id.' }, { name: 'enabled', description: 'whether the bundle or skills should be available.' }],
+        returns: 'the committed entry and any restart requirement; failures remain visible.',
+      },
+    ],
+  },
+  {
     key: 'pluginManager',
     summary: 'Manage profile files and apply their declared reload lifecycle.',
     description: 'Manage profile files and apply their declared reload lifecycle.',
@@ -1988,6 +2025,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'readonly telemetryDisabledEnv: string | undefined',
         description: 'Launch-time DSH_TELEMETRY_DISABLED value; any non-empty value opts out.',
         parameters: [],
+      },
+    ],
+  },
+  {
+    key: 'providerQuota',
+    summary: 'Codex and Antigravity quota over stored Host grants.',
+    description: 'Codex and Antigravity quota over stored Host grants.',
+    methods: [
+      {
+        signature: '@Remote async get(provider: QuotaProviderId): Promise<ProviderQuotaView>',
+        description: 'Read one provider\'s safe quota view.',
+        parameters: [{ name: 'provider', description: '`codex` or `antigravity`.' }],
+        returns: 'unsigned when no grant is stored; ready or failed otherwise.',
+      },
+      {
+        signature: '@Remote async consumeCodexReset(): Promise<ConsumeCodexResetResult>',
+        description: 'Redeem one Codex rate-limit reset credit after the Client confirms. Does not call CLI Proxy `resetCooldown`.',
+        parameters: [],
+        returns: 'whether WHAM accepted the redeem, plus the latest usage card.',
       },
     ],
   },
@@ -3104,6 +3160,169 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'studioCloud',
+    summary: 'Host owner for Studio device login; signing out retains all local Session and provider data.',
+    description: 'Host owner for Studio device login; signing out retains all local Session and provider data.',
+    methods: [
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *watch(signal: AbortSignal): AsyncIterable<StudioState>',
+        description: 'Observe account and synchronization status without exposing credentials.',
+        parameters: [{ name: 'signal', description: 'subscriber lifetime; disconnecting does not sign the account out.' }],
+        returns: 'complete safe snapshots, including the initial state.',
+      },
+      {
+        signature: 'register(contribution: SyncContribution): () => void',
+        description: 'Register an owner-declared allowlist and importer; undeclared plugin data is never exported.',
+        parameters: [{ name: 'contribution', description: 'versioned contribution owned by the registering plugin.' }],
+        returns: 'disposer; callers register it through their Cordis effect.',
+      },
+      {
+        signature: '@Remote projectsToBind(): Promise<{ id: string; title: string; localId: string | null }[]>',
+        description: 'Read restored project metadata and its per-device binding requirements.',
+        parameters: [],
+        returns: 'cloud project titles and local registry IDs, without directory paths.',
+      },
+      {
+        signature: '@Remote({ resources: { workspace: (_id: string, localId: WorkspaceId) => localId } }) bindProject(id: string, localId: WorkspaceId): Promise<void>',
+        description: 'Bind one restored cloud project to an existing directory-backed local workspace.',
+        parameters: [{ name: 'id', description: 'selected cloud project ID.' }, { name: 'localId', description: 'workspace selected on this device.' }],
+        returns: 'after the mapping is stored; no cloud request contains the local path.',
+      },
+      {
+        signature: '@Remote unbindProject(id: string): Promise<void>',
+        description: 'Remove binding between a cloud project and a local workspace.',
+        parameters: [{ name: 'id', description: 'selected cloud project ID.' }],
+        returns: 'after the mapping is cleared.',
+      },
+      {
+        signature: '@Remote historiesList():Promise<StudioHistoryItem[]>',
+        description: 'List explicitly downloaded histories without contacting the server or creating Agents.',
+        parameters: [],
+        returns: 'account-isolated history metadata and missing attachment requirements.',
+      },
+      {
+        signature: '@Remote readHistory(id:string):Promise<StudioHistoryView>',
+        description: 'Read a downloaded immutable history, including its canonical projected model messages.',
+        parameters: [{ name: 'id', description: 'history chosen from this account\'s downloaded list.' }],
+        returns: 'read-only messages and required local restoration actions.',
+      },
+      {
+        signature: '@Remote({ resources: { workspace: (_id: string, workspaceId: WorkspaceId) => workspaceId } }) forkHistory( id: string, workspaceId: WorkspaceId, preset?: string, requestId?: string, ): Promise<StudioContinuationResult>',
+        description: 'Fork an immutable downloaded history into a new local branch session within a selected workspace.',
+        parameters: [{ name: 'id', description: 'cloud history object ID.' }, { name: 'workspaceId', description: 'existing local workspace ID.' }, { name: 'preset', description: 'optional agent preset ID.' }, { name: 'requestId', description: 'optional idempotent request UUID.' }],
+        returns: 'newly created child Session ID.',
+      },
+      {
+        signature: '@Remote tokenActivity(): Promise<StudioTokenActivity>',
+        description: 'Read aggregate deduplicated token usage across synchronized sessions.',
+        parameters: [],
+        returns: 'token metrics and turn counts.',
+      },
+      {
+        signature: '@Remote updateProfile(displayName: string): Promise<void>',
+        description: 'Update the account display name and trigger synchronization.',
+        parameters: [{ name: 'displayName', description: 'new display name.' }],
+        returns: 'after updating local credentials and queueing sync.',
+      },
+      {
+        signature: '@Remote restoredPlugins(): Promise<StudioRestoredPlugin[]>',
+        description: 'Read restored plugins recorded from cloud sync for user review.',
+        parameters: [],
+        returns: 'restored plugin list compared with current local inventory.',
+      },
+      {
+        signature: '@Remote preview(): Promise<StudioPreviewRow[]>',
+        description: 'Preview local allowlisted data and the current cloud snapshot without uploading.',
+        parameters: [],
+        returns: 'local/cloud values and supported-version markers for explicit selection.',
+      },
+      {
+        signature: '@Remote select(choices: { id: string; source: \'local\' | \'cloud\'; version: number }[]): Promise<void>',
+        description: 'Confirm the selected data and enable future sync for those objects only.',
+        parameters: [{ name: 'choices', description: 'preview object IDs, expected cloud versions, and chosen local or cloud source.' }],
+        returns: 'after selected imports and uploads; conflicts retain both values.',
+      },
+      {
+        signature: '@Remote synchronize(): Promise<void>',
+        description: 'Retry queued immutable requests and synchronize opted-in objects.',
+        parameters: [],
+        returns: 'after the selected objects settle; failures remain visible in account status.',
+      },
+      {
+        signature: '@Remote pause(paused: boolean): Promise<void>',
+        description: 'Pause or resume future syncing without deleting local or cloud data.',
+        parameters: [{ name: 'paused', description: 'whether syncing is stopped.' }],
+        returns: 'after the choice is persisted for this account.',
+      },
+      {
+        signature: '@Remote getState(): Promise<StudioState>',
+        description: 'Read safe connection status; no local data is uploaded by this method.',
+        parameters: [],
+        returns: 'signed-out, preview-required, unsupported, or reauthentication state.',
+      },
+      {
+        signature: '@Remote signIn( origin: string, login: string, password: string, deviceName: string, allowHttp: boolean, ): Promise<StudioIdentity>',
+        description: 'Sign in to an explicitly selected server; this never enables synchronization.',
+        parameters: [{ name: 'origin', description: 'root service URL.' }, { name: 'login', description: 'username or verified email.' }, { name: 'password', description: 'transient password, never persisted.' }, { name: 'deviceName', description: 'name displayed in device management.' }, { name: 'allowHttp', description: 'explicit acceptance of an unencrypted deployment connection.' }],
+        returns: 'safe account identity; temporary accounts must change their password first.',
+      },
+      {
+        signature: '@Remote signOut(): Promise<{ revoked: boolean }>',
+        description: 'Stop outstanding account operations and remove the local grant before attempting remote revocation.',
+        parameters: [],
+        returns: 'whether server revocation was confirmed; false requires revoking this device from another login.',
+      },
+      {
+        signature: '@Remote devices(): Promise<{ id: string; deviceName: string; current: boolean; lastSeen: string }[]>',
+        description: 'Read authorized devices, including the current device marker.',
+        parameters: [],
+        returns: 'safe device records.',
+      },
+      {
+        signature: '@Remote revokeDevice(id: string): Promise<void>',
+        description: 'Revoke one device; revoking this device also clears its local grant.',
+        parameters: [{ name: 'id', description: 'server-issued device ID selected from devices.' }],
+        returns: 'after revocation is confirmed.',
+      },
+      {
+        signature: '@Remote acceptInvite(origin: string, token: string, username: string, password: string, allowHttp: boolean): Promise<void>',
+        description: 'Accept an invitation without signing in or enabling sync.',
+        parameters: [{ name: 'origin', description: 'explicitly selected service URL.' }, { name: 'token', description: 'single-use invitation token.' }, { name: 'username', description: 'requested account name.' }, { name: 'password', description: 'initial transient password.' }, { name: 'allowHttp', description: 'explicit HTTP consent.' }],
+        returns: 'after server acceptance.',
+      },
+      {
+        signature: '@Remote forgotPassword(origin: string, email: string, allowHttp: boolean): Promise<void>',
+        description: 'Request a reset mail; the server deliberately does not reveal account existence.',
+        parameters: [{ name: 'origin', description: 'selected service URL.' }, { name: 'email', description: 'verified address.' }, { name: 'allowHttp', description: 'explicit HTTP consent.' }],
+        returns: 'after the request is accepted.',
+      },
+      {
+        signature: '@Remote resetPassword(origin: string, token: string, password: string, allowHttp: boolean): Promise<void>',
+        description: 'Consume a password-reset token; existing sessions are revoked by the server.',
+        parameters: [{ name: 'origin', description: 'selected service URL.' }, { name: 'token', description: 'one-time mail token.' }, { name: 'password', description: 'replacement transient password.' }, { name: 'allowHttp', description: 'explicit HTTP consent.' }],
+        returns: 'after password reset is confirmed.',
+      },
+      {
+        signature: '@Remote verifyEmail(origin: string, token: string, allowHttp: boolean): Promise<void>',
+        description: 'Verify a one-time email token at its explicitly selected issuer.',
+        parameters: [{ name: 'origin', description: 'selected service URL.' }, { name: 'token', description: 'email verification token.' }, { name: 'allowHttp', description: 'explicit HTTP consent.' }],
+        returns: 'after email verification is confirmed.',
+      },
+      {
+        signature: '@Remote bindEmail(email: string, password: string): Promise<void>',
+        description: 'Request verification before changing the signed-in account email.',
+        parameters: [{ name: 'email', description: 'proposed address.' }, { name: 'password', description: 'current transient password.' }],
+        returns: 'after the verification request is accepted.',
+      },
+      {
+        signature: '@Remote changePassword(currentPassword: string, newPassword: string): Promise<void>',
+        description: 'Change an initial or current password. Server success invalidates all device grants.',
+        parameters: [{ name: 'currentPassword', description: 'current transient password.' }, { name: 'newPassword', description: 'replacement transient password.' }],
+        returns: 'after local credentials are cleared; a lost response requires signing in again.',
+      },
+    ],
+  },
+  {
     key: 'subagentModelSelection',
     summary: 'Singleton settings owner read when delegation tools are composed for a Session.',
     description: 'Singleton settings owner read when delegation tools are composed for a Session.',
@@ -3741,6 +3960,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Open one live stream Remote method without assuming a physical carrier.',
         parameters: [{ name: 'request', description: 'decoded endpoint, named wire arguments, and the Client uplink when the carrier has one.' }],
         returns: 'a cancellation-aware iterable over the business results.',
+      },
+    ],
+  },
+  {
+    key: 'usageStats',
+    summary: 'Local usage fold over session-query, excluding workspace-archived sessions.',
+    description: 'Local usage fold over session-query, excluding workspace-archived sessions.',
+    methods: [
+      {
+        signature: '@Remote async snapshot(timezoneOffsetSeconds: number): Promise<UsageSnapshot>',
+        description: 'Fold unarchived sessions into calendar-day, model, and tool totals.',
+        parameters: [{ name: 'timezoneOffsetSeconds', description: 'seconds east of UTC for local day buckets.' }],
+        returns: 'a snapshot that contains no event bodies or credentials.',
       },
     ],
   },
@@ -4861,7 +5093,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AccountWallet',
-    declaration: 'export interface AccountWallet {\n    readonly currency: \'CNY\' | \'USD\';\n    readonly balance: string;\n}',
+    declaration: 'export interface AccountWallet {\n    readonly currency: \'CNY\' | \'USD\';\n    readonly balance: string;\n    readonly expiresAt?: string | null;\n}',
   },
   {
     name: 'AdapterRegistrationHandle',
@@ -4942,6 +5174,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AnonymousTranslationSpec',
     declaration: 'export interface AnonymousTranslationSpec extends TranslationSpecFields {\n    readonly provider: AnonymousTranslationProvider;\n}',
+  },
+  {
+    name: 'AntigravityQuotaGroupView',
+    declaration: 'export interface AntigravityQuotaGroupView {\n    id: string;\n    label: string | null;\n    buckets: QuotaWindowView[];\n}',
+  },
+  {
+    name: 'AntigravityQuotaView',
+    declaration: 'export interface AntigravityQuotaView {\n    provider: \'antigravity\';\n    status: \'unsigned\' | \'ready\' | \'failed\';\n    plan: \'free\' | \'pro\' | \'ultra\' | \'ultra-lite\' | \'unknown\' | null;\n    tierId: string | null;\n    groups: AntigravityQuotaGroupView[];\n    models?: CodexModelView[];\n    modelsError?: string;\n    error?: string;\n}',
   },
   {
     name: 'AnyHook',
@@ -5156,12 +5396,56 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ButtonProps {\n    readonly label: string;\n    readonly hotkey?: string | undefined;\n    readonly disabled?: boolean | undefined;\n    readonly onPress?: (() => unknown) | undefined;\n}',
   },
   {
+    name: 'CatalogCompatibility',
+    declaration: 'export type CatalogCompatibility = \'full\' | \'partial\' | \'unsupported\';',
+  },
+  {
+    name: 'CatalogEntry',
+    declaration: 'export interface CatalogEntry {\n    id: string;\n    source: CatalogSource;\n    kind: CatalogKind;\n    kinds: readonly CatalogKind[];\n    compatibility: CatalogCompatibility;\n    name: string;\n    title: string;\n    description: string;\n    author: string;\n    version?: string;\n    installSpec?: string;\n    homepageUrl?: string;\n    repositoryUrl?: string;\n    iconUrl?: string;\n    readme?: string;\n    compatibilityNote?: string;\n    category?: string;\n    tags?: readonly string[];\n    verified?: boolean;\n    stars?: number;\n    forks?: number;\n    updatedAt?: string;\n    addedAt?: string;\n    installed: boolean;\n    enabled?: boolean;\n    installedVersion?: string;\n    updateAvailable?: boolean;\n}',
+  },
+  {
+    name: 'CatalogInstallResult',
+    declaration: 'export interface CatalogInstallResult {\n    ok: boolean;\n    code: \'installed\' | \'uninstalled\' | \'enabled\' | \'disabled\' | \'unsupported\' | \'incompatible\' | \'missing-manager\' | \'not-found\' | \'failed\';\n    message: string;\n    restartRequired?: boolean;\n    entry?: CatalogEntry;\n}',
+  },
+  {
+    name: 'CatalogKind',
+    declaration: 'export type CatalogKind = \'bundle\' | \'skill\' | \'mcp\' | \'hook\';',
+  },
+  {
+    name: 'CatalogLocale',
+    declaration: 'export type CatalogLocale = \'en\' | \'zh\';',
+  },
+  {
+    name: 'CatalogSearchQuery',
+    declaration: 'export interface CatalogSearchQuery {\n    query?: string;\n    source?: CatalogSource;\n    category?: string;\n    kind?: CatalogKind;\n    sort?: CatalogSort;\n    installedOnly?: boolean;\n    locale?: CatalogLocale;\n    page?: number;\n    pageSize?: number;\n}',
+  },
+  {
+    name: 'CatalogSearchResult',
+    declaration: 'export interface CatalogSearchResult {\n    entries: readonly CatalogEntry[];\n    total: number;\n    page: number;\n    pageSize: number;\n    queryTotal: number;\n    installedCount: number;\n}',
+  },
+  {
+    name: 'CatalogSort',
+    declaration: 'export type CatalogSort = \'stars\' | \'forks\' | \'updated\' | \'added\';',
+  },
+  {
+    name: 'CatalogSource',
+    declaration: 'export type CatalogSource = \'community\' | \'codex\';',
+  },
+  {
     name: 'ChangeResult',
     declaration: 'export interface ChangeResult {\n    changed: boolean;\n    application: \'applied\' | \'restart-required\' | \'overridden\' | \'failed\' | \'cancelled\';\n    restartReason?: RestartReason;\n    stage: \'install\' | \'enable\' | \'remove\';\n    target: string;\n    enabled?: boolean;\n    error?: ManagementError;\n    warnings?: string[];\n    packageResult?: PackageResult;\n    bundle?: string;\n    version?: string;\n    pendingBuilds?: string[];\n    approvedBuilds?: string[];\n    registries?: Registry[];\n    failedAt?: \'registry\' | \'spec-host\';\n}',
   },
   {
     name: 'ClientArtifactBaseline',
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly ctimeMs: number;\n    readonly size: number;\n}',
+  },
+  {
+    name: 'CodexModelView',
+    declaration: 'export interface CodexModelView {\n    id: string;\n    name: string | null;\n}',
+  },
+  {
+    name: 'CodexQuotaView',
+    declaration: 'export interface CodexQuotaView {\n    provider: \'codex\';\n    status: \'unsigned\' | \'ready\' | \'failed\';\n    planType: string | null;\n    subscriptionActiveUntilMs: number | null;\n    creditBalance: string | null;\n    creditsUnlimited: boolean;\n    windows: QuotaWindowView[];\n    resetCredits: ResetCreditView[];\n    resetCreditsAvailableCount: number | null;\n    models: CodexModelView[];\n    modelsError?: string;\n    modelsFromCatalog?: boolean;\n    error?: string;\n}',
   },
   {
     name: 'CollectedOutput',
@@ -5318,6 +5602,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ConnectionTrustRequest',
     declaration: 'export interface ConnectionTrustRequest {\n    readonly headers: Headers | Readonly<Record<string, string | readonly string[] | undefined>>;\n}',
+  },
+  {
+    name: 'ConsumeCodexResetResult',
+    declaration: 'export interface ConsumeCodexResetResult {\n    ok: boolean;\n    quota: CodexQuotaView;\n}',
   },
   {
     name: 'ContentBlockMap',
@@ -6496,6 +6784,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ObjectJsonSchema = JsonSchemaNode & {\n    type: \'object\';\n};',
   },
   {
+    name: 'ObjectValue',
+    declaration: 'export type ObjectValue = z.infer<typeof object>;',
+  },
+  {
     name: 'OfficeExtension',
     declaration: 'export type OfficeExtension = \'doc\' | \'docx\' | \'xls\' | \'xlsx\' | \'ppt\' | \'pptx\';',
   },
@@ -6713,7 +7005,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ProductEventMap',
-    declaration: 'export interface ProductEventMap {\n    desktop_app_launch: Record<string, never>;\n    auth_page_view: Record<string, never>;\n    auth_page_click: {\n        button_name: \'sign_in\' | \'api-key\';\n    };\n    api_key_save_click: Record<string, never>;\n    onboarding_page_view: {\n        page_name: OnboardingPage;\n    };\n    onboarding_page_click: {\n        page_name: OnboardingPage;\n        button_name: \'next\' | \'back\' | \'skip\' | \'charge\' | \'later\' | \'continue\';\n        selected_content?: \'office\' | \'code\' | \'code_office\' | \'focus_result\' | \'key_detail\' | \'full_process\';\n    };\n    onboarding_popup_view: {\n        popup_name: \'skip_charge\' | \'skip_setting\';\n    };\n    onboarding_popup_click: {\n        popup_name: \'skip_charge\' | \'skip_setting\';\n        button_name: \'charge\' | \'know\' | \'enter\' | \'setting\' | \'close\';\n    };\n    desktop_upgrade_click: Record<string, never>;\n    desktop_upgrade_download_result: {\n        is_success: boolean;\n        error_reason?: string;\n    };\n    desktop_upgrade_install_restart_click: Record<string, never>;\n    send_button_click: {\n        session_id?: SessionId;\n        model_name?: string;\n        thinking_effort?: string;\n        run_mode: \'plan\' | \'goal\' | \'default\';\n        msg_type: \'default\' | \'steer\' | \'queue\';\n    };\n    model_switch: {\n        session_id?: SessionId;\n        switch_from: string;\n        switch_to: string;\n    };\n    thinking_level_switch: {\n        session_id?: SessionId;\n        switch_from: string;\n        switch_to: str /* …truncated — full shape in source */',
+    declaration: 'export interface ProductEventMap {\n    desktop_app_launch: Record<string, never>;\n    auth_page_view: Record<string, never>;\n    auth_page_click: {\n        button_name: \'sign_in\' | \'api-key\' | \'studio-login\';\n    };\n    api_key_save_click: Record<string, never>;\n    onboarding_page_view: {\n        page_name: OnboardingPage;\n    };\n    onboarding_page_click: {\n        page_name: OnboardingPage;\n        button_name: \'next\' | \'back\' | \'skip\' | \'charge\' | \'later\' | \'continue\';\n        selected_content?: \'office\' | \'code\' | \'code_office\' | \'focus_result\' | \'key_detail\' | \'full_process\';\n    };\n    onboarding_popup_view: {\n        popup_name: \'skip_charge\' | \'skip_setting\';\n    };\n    onboarding_popup_click: {\n        popup_name: \'skip_charge\' | \'skip_setting\';\n        button_name: \'charge\' | \'know\' | \'enter\' | \'setting\' | \'close\';\n    };\n    desktop_upgrade_click: Record<string, never>;\n    desktop_upgrade_download_result: {\n        is_success: boolean;\n        error_reason?: string;\n    };\n    desktop_upgrade_install_restart_click: Record<string, never>;\n    send_button_click: {\n        session_id?: SessionId;\n        model_name?: string;\n        thinking_effort?: string;\n        run_mode: \'plan\' | \'goal\' | \'default\';\n        msg_type: \'default\' | \'steer\' | \'queue\';\n    };\n    model_switch: {\n        session_id?: SessionId;\n        switch_from: string;\n        switch_to: string;\n    };\n    thinking_level_switch: {\n        session_id?: SessionId;\n        switch_from: string;\n      /* …truncated — full shape in source */',
   },
   {
     name: 'ProductTelemetryRecord',
@@ -6788,6 +7080,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type PromptSubmitResult = {\n    text: string;\n    context?: readonly string[];\n    drop?: undefined;\n} | {\n    drop: string;\n    text?: undefined;\n    context?: undefined;\n};',
   },
   {
+    name: 'ProviderQuotaView',
+    declaration: 'export type ProviderQuotaView = CodexQuotaView | AntigravityQuotaView;',
+  },
+  {
     name: 'ProviderRequestId',
     declaration: 'export type ProviderRequestId = Branded<\'ProviderRequestId\'>;',
   },
@@ -6842,6 +7138,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'QueueAction',
     declaration: 'export type QueueAction = {\n    readonly kind: \'edit\';\n    readonly content: readonly TextBlock[];\n} | {\n    readonly kind: \'remove\';\n} | {\n    readonly kind: \'steer\';\n};',
+  },
+  {
+    name: 'QuotaProviderId',
+    declaration: 'export type QuotaProviderId = \'codex\' | \'antigravity\';',
+  },
+  {
+    name: 'QuotaWindowView',
+    declaration: 'export interface QuotaWindowView {\n    id: string;\n    kind: \'fiveHour\' | \'weekly\' | \'monthly\' | \'unknown\' | \'5h\';\n    group: \'standard\' | \'codeReview\' | \'additional\';\n    featureName: string | null;\n    remainingPercent: number | null;\n    resetAtMs: number | null;\n}',
   },
   {
     name: 'ReadFileLine',
@@ -6994,6 +7298,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RequestUserInput',
     declaration: 'export interface RequestUserInput {\n    readonly role: \'user\';\n    readonly content: UserMessage[\'content\'];\n    readonly id?: never;\n    readonly source?: never;\n}',
+  },
+  {
+    name: 'ResetCreditView',
+    declaration: 'export interface ResetCreditView {\n    id: string;\n    expiresAtMs: number | null;\n}',
   },
   {
     name: 'ResolvedAlwaysRetryPolicy',
@@ -8024,8 +8332,44 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type StreamChunk = {\n    type: \'block-start\';\n    index: number;\n    blockType: ContentBlockType;\n} | {\n    type: \'text-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'reasoning-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'tool-call-delta\';\n    index: number;\n    id: ToolCallId;\n    name?: string;\n    argumentsDelta: string;\n} | {\n    type: \'block-end\';\n    index: number;\n    block: ContentBlock;\n} | {\n    type: \'usage\';\n    usage: TokenUsage;\n} | {\n    type: \'finish\';\n    reason: FinishReason;\n    replayState?: ReplayEnvelope;\n};',
   },
   {
+    name: 'StudioContinuationResult',
+    declaration: 'export interface StudioContinuationResult {\n    sessionId: string;\n}',
+  },
+  {
+    name: 'StudioHistoryItem',
+    declaration: 'export interface StudioHistoryItem {\n    id: string;\n    version: number;\n    title: string;\n    sourceSessionId: string;\n    throughSeq: number;\n    missing: {\n        name: string;\n        code: string;\n    }[];\n}',
+  },
+  {
+    name: 'StudioHistoryView',
+    declaration: 'export interface StudioHistoryView extends StudioHistoryItem {\n    messages: {\n        id: string;\n        role: string;\n        content: string;\n    }[];\n}',
+  },
+  {
+    name: 'StudioIdentity',
+    declaration: 'export interface StudioIdentity {\n    id: StudioUserId;\n    username: string;\n    email: string | null;\n    displayName: string;\n    mustChangePassword: boolean;\n}',
+  },
+  {
+    name: 'StudioPreviewRow',
+    declaration: 'export interface StudioPreviewRow {\n    id: string;\n    kind: string;\n    namespace: string | null;\n    local: string | null;\n    cloud: string | null;\n    version: number;\n    conflict: boolean;\n    supported: boolean;\n}',
+  },
+  {
     name: 'StudioProjectId',
     declaration: 'export type StudioProjectId = Branded<\'StudioProjectId\'>;',
+  },
+  {
+    name: 'StudioRestoredPlugin',
+    declaration: 'export interface StudioRestoredPlugin {\n    moduleName: string;\n    enabled: boolean;\n    version?: string;\n    installed: boolean;\n}',
+  },
+  {
+    name: 'StudioState',
+    declaration: 'export interface StudioState {\n    origin: string;\n    identity: StudioIdentity | null;\n    phase: \'signed-out\' | \'preview-required\' | \'ready\' | \'paused\' | \'conflict\' | \'reauth-required\' | \'unsupported\';\n    usedBytes: number | null;\n    quotaBytes: number | null;\n    pending: number;\n}',
+  },
+  {
+    name: 'StudioTokenActivity',
+    declaration: 'export interface StudioTokenActivity {\n    totalTokens: number;\n    inputTokens: number;\n    outputTokens: number;\n    cacheReadTokens: number;\n    reasoningTokens: number;\n    turnsCount: number;\n    sessionsCount: number;\n}',
+  },
+  {
+    name: 'StudioUserId',
+    declaration: 'export type StudioUserId = Branded<\'StudioUserId\'>;',
   },
   {
     name: 'SubagentActivation',
@@ -8214,6 +8558,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SyncBatchId',
     declaration: 'export type SyncBatchId = Branded<\'SyncBatchId\'>;',
+  },
+  {
+    name: 'SyncConnection',
+    declaration: 'export interface SyncConnection {\n    request: <T>(path: string, schema: z.ZodType<T>, options?: {\n        method?: string;\n        body?: object;\n    }) => Promise<T>;\n    signal: AbortSignal;\n    download?: (path: string, maxBytes: number) => Promise<Uint8Array>;\n}',
+  },
+  {
+    name: 'SyncContribution',
+    declaration: 'export interface SyncContribution {\n    namespace: string;\n    version: number;\n    fields: readonly string[];\n    export: (ids?: readonly string[], signal?: AbortSignal) => Promise<{\n        id: string;\n        kind: ObjectValue[\'kind\'];\n        blocked?: boolean;\n        fileRefs?: string[];\n        payload: Record<string, z.infer<ReturnType<typeof z.json>>>;\n    }[]>;\n    prepare?: (value: ObjectValue, connection: SyncConnection) => Promise<void>;\n    import: (value: ObjectValue, signal: AbortSignal, connection?: SyncConnection) => Promise<void>;\n}',
   },
   {
     name: 'SyncEventEnvelope',
@@ -8774,6 +9126,30 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'UpdateTeamTaskRequest',
     declaration: 'export interface UpdateTeamTaskRequest {\n    readonly taskId: TeamTaskId;\n    readonly expectedRevision: number;\n    readonly action: TeamTaskAction;\n    readonly subject?: string;\n    readonly description?: string;\n    readonly blockedBy?: readonly TeamTaskId[];\n    readonly writeScopes?: readonly string[];\n    readonly owner?: string;\n}',
+  },
+  {
+    name: 'UsageDayBucket',
+    declaration: 'export interface UsageDayBucket {\n    day: string;\n    tokens: UsageTokenTotals;\n    sessionCount: number;\n    toolCalls: number;\n}',
+  },
+  {
+    name: 'UsageModelRow',
+    declaration: 'export interface UsageModelRow {\n    model: string;\n    tokens: UsageTokenTotals;\n}',
+  },
+  {
+    name: 'UsageSessionRow',
+    declaration: 'export interface UsageSessionRow {\n    sessionId: string;\n    title: string;\n    tokens: UsageTokenTotals;\n    updatedAt: number;\n}',
+  },
+  {
+    name: 'UsageSnapshot',
+    declaration: 'export interface UsageSnapshot {\n    timezoneOffsetSeconds: number;\n    generatedAt: number;\n    totals: UsageTokenTotals;\n    sessionCount: number;\n    toolCalls: number;\n    days: UsageDayBucket[];\n    models: UsageModelRow[];\n    tools: UsageToolRow[];\n    sessions: UsageSessionRow[];\n}',
+  },
+  {
+    name: 'UsageTokenTotals',
+    declaration: 'export interface UsageTokenTotals {\n    uncachedInputTokens: number;\n    cacheReadTokens: number;\n    cacheWriteTokens: number;\n    outputTokens: number;\n}',
+  },
+  {
+    name: 'UsageToolRow',
+    declaration: 'export interface UsageToolRow {\n    name: string;\n    count: number;\n}',
   },
   {
     name: 'UserMessage',

@@ -20,6 +20,7 @@ import {
 import { SESSION_LOG_EXPORT_PATH } from './routes.ts'
 
 export {
+  collectSessionAttachments,
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
   flushLiveSessionLog,
   readSessionLogText,

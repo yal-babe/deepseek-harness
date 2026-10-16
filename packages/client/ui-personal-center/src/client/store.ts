@@ -51,6 +51,7 @@ function cacheKey(): string {
  * Load, cache, and merge local usage for the Personal Center.
  */
 export class PersonalCenterStore {
+  /** Snapshot store holding the latest personal center state. */
   readonly store: SnapshotStore<PersonalCenterState>
   private generation = 0
 
@@ -193,7 +194,8 @@ export class PersonalCenterStore {
   }
 
   /**
-   * @param mode - heatmap grain.
+   * Set the active heatmap display grain.
+   * @param mode - Heatmap grain.
    */
   setHeatmap(mode: HeatmapMode): void {
     this.store.set({ ...this.store.getSnapshot(), heatmap: mode })

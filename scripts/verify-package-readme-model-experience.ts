@@ -75,6 +75,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-settings-account': { kind: 'none', reason: 'Account authorization registers no model context or tools; credentials affect HTTP authentication only.' },
   'packages/llm/llm-oauth-bridge': { kind: 'none', reason: 'OAuth credentials affect HTTP authentication and never enter model prompts, Session logs, or tool results.' },
   'packages/api/oauth-controller': { kind: 'none', reason: 'OAuth credentials affect HTTP authentication and never enter model prompts, Session logs, or tool results.' },
+  'packages/sync/studio-cloud': { kind: 'none', reason: 'Personal cloud identity and object sync do not contribute model input or tools.' },
   'packages/api/provider-quota': { kind: 'none', reason: 'Quota Remote returns browser-safe usage cards; tokens never enter model prompts, Session logs, or tool results.' },
   'packages/session/usage-stats': { kind: 'none', reason: 'Local usage fold for Personal Center; exposes no model-facing tools or prompts.' },
   'packages/client/ui-personal-center': { kind: 'none', reason: 'Browser-side Personal Center surface; registers nothing model-facing.' },

@@ -6,7 +6,6 @@ import {
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AccountSectionInjected } from './AccountSection.tsx'
 import { SignOutDialog } from './SignOutDialog.tsx'
-import { StudioLoginDialog } from './StudioLoginDialog.tsx'
 import { LogoutIcon } from './LogoutIcon.tsx'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import { AccountNoticeCard } from './AccountNotice.tsx'
@@ -22,7 +21,7 @@ export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'
 export function AccountMenu({
   subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, settingsOpen,
   useAccount, signOut, hasRunningAccountTasks, refreshAccount, bonusNoticeShown, bonusNoticeDismissed,
-  contactUs, avatarFailed, t,
+  contactUs, avatarFailed, showStudio, t,
 }: AccountMenuProps) {
   const anchor = useRef<HTMLDivElement>(null)
   // The launcher outlives the panel, so a false-to-true edge is one Settings entry:
@@ -45,7 +44,6 @@ export function AccountMenu({
   const trigger = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState(false)
   const [signOutImpact, setSignOutImpact] = useState<boolean | 'unknown'>()
-  const [studioOpen, setStudioOpen] = useState(false)
   const requestSignOut = async () => {
     setBusy(true)
     try { setSignOutImpact(await hasRunningAccountTasks()); setOpen(false) }
@@ -73,17 +71,16 @@ export function AccountMenu({
         { id: 'settings', label: t('settings'), icon: <IconSettingsOutlineMedium size={16} />,
           ...(settingsShortcut === undefined ? {} : { shortcut: settingsShortcut }) },
         { id: 'contact', label: t('contactUs'), icon: <IconPaperPlaneOutlineMedium size={16} /> },
-        ...(signedIn ? [{ id: 'signout', label: t('signOut'), icon: <LogoutIcon />, disabled: busy }]
-          : [{ id: 'signin', label: t('studioLogin'), icon: <IconUserOutlineMedium size={16} /> }]),
+        { id: 'signin', label: t('studioLogin'), icon: <IconUserOutlineMedium size={16} /> },
+        ...(signedIn ? [{ id: 'signout', label: t('signOut'), icon: <LogoutIcon />, disabled: busy }] : []),
       ]}
       onClose={() => { setOpen(false) }}
       onSelect={(id) => {
         if (id === 'settings') { setOpen(false); trigger.current?.focus(); openSettings() }
         else if (id === 'contact') { setOpen(false); contactUs() }
-        else if (id === 'signin') { setOpen(false); setStudioOpen(true) }
+        else if (id === 'signin') { setOpen(false); showStudio?.() }
         else void requestSignOut()
       }} />
-    {studioOpen && <StudioLoginDialog t={t} onClose={() => { setStudioOpen(false) }} />}
     {signedIn && signOutImpact !== undefined && <SignOutDialog running={signOutImpact} signOut={signOut}
       close={() => { setSignOutImpact(undefined) }} t={t} />}
   </div>

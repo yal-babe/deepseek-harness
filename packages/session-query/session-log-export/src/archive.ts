@@ -281,6 +281,20 @@ function collectEventAttachmentRefs(
 }
 
 /**
+ * Collect attachment references from validated committed events without reading files or following paths.
+ * @param events - complete committed logical events or a completed-turn prefix.
+ * @returns distinct normalized images and verbatim files named by supported content fields.
+ */
+export function collectSessionAttachments(events:readonly SessionEvent[]):{
+  images:readonly ImageAttachmentRef[]
+  files:readonly FileAttachmentRef[]
+} {
+  const images=new Map<string,ImageAttachmentRef>(),files=new Map<string,FileAttachmentRef>()
+  for(const event of events)collectEventAttachmentRefs(event,images,files)
+  return { images:[...images.values()],files:[...files.values()] }
+}
+
+/**
  * Collect the distinct attachment references one stored artifact text names.
  * Lines that fail to parse cannot reference attachments and are skipped (the
  * artifact text itself is exported verbatim regardless).

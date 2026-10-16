@@ -1,50 +1,52 @@
 # DSH Studio Cloud
 
-独立的个人云端服务，包含账号密码与邮箱登录、邀请开通、个人同步、管理界面，以及可选的密文同步存储。只使用本目录，不依赖或改动 DSH Studio 客户端。
+English | [中文](README.zh.md)
 
-## Docker 启动
+Standalone personal cloud service providing username/password and email login, invite onboarding, personal synchronization, administrative UI, and optional ciphertext sync storage. Delivers authentication and selected object synchronization to Web and desktop clients through an isolated Studio Host service, while model account credentials remain separate.
 
-需要 Docker Compose 和 Node.js 24（生成初始配置时使用）。在本目录执行：
+## Docker Launch
+
+Requires Docker Compose and Node.js 24 (used when generating initial configuration). Run in this directory:
 
 ```sh
 npm run setup
 docker compose up -d --build
 ```
 
-`setup` 创建权限为 `0600` 的 `.env`，生成独立的数据库密码、管理员密码和主密钥，已有文件不会覆盖。读取该文件的 `BOOTSTRAP_PASSWORD` 登录；默认管理地址为 `http://localhost:8788/admin`，账号为 `admin`。
+`setup` creates `.env` with `0600` permissions, generating independent database password, admin password, and master key without overwriting existing files. Read `BOOTSTRAP_PASSWORD` from that file to log in; the default admin interface is at `http://localhost:8788/admin` with username `admin`.
 
-需要局域网访问时修改 `.env`：将 `BIND_ADDRESS` 改为所需监听地址，`PUBLIC_URL` 改为浏览器实际使用的服务 origin，例如 `http://192.168.1.20:8788`。HTTP 必须显式设置 `ALLOW_HTTP=true`；HTTPS 可通过反向代理提供，将 `PUBLIC_URL` 设为对应 HTTPS 地址。来源不匹配会被管理接口的 CSRF 检查拒绝。
+When local network access is needed, edit `.env`: set `BIND_ADDRESS` to the required listen address, and `PUBLIC_URL` to the origin browser clients use, such as `http://192.168.1.20:8788`. HTTP requires explicitly setting `ALLOW_HTTP=true`; HTTPS can be provided via reverse proxy with `PUBLIC_URL` set to the corresponding HTTPS URL. Origin mismatches are rejected by the admin CSRF check.
 
-HTTP 支持内网使用，但密码和令牌没有传输加密；可选端到端加密不保护登录链路。数据库不向宿主机公开端口。应用和数据库分别使用持久卷。
+HTTP supports intranet use, but passwords and tokens have no transport encryption; optional end-to-end encryption does not protect login traffic. The database exposes no host ports. Application and database use independent persistent volumes.
 
-首次初始化后可以清空部署配置中的 `BOOTSTRAP_PASSWORD`。不要更换或丢失 `MASTER_KEY`：SMTP/S3 凭据和服务备份依赖它解密。数据库备份不替代持久卷和主密钥的运维备份。
+`BOOTSTRAP_PASSWORD` can be cleared from deployment configuration after initial setup. Never rotate or lose `MASTER_KEY`: SMTP/S3 credentials and service backups depend on it for decryption. Database backups do not replace operational backups of persistent volumes and master keys.
 
-## 已提供的功能
+## Provided Features
 
-- 管理员创建个人账号、发出/撤销一次性邀请；无开放注册。
-- 账号或已验证邮箱加密码登录，首次临时密码修改，邮箱绑定和找回；邮件通过管理页配置的 SMTP 发送。
-- 浏览器 Cookie 会话与 CSRF 校验；设备 API 使用访问令牌和轮换刷新令牌。改密、重置、禁用或撤销会话后，旧凭据失效。
-- `profile`、`preference`、`project`、`conversation`、`plugin` 五类 JSON 同步对象；按用户隔离，支持版本冲突、批次原子提交、幂等重试、增量游标和一致性分页快照。
-- 个人额度覆盖当前同步载荷和增量历史的字节数。超额允许删除和下载；临时快照、账号元信息和服务备份不计入个人额度。
-- 可选 E2EE 模式：校验 AES-256-GCM 加密信封，存储密文和封装密钥；服务端不持有用户解密密钥。
-- 管理页面提供用户、邀请、同步元信息、SMTP、S3/MinIO、容量及保留策略、备份恢复和审计。
-- 定时备份和到期清理；缩短保留策略需要显式确认。删除内容清理后保留精简删除标记，旧设备不能直接复活原对象 ID。
+- Administrators create personal accounts and issue/revoke one-time invitations; open registration is disabled.
+- Password login with account username or verified email, initial temporary password change, and email binding and recovery via configured SMTP.
+- Browser cookie sessions with CSRF verification; device APIs use access tokens with rotating refresh tokens. Changing passwords, resets, disabling, or revoking invalidates previous credentials.
+- Five JSON sync object kinds: `profile`, `preference`, `project`, `conversation`, and `plugin`; user-isolated with version conflict detection, atomic batch commit, idempotent retries, incremental cursors, and consistent snapshot pagination.
+- Personal quota covers active sync payload, delta history, and file upload reservation space. Exceeded quotas permit deletions and downloads; temporary snapshots, account metadata, and backups do not count against personal quota.
+- Optional E2EE mode: verifies AES-256-GCM encrypted envelopes, storing ciphertext and wrapped keys; server holds no user decryption keys.
+- Admin dashboard provides user management, invitations, sync metadata, SMTP, S3/MinIO configuration, capacity and retention policies, backup/restore, and audit logs.
+- Scheduled backups and expiration cleanup; shortening retention policies requires explicit confirmation. Cleanup retains minimal tombstones, preventing older devices from directly reviving original object IDs.
 
-普通同步内容保存在 PostgreSQL。当前 S3/MinIO 用于服务备份的加密远程副本，尚无任意附件上传或云端文件盘接口。插件同步是按插件命名空间保存 JSON 配置/数据，不安装、运行插件或同步模型凭据；插件专属字段清单和版本转换留待具体插件确定。
+Plain sync objects reside in PostgreSQL, with chunked files stored in persistent application volumes. S3/MinIO holds encrypted backup copies containing database records and file bytes. Plugin sync stores JSON configuration/data per plugin namespace without installing, executing plugins, or syncing model credentials; plugin-specific field schemas and version conversions are defined by individual plugins.
 
-## 管理与存储
+## Administration and Storage
 
-管理页地址为 `/admin`。邮箱邀请、绑定和密码找回的确认页为 `/account`，仅用于本服务的账号操作，不是客户端接入或完整用户门户。个人账号登录后可修改密码，已登录用户也可访问 `/account#action=bind` 绑定邮箱。
+The admin dashboard is located at `/admin`. The email invitation, binding, and password recovery confirmation page is `/account`, dedicated to account operations rather than serving as a full client portal. Authenticated personal accounts can change passwords, and signed-in users can visit `/account#action=bind` to bind an email.
 
-SMTP 支持 TLS 或 STARTTLS。S3 页面可配置 endpoint、region、bucket、访问凭据和路径寻址，可连接外部 MinIO；服务不自动创建存储桶。管理接口读取配置时不会返回 SMTP 密码或 S3 凭据。
+SMTP supports TLS or STARTTLS. The S3 configuration page accepts endpoint, region, bucket, credentials, and path addressing, compatible with external MinIO; buckets are not automatically created. The admin read API never exposes SMTP passwords or S3 credentials.
 
-建议备份桶只供本服务使用。已有备份时不能直接切换 endpoint/bucket；需要外部迁移后再调整。本版本不捆绑 MinIO 镜像，避免依赖不可拉取的镜像；可以使用已有 MinIO 或独立维护其部署。
+Dedicated backup buckets are recommended for this service. Existing backups prevent direct endpoint/bucket switching; migrate externally before updating configuration. This release avoids bundling MinIO images to avoid unpullable registry dependencies; connect existing MinIO or maintain separate deployments.
 
-后台每分钟检查备份间隔，每日执行保留清理。应用按单实例部署；跨实例任务协调和无中断横向扩容不在本版支持范围内。也可在管理页立即备份或显式清理。备份只包含数据库业务快照，排除登录会话和一次性令牌；本地加密文件默认保存在应用卷 `data/backups/`，配置 S3 后同时生成远程副本，到期清理同时删除两份。
+Background checks run every minute for backup intervals and daily for retention cleanup. The application deploys as a single instance; multi-instance coordination and zero-downtime horizontal scaling are outside this release scope. Immediate backups and explicit cleanup are also available in admin. Backups include database snapshots and referenced file chunks, excluding login sessions and one-time tokens; local encrypted files default to volume `data/backups/`, while configured S3 creates simultaneous remote copies deleted together upon retention expiration.
 
-备份原始数据大小受 `backupMaxBytes` 限制；超过时明确失败，需调整上限或使用数据库原生备份。恢复会替换全部用户、配置及同步数据，撤销登录并重置同步代次。旧备份无法包含备份时间之后的删除记录，恢复前需确认恢复点。
+Raw backup size is bounded by `backupMaxBytes`; exceeding limits fails explicitly, requiring raised limits or native database backups. Restoring replaces all users, settings, and sync data, revoking active logins and resetting sync generations. Historical backups cannot capture deletions made after backup creation, requiring confirmation of the target restore point.
 
-当数据库需要从头恢复时，先保证本地备份文件及原 `MASTER_KEY` 已放回持久卷，然后执行以下离线恢复流程，`<backup-id>` 为备份文件名中的 UUID：
+When restoring a database from scratch, verify that local backup files and the original `MASTER_KEY` are placed in the volume, then execute this offline restore procedure where `<backup-id>` is the backup UUID:
 
 ```sh
 docker compose stop app
@@ -52,33 +54,36 @@ docker compose run --rm --no-deps app node dist/restore.js <backup-id> --confirm
 docker compose up -d app
 ```
 
-Web 恢复同样需要本地加密文件，尚不支持直接从 S3 下载并恢复；丢失本地文件时需由运维从 S3 取回原文件。恢复完成后所有设备重新登录并重新获取同步快照。
+Web restoration also requires local encrypted files and does not directly pull from S3; missing local files must be retrieved from S3 by operations. Restoring forces all devices to log in again and obtain fresh sync snapshots.
 
-## API 概览
+## API Overview
 
-| 接口组 | 主要路径 |
+| Endpoint Group | Primary Routes |
 | --- | --- |
-| 认证 | `POST /v1/auth/login`、`/refresh`、`/logout`；`GET /v1/auth/session` |
-| 邀请与邮箱 | `POST /v1/auth/accept-invite`、`/verify-email`、`/forgot-password`、`/reset-password` |
-| 个人安全 | `POST /v1/me/password`、`/email`；`GET /v1/me/devices`；`DELETE /v1/me/devices/:id` |
-| 同步 | `POST /v1/sync/push`；`GET /v1/sync/pull`、`/snapshot`、`/v1/data` |
-| 加密与用量 | `GET/PUT /v1/me/crypto`；`GET /v1/me/storage` |
-| 管理 | `/v1/admin/users`、`/invites`、`/settings`、`/data`、`/audit`、`/backups`、`/cleanup` |
-| 健康 | `GET /health/live`、`/health/ready` |
+| Capabilities | `GET /v1/capabilities`, returning protocol, payload version, and file limits; session restore capability is declared separately |
+| Profile | `GET/PUT /v1/me/profile`, using request IDs and expected versions; display names and sync objects update atomically |
+| Files | `POST /v1/files`; `GET /v1/files/:id`; `PUT /v1/files/:id/parts/:part`; `POST /v1/files/:id/complete`; `GET /v1/files/:id/content` |
+| Authentication | `POST /v1/auth/login`, `/refresh`, `/logout`; `GET /v1/auth/session` |
+| Invites and Email | `POST /v1/auth/accept-invite`, `/verify-email`, `/forgot-password`, `/reset-password` |
+| Personal Security | `POST /v1/me/password`, `/email`; `GET /v1/me/devices`; `DELETE /v1/me/devices/:id` |
+| Synchronization | `POST /v1/sync/push`; `GET /v1/sync/pull`, `/snapshot`, `/v1/data` |
+| Encryption and Quota | `GET/PUT /v1/me/crypto`; `GET /v1/me/storage` |
+| Administration | `/v1/admin/users`, `/invites`, `/settings`, `/data`, `/audit`, `/backups`, `/cleanup` |
+| Health | `GET /health/live`, `/health/ready` |
 
-访问/刷新有效期可通过 `ACCESS_TTL_SECONDS`、`REFRESH_TTL_SECONDS` 配置，默认 15 分钟和 30 天。
+Access and refresh TTLs are configurable via `ACCESS_TTL_SECONDS` and `REFRESH_TTL_SECONDS`, defaulting to 15 minutes and 30 days.
 
-设备登录返回 `accessToken`、`refreshToken`、`expiresIn` 和 `csrf`。携带 `Authorization: Bearer <accessToken>` 调用个人 API；浏览器使用 `client: "web"` 登录，令牌保存在 HttpOnly Cookie，写请求另带同源 `Origin` 和返回的 `X-CSRF-Token`。权限或版本错误使用结构化 `error.code` 返回。
+Device login returns `accessToken`, `refreshToken`, `expiresIn`, and `csrf`. Include `Authorization: Bearer <accessToken>` for personal APIs; browser login sets `client: "web"`, storing tokens in HttpOnly cookies and requiring same-origin `Origin` and `X-CSRF-Token` headers for writes. Permission or version errors return structured `error.code`.
 
-上传请求包含 `requestId` 和 `changes`。每个对象包含 `id`、`kind`、`baseVersion`、`formatVersion`、`encrypted`、`payload`，可选 `parentId`、`namespace` 和 `deleted`；插件必须提供 `namespace`，项目需先于引用它的会话提交。删除需使用当前版本且 `payload: null`；已删除 ID 不允许普通上传复活。删除载荷在保留期内仅供运维恢复，本版未提供逐对象回收站恢复接口。
+Push requests contain `requestId` and `changes`. Each object specifies `id`, `kind`, `baseVersion`, `formatVersion`, `encrypted`, `payload`, and optional `parentId`, `namespace`, and `deleted`; plugins require `namespace`, and projects must precede referencing conversations. Deletions require matching base version and `payload: null`; deleted IDs cannot be revived through standard uploads. Deleted payloads within retention are accessible solely for operational recovery; per-object recycle bin APIs are not provided.
 
-会话目前按版本化 JSON 对象同步，未实现逐事件追加协议；格式版本作为载荷元信息保存，不解析、执行或迁移客户端会话日志。快照一次每用户保留一份，30 分钟过期；重复创建会替换旧快照。
+Conversations currently synchronize as versioned JSON objects without event-by-event append streaming; format versions are stored as payload metadata without server-side parsing, execution, or migration of client logs. One snapshot is retained per user for 30 minutes; subsequent requests replace existing snapshots.
 
-E2EE 只能在空同步空间配置，当前不支持已有数据加密迁移、密钥轮换或跨设备授权流程。开启后每份非删除载荷应为 `{algorithm:"AES-256-GCM",keyVersion,nonce,ciphertext}`，nonce 为 12 字节 Base64，ciphertext 包含认证标签。密钥派生、封装、新设备授权和恢复界面由后续接入方实现；服务端测试样本不能代表客户端已经具备加密功能。
+E2EE can only be configured in an empty sync space, without encrypted migration of existing data, key rotation, or cross-device authorization flows. When enabled, each non-deleted payload must be `{algorithm:"AES-256-GCM",keyVersion,nonce,ciphertext}`, where nonce is 12-byte Base64 and ciphertext contains the auth tag. Key derivation, wrapping, new device authorization, and recovery UIs are deferred to client integrations; server tests do not imply client encryption readiness.
 
-## 本模块开发与验证
+## Module Development and Testing
 
-Node.js 24 和独立 PostgreSQL 为前置条件：
+Node.js 24 and independent PostgreSQL are required prerequisites:
 
 ```sh
 npm ci
@@ -86,22 +91,30 @@ npm run build
 TEST_DATABASE_URL=postgresql://user:password@localhost:5432/test_database npm test
 ```
 
-测试只在指定数据库创建随机 schema，结束后删除，不使用现有客户端数据。必须为测试账号提供建 schema 权限。邮件测试使用替代发送器，真实 SMTP 投递需配置后在管理页测试。
+Tests run within random ephemeral schemas in the specified database and drop them upon completion, leaving existing data untouched. The test user requires schema creation privileges. Email tests substitute transport mocks; real SMTP delivery should be verified via the admin console.
 
-S3 兼容集成验证可在一个终端启动本地测试服务，再在另一个终端执行测试：
+S3-compatible integration tests run locally by starting the mock service in one terminal and running tests in another:
 
 ```sh
 node tests/s3-fixture.mjs
-TEST_DATABASE_URL=postgresql://user:password@localhost:5432/test_database TEST_S3_ENDPOINT=http://127.0.0.1:59000 npm test
+TEST_DATABASE_URL=postgresql://user:password@localhost:5432/test_database TEST_S3_ENDPOINT=<address_from_previous_step> npm test
 ```
 
-该测试服务使用 `S3RVER` 测试凭据；连接独立 MinIO 测试实例时通过 `TEST_S3_ACCESS_KEY`、`TEST_S3_SECRET_KEY` 覆盖。测试会创建自己的存储桶，仅用于专用测试环境。真实 MinIO 镜像未在当前环境运行验证，已验证的是 S3 兼容测试服务。
+The test harness uses `S3RVER` test credentials; override via `TEST_S3_ACCESS_KEY` and `TEST_S3_SECRET_KEY` when testing against external MinIO instances. Tests manage dedicated ephemeral buckets. A real MinIO image is not run in this environment; test verification targets the S3-compatible mock service.
 
-浏览器验证针对已运行的独立服务，创建一个测试账号和邀请，不连接客户端：
+Browser verification targets an existing running service instance, creating a test user and invite without connecting client apps:
 
 ```sh
 npx playwright install chromium
 TEST_BASE_URL=http://localhost:8788 TEST_ADMIN_PASSWORD=your_test_admin_password npm run test:browser
 ```
 
-完整需求及后续技术方案见 [DESIGN.md](DESIGN.md)。
+See [DESIGN.md](DESIGN.md) for complete requirements and technical specifications.
+
+## File Synchronization Rules
+
+Upload creation uses client-generated immutable UUIDs, total byte length, and SHA-256 digests; the service immediately reserves account space and returns chunk size. Duplicate creation requests must share identical identifiers; duplicate parts must provide identical contents. Querying upload status resumes interrupted uploads, and completion checks verify chunk counts and whole-file digests. All status, completion, and download requests enforce account ownership.
+
+Sync objects reference completed files belonging to the same account via `fileRefs`. Unfinished files or files from other accounts cannot be published. `FILE_PART_BYTES` defaults to 1048576, and `FILE_MAX_BYTES` defaults to 67108864; updating default part size does not affect existing uploads. Referenced files in active objects and history are retained; unreferenced files exceeding retention are pruned by cleanup. Backups and downloads acquire shared read locks, preventing deletion during concurrent cleanup.
+
+Backup format 2 includes file content with checksum verification; format 1 database-only backups remain restorable. Restores verify file contents before committing transactions, after which all devices must re-authenticate. Clients must check capabilities first; standard sync clients encountering an E2EE space must not send plain payloads. File APIs only support unencrypted spaces.

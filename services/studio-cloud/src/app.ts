@@ -10,6 +10,8 @@ import { ApiError, fail, type Services } from './common.js'
 import { authRoutes } from './auth.js'
 import { syncRoutes } from './sync.js'
 import { adminRoutes } from './admin.js'
+import { fileRoutes } from './files.js'
+import { policies } from './settings.js'
 import { schedule } from './scheduler.js'
 
 declare module 'fastify' {
@@ -67,6 +69,12 @@ export async function buildApp(config: Config, options: { logging?: boolean; bac
   if (app.maintenance) return reply.code(503).send({ status: 'maintenance' })
   await db.query('SELECT 1'); return { status: 'ready' }
  })
+ app.get('/v1/capabilities',async () => ({
+  protocolVersion:1, payloadVersions:[1], sync:{ maxObjectBytes:(await policies(s)).maxObjectBytes },
+  files:{ enabled:true, partBytes:config.FILE_PART_BYTES, maxBytes:config.FILE_MAX_BYTES },
+  sessionRestore:false, encryption:['plain'],
+ }))
+ await fileRoutes(app,s)
  await authRoutes(app,s)
  await syncRoutes(app,s)
  await adminRoutes(app,s)

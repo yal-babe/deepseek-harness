@@ -91,6 +91,7 @@ export function parseCodexMarketplace(raw: unknown): CodexMarketplace {
 /**
  * Parse a Codex plugin.json body.
  * @param raw - decoded JSON.
+ * @returns Parsed Codex plugin manifest object.
  */
 export function parseCodexPluginManifest(raw: unknown): CodexPluginManifest {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -105,6 +106,7 @@ export function parseCodexPluginManifest(raw: unknown): CodexPluginManifest {
  * @param manifest - optional plugin.json.
  * @param surfaces - detected files: skills, mcp, hooks.
  * @param installed - whether skills are already materialized under DSH home.
+ * @returns Normalized catalog entry.
  */
 export function codexEntry(
   plugin: CodexMarketplacePlugin,
@@ -164,6 +166,9 @@ export function codexEntry(
 
 /**
  * Detect Codex surfaces from manifest fields and optional file probes.
+ * @param manifest - optional plugin manifest.
+ * @param surfaces - detected surface flags.
+ * @returns Detected catalog kinds array.
  */
 export function detectKinds(
   manifest: CodexPluginManifest | undefined,

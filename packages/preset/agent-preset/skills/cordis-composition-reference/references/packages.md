@@ -18,6 +18,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-api-gateway` | yes | Typert Remote Host dispatcher and Client API endpoint |
 | `@deepseek-ai/dsh-api-job-controller` | yes | Job Remote observation stream and the reference-counted client job-output service |
 | `@deepseek-ai/dsh-api-oauth-controller` | no | Expose safe UI-driven OAuth operations over authenticated Remote |
+| `@deepseek-ai/dsh-api-provider-quota` | no | Host Remote that reads Codex and Antigravity quota with stored OAuth grants and returns browser-safe views |
 | `@deepseek-ai/dsh-api-remote-access` | no | Method-level Remote access control for non-owner Peers and the per-Peer access snapshot |
 | `@deepseek-ai/dsh-api-remotes` | no | Remote BFF assembly for application-selected Host capabilities |
 | `@deepseek-ai/dsh-api-session-controller` | yes | Session Remote commands, cold reads, and live control transport |
@@ -38,6 +39,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 |---|---|---|
 | `@deepseek-ai/dsh-config-editor` | no | Persist plugin configuration through profile patches and Loader reconciliation |
 | `@deepseek-ai/dsh-hmr` | yes | Coordinated module and profile configuration hot reload |
+| `@deepseek-ai/dsh-plugin-catalog` | yes | Aggregated plugin marketplace catalog: community (dsh-plugin.org) and Codex (openai/plugins) feeds with search and install dispatch |
 | `@deepseek-ai/dsh-plugin-manager` | yes | Current-profile plugin and bundle management shared by dsh CLI, Web and agent tools |
 | `@deepseek-ai/dsh-plugin-market` | yes | Configured plugin market indexes for the Web Discover page and the plugin_market agent tool |
 
@@ -86,6 +88,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-model-selection` | no | Model selection over the shared model catalog, Session projection, and session.selectModel |
 | `@deepseek-ai/dsh-client-ui-open-in-app` | no | Web "Open In..." controls: the Session-header split button opening the workspace directory in an installed application, and the document preview's default-application controls for one file |
 | `@deepseek-ai/dsh-client-ui-permission-presets` | no | Permission surfaces: a new-session default in General settings and a current-session /permission popup over the permissions projection |
+| `@deepseek-ai/dsh-client-ui-personal-center` | no | Sidebar Personal Center: local usage statistics and Codex/Antigravity quota summaries |
 | `@deepseek-ai/dsh-client-ui-plan` | no | Plan mode controls, persistent transcript plan cards, and sidebar Markdown previews |
 | `@deepseek-ai/dsh-client-ui-plugin-manager` | yes | Plugin management for the dsh web client: the sidebar Plugins panel installs, enables, disables, retries, and composes installed plugin packages |
 | `@deepseek-ai/dsh-client-ui-plugin-market` | no | Discover tab of the dsh web Plugins page: browse configured plugin market indexes and install their bundles |
@@ -101,6 +104,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-settings-models` | yes | Models settings and shared product-onboarding dialogs over existing settings and credential joins |
 | `@deepseek-ai/dsh-client-ui-settings-oauth` | no | Codex ChatGPT sign-in controls on Models provider cards |
 | `@deepseek-ai/dsh-client-ui-settings-plugin-inventory` | no | Read-only Cordis Loader inventory tab in Web Plugins settings |
+| `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` | no | Plugin marketplace settings section: Hub-style remote catalog search, source filter, and one-click install for community and Codex feeds |
 | `@deepseek-ai/dsh-client-ui-settings-plugins` | no | Built-in plugins settings section for the dsh web client: the Settings navigation entry and the tab chrome feature-owned tabs register into |
 | `@deepseek-ai/dsh-client-ui-settings-session-log` | no | General settings control for Session-log upload with DeepSeek API requests |
 | `@deepseek-ai/dsh-client-ui-settings-shell` | no | Settings page of the shell executor on the dsh web client's Plugins page: the command timeout and the per-stream output cap of the shell namespace |
@@ -377,6 +381,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-session-title-first-prompt-llm` | yes | First-message LLM provider plugin for DeepSeek Harness session titles |
 | `@deepseek-ai/dsh-session-turn-outline` | no | Whole-log turn outline projection (turnOutline) for the DeepSeek Harness |
 | `@deepseek-ai/dsh-tool-working-directory` | no | Read and change the active Session working directory |
+| `@deepseek-ai/dsh-usage-stats` | no | Host Remote that folds unarchived Session logs into local usage statistics for Personal Center |
 | `@deepseek-ai/dsh-working-directory` | yes | Session working directories with durable changes and model context |
 
 ## session-query
@@ -466,6 +471,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | Package | Config | Description |
 |---|---|---|
 | `@deepseek-ai/dsh-client-ui-sync` | no | Session-header cloud-sync status chip for pending, syncing, synced, and failed outbox rows |
+| `@deepseek-ai/dsh-studio-cloud` | yes | Host-owned Studio identity and explicit personal synchronization |
 | `@deepseek-ai/dsh-sync-memory` | yes | Project memory CRUD with FTS retrieval, secret redaction, and logged model-context injection |
 | `@deepseek-ai/dsh-sync-outbox` | yes | Local durable cloud-sync queue with retry, status, and secret redaction before enqueue |
 

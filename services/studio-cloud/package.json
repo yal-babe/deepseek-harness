@@ -12,7 +12,8 @@
     "start": "node dist/main.js",
     "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
     "setup": "node scripts/init-env.mjs",
-    "test:browser": "node --test tests/browser.test.mjs"
+    "test:browser": "node --test tests/browser.test.mjs",
+    "test:host": "node --test tests/host.integration.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.0.0",

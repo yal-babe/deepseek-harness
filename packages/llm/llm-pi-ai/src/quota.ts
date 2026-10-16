@@ -311,6 +311,7 @@ export function parseCodexSubscriptionModels(raw: unknown): CodexSubscriptionMod
 /**
  * Whether a consume response is a successful redeem (`reset` or `already_redeemed`).
  * @param raw - decoded JSON.
+ * @returns True if consume response is successful or already redeemed.
  */
 export function isCodexConsumeSuccess(raw: unknown): boolean {
   const code = stringOf(asObject(raw)?.code)

@@ -6,6 +6,7 @@ import type { MarketplaceLocaleKey } from './locales.ts'
 /**
  * Format a star/fork count the way Hub cards do (`7k`, `4.1k`).
  * @param value - integer count.
+ * @returns Formatted compact count string.
  */
 export function formatCount(value: number | undefined): string {
   if (value === undefined || value <= 0) return '0'
@@ -20,6 +21,7 @@ export function formatCount(value: number | undefined): string {
  * @param stamp - `updatedAt` from the catalog.
  * @param now - epoch ms.
  * @param t - marketplace dictionary.
+ * @returns Localized relative date string.
  */
 export function formatUpdated(
   stamp: string | undefined,

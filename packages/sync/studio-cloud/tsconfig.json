@@ -1,0 +1,66 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../credentials/credentials"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../util/atomic-write"
+    },
+    {
+      "path": "../../util/home-paths"
+    },
+    {
+      "path": "../sync-protocol"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../workspace/workspace"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../session/session-format"
+    },
+    {
+      "path": "../../session/session-format-catalog"
+    },
+    {
+      "path": "../../session/session-persistence"
+    },
+    {
+      "path": "../../session-query/session-log-export/tsconfig.host.json"
+    },
+    {
+      "path": "../../attachment/attachment"
+    },
+    {
+      "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../preset/agent-preset-registry"
+    }
+  ]
+}

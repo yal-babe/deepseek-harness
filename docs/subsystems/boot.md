@@ -136,6 +136,53 @@ async reconcileProfile(requiredIds: readonly string[] = []): Promise<ProfileReco
 
 Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
 
+<a id="ctxplugincatalog--plugincatalog"></a>
+
+### `ctx.pluginCatalog` — `PluginCatalog`
+
+Aggregated marketplace catalog served over Typert Remote.
+
+```ts cordis-catalog
+/**
+ * Search the aggregated catalog.
+ * @param query - text, source, Hub category, Codex kind, sort, and pagination.
+ * @returns one page of entries; feed failures throw a RemoteError.
+ */
+@Remote async search(query?: CatalogSearchQuery): Promise<CatalogSearchResult>
+
+/**
+ * Read one entry by id, enriching Codex rows with plugin.json detail.
+ * @param id - `community:…` or `codex:…`.
+ * @returns catalog entry matching the given identifier.
+ */
+@Remote async get(id: string): Promise<CatalogEntry>
+
+/**
+ * Install a marketplace entry.
+ * Named `installEntry` because the client Remote namespace service already defines `install`.
+ * @param id - catalog entry id.
+ * @returns installation outcome.
+ */
+@Remote async installEntry(id: string): Promise<CatalogInstallResult>
+
+/**
+ * Uninstall a marketplace entry.
+ * @param id - catalog entry id.
+ * @returns uninstallation outcome.
+ */
+@Remote async uninstall(id: string): Promise<CatalogInstallResult>
+
+/**
+ * Persist activation for an installed marketplace entry.
+ * @param id - catalog entry id.
+ * @param enabled - whether the bundle or skills should be available.
+ * @returns the committed entry and any restart requirement; failures remain visible.
+ */
+@Remote async setEnabled(id: string, enabled: boolean): Promise<CatalogInstallResult>
+```
+
+Source: [`packages/boot/plugin-catalog/src/index.ts`](../../packages/boot/plugin-catalog/src/index.ts)
+
 <a id="ctxpluginmanager--pluginmanager"></a>
 
 ### `ctx.pluginManager` — `PluginManager`

@@ -12,6 +12,12 @@ flowchart LR
   cfg --> plugin_dsh_base_tool_plugin_manager
   plugin_dsh_base_plugin_manager["plugin-manager<br/>@deepseek-ai/dsh-plugin-manager"]
   cfg --> plugin_dsh_base_plugin_manager
+  plugin_dsh_base_plugin_catalog["plugin-catalog<br/>@deepseek-ai/dsh-plugin-catalog"]
+  cfg --> plugin_dsh_base_plugin_catalog
+  plugin_dsh_base_provider_quota["provider-quota<br/>@deepseek-ai/dsh-api-provider-quota"]
+  cfg --> plugin_dsh_base_provider_quota
+  plugin_dsh_base_usage_stats["usage-stats<br/>@deepseek-ai/dsh-usage-stats"]
+  cfg --> plugin_dsh_base_usage_stats
   plugin_dsh_base_timer["timer<br/>@deepseek-ai/cordis-plugin-timer"]
   cfg --> plugin_dsh_base_timer
   plugin_dsh_base_hmr["hmr<br/>@deepseek-ai/dsh-hmr"]
@@ -206,6 +212,9 @@ flowchart LR
 | --- | --- |
 | `tool-plugin-manager` | `@deepseek-ai/dsh-plugin-manager/tools` |
 | `plugin-manager` | `@deepseek-ai/dsh-plugin-manager` |
+| `plugin-catalog` | `@deepseek-ai/dsh-plugin-catalog` |
+| `provider-quota` | `@deepseek-ai/dsh-api-provider-quota` |
+| `usage-stats` | `@deepseek-ai/dsh-usage-stats` |
 | `timer` | `@deepseek-ai/cordis-plugin-timer` |
 | `hmr` | `@deepseek-ai/dsh-hmr` |
 | `llm` | `@deepseek-ai/dsh-llm` |

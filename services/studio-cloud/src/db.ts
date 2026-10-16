@@ -25,10 +25,14 @@ export async function initialize(db: DB, config: Config): Promise<void> {
   await c.query('SELECT pg_advisory_xact_lock(702117)')
   await c.query('CREATE TABLE IF NOT EXISTS schema_migrations (version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())')
   const versions = await c.query('SELECT version FROM schema_migrations ORDER BY version')
-  if (versions.rows.some(row => row.version > 1)) throw new Error('Database schema is newer than this server')
+  if (versions.rows.some(row => row.version > 2)) throw new Error('Database schema is newer than this server')
   if (versions.rowCount === 0) {
    await c.query(await readFile(new URL('../migrations/001-initial.sql', import.meta.url), 'utf8'))
    await c.query('INSERT INTO schema_migrations(version) VALUES(1)')
+  }
+  if (!versions.rows.some(row => row.version === 2)) {
+   await c.query(await readFile(new URL('../migrations/002-files.sql', import.meta.url), 'utf8'))
+   await c.query('INSERT INTO schema_migrations(version) VALUES(2)')
   }
   const admins = await c.query("SELECT id FROM users WHERE role='admin'")
   if (admins.rowCount === 0) {

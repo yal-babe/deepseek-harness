@@ -34,6 +34,7 @@ export interface FoldedSession {
  * Format `YYYY-MM-DD` for `ms` in a fixed UTC offset.
  * @param ms - epoch milliseconds.
  * @param timezoneOffsetSeconds - seconds east of UTC.
+ * @returns Date string formatted as YYYY-MM-DD.
  */
 export function dayKey(ms: number, timezoneOffsetSeconds: number): string {
   const local = new Date(ms + timezoneOffsetSeconds * 1000)
@@ -61,6 +62,7 @@ export function addTokens(into: UsageTokenTotals, add: UsageTokenTotals): void {
  * @param title - latest title, or the id when none exists.
  * @param events - complete raw log.
  * @param timezoneOffsetSeconds - seconds east of UTC.
+ * @returns Folded session statistics.
  */
 export function foldSessionUsage(
   sessionId: string,
@@ -104,6 +106,7 @@ export function foldSessionUsage(
  * @param timezoneOffsetSeconds - seconds east of UTC.
  * @param generatedAt - snapshot time.
  * @param sessions - folded unarchived sessions.
+ * @returns Aggregated usage snapshot.
  */
 export function assembleSnapshot(
   timezoneOffsetSeconds: number,

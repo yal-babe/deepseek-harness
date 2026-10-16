@@ -1,0 +1,1 @@
+DSH Studio accountStudio login is separate from model accounts. Signing in does not upload local data.Service addressUsername or verified emailPasswordDevice nameAllow HTTP for this connection. Passwords and tokens will be sent without transport encryption.Sign inAccept invitationRequest password resetReset passwordVerify email

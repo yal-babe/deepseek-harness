@@ -8,9 +8,13 @@
  */
 import { ok, openStream, type RemoteTable } from '@deepseek-ai/dsh-remote-mock'
 
+const studioSignedOut = { origin: '', identity: null, phase: 'signed-out' as const, usedBytes: null, quotaBytes: null, pending: 0 }
+
 /** Default responses of the boot-time Remote endpoints; a spec loads it first and layers its own table on top. */
 export const remoteDefaultResponses: RemoteTable = {
   unary: {
+    // Independent Studio account status, read on an explicit account opener.
+    'studioCloud/getState': ok(studioSignedOut),
     // api-session-controller `sessions.handleConnected()` on `connection/reset`.
     'session/list': ok({ items: [] }),
     // ui-workspace startup with no entries; first-use initialization is ineligible.
@@ -94,6 +98,7 @@ export const remoteDefaultResponses: RemoteTable = {
     // api-session-controller client `apply`: the control stream's opening baseline, then open.
     'session/control': openStream([{ type: 'baseline', value: { projections: {} } }]),
     // ui-settings-account shares the account snapshot across settings and the sidebar menu.
+    'studioCloud/watch': openStream([studioSignedOut]),
     'account/watch': openStream([{ status: 'signed-out', attempt: null, links: { usageUrl: 'https://platform.deepseek.com/usage', topUpUrl: 'https://platform.deepseek.com/top_up' } }]),
     // ui-settings-oauth watches the Codex credential key from apply.
     'oauth/watch': openStream([{ status: 'idle', inFlight: false, credentialConfigured: false }]),

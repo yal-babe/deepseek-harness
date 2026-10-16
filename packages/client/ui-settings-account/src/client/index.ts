@@ -8,7 +8,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import type {} from '@deepseek-ai/dsh-api-remotes/client'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-remotes/client'
+import type { StudioState } from '@deepseek-ai/dsh-studio-cloud/types'
 import type { AccountView, AccountDetails } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { OnboardingChange } from './onboarding-contract.ts'
 import type { PlatformBridge } from './PlatformOverlay.tsx'
@@ -19,6 +20,7 @@ import { BrowserLogin } from './browser-login.ts'
 import { AccountModelCard } from './AccountModelCard.tsx'
 import { AccountOnboarding } from './AccountOnboarding.tsx'
 import { AccountPlatformHost, type AccountPlatformHostInjected } from './AccountPlatformHost.tsx'
+import { StudioSection, StudioOverlay, type StudioInjected, type StudioSnapshot } from './StudioAccount.tsx'
 import { AccountMenu } from './AccountMenu.tsx'
 import { createPlatformPages, type PlatformPages } from './platform-pages.ts'
 import { AccountSection, type AccountSnapshot, type AccountSectionInjected } from './AccountSection.tsx'
@@ -43,7 +45,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Services required by account settings. */
-export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.providerQuota', 'remote.session', 'theme', 'configForms']
+export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.studioCloud', 'remote.providerQuota', 'remote.session', 'theme', 'configForms']
 /** Register account UI in Desktop and plain Web clients. @param ctx - client plugin context. */
 export function apply(ctx: Context): void {
   const desktop = 'dshDesktop' in globalThis
@@ -176,7 +178,176 @@ export function apply(ctx: Context): void {
       onClose(reason)
       if (reason === 'returned' && page === 'top-up') void refreshAfterReturn(refreshing, reRead)
     })
+  let studioSnapshot: StudioSnapshot = { state:null,visible:false,error:false }
+  const studioListeners = new Set<() => void>()
+  const publishStudio = (value:StudioSnapshot) => {studioSnapshot=value;for(const listener of studioListeners)listener()}
+  let studioGeneration=0
+  const refreshStudio = async () => {
+    const generation=studioGeneration
+    const result = await ctx.remote.studioCloud.getState()
+    if(generation!==studioGeneration)return
+    if (!result.ok) {publishStudio({ ...studioSnapshot,error:true });return}
+    publishStudio({ ...studioSnapshot,state:result.value,error:false })
+  }
+  let studioDisposed = false
+  const studio:StudioInjected = {
+    hooks: {
+      studio: {
+        getSnapshot: () => studioSnapshot,
+        subscribe: (listener) => {
+          studioListeners.add(listener)
+          return () => { studioListeners.delete(listener) }
+        },
+      },
+    },
+    studioLogin:async (origin,login,password,device,allowHttp) => {
+      studioGeneration++
+      const result = await ctx.remote.studioCloud.signIn(origin,login,password,device,allowHttp)
+      if (!result.ok) throw result.error
+      await refreshStudio()
+    },
+    studioLogout:async () => {
+      studioGeneration++
+      const { preview:_preview,...next }=studioSnapshot
+      publishStudio(next)
+      const result = await ctx.remote.studioCloud.signOut()
+      if (!result.ok) throw result.error
+      await refreshStudio()
+      if (!result.value.revoked) throw new Error('Studio device revocation was not confirmed')
+    },
+    studioChangePassword:async (current,next) => {
+      const result = await ctx.remote.studioCloud.changePassword(current,next)
+      if (!result.ok) throw result.error
+      await refreshStudio()
+    },
+    studioAction:async (action)=>{
+      const result=action.kind==='invite' ? await ctx.remote.studioCloud.acceptInvite(action.origin,action.token,action.username,action.password,action.allowHttp)
+        : action.kind==='forgot' ? await ctx.remote.studioCloud.forgotPassword(action.origin,action.email,action.allowHttp)
+          : action.kind==='reset' ? await ctx.remote.studioCloud.resetPassword(action.origin,action.token,action.password,action.allowHttp)
+            : action.kind==='verify' ? await ctx.remote.studioCloud.verifyEmail(action.origin,action.token,action.allowHttp)
+              : await ctx.remote.studioCloud.bindEmail(action.email,action.password)
+      if(!result.ok)throw result.error
+    },
+    studioDevices:async()=>{
+      const generation=studioGeneration
+      const result=await ctx.remote.studioCloud.devices()
+      if(generation!==studioGeneration)return
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,devices:result.value })
+    },
+    studioRevoke:async (id)=>{
+      const result=await ctx.remote.studioCloud.revokeDevice(id)
+      if(!result.ok)throw result.error
+      const { devices:_devices,...next }=studioSnapshot
+      publishStudio(next)
+      await refreshStudio()
+    },
+    studioHistories:async()=>{
+      const generation=studioGeneration
+      const result=await ctx.remote.studioCloud.historiesList()
+      if(generation!==studioGeneration || studioDisposed)return
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,histories:result.value })
+    },
+    studioReadHistory:async (id)=>{
+      const generation=studioGeneration
+      const result=await ctx.remote.studioCloud.readHistory(id)
+      if(generation!==studioGeneration || studioDisposed)return
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,history:result.value })
+    },
+    studioProjects:async()=>{
+      const generation=studioGeneration
+      const result=await ctx.remote.studioCloud.projectsToBind()
+      if(generation!==studioGeneration || studioDisposed)return
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,projects:result.value })
+    },
+    studioBindProject:async(id,localId)=>{
+      const result=await ctx.remote.studioCloud.bindProject(id,localId as WorkspaceId)
+      if(!result.ok)throw result.error
+      await studio.studioProjects()
+    },
+    studioUnbindProject:async (id)=>{
+      const result=await ctx.remote.studioCloud.unbindProject(id)
+      if(!result.ok)throw result.error
+      await studio.studioProjects()
+    },
+    studioForkHistory:async(id,workspaceId,preset)=>{
+      const result=await ctx.remote.studioCloud.forkHistory(id,workspaceId as WorkspaceId,...(preset ? [preset] : []))
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,continuation:result.value })
+      return result.value
+    },
+    studioTokenActivity:async()=>{
+      const generation=studioGeneration
+      const result=await ctx.remote.studioCloud.tokenActivity()
+      if(generation!==studioGeneration || studioDisposed)return
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,tokenActivity:result.value })
+    },
+    studioRestoredPlugins:async()=>{
+      const generation=studioGeneration
+      const result=await ctx.remote.studioCloud.restoredPlugins()
+      if(generation!==studioGeneration || studioDisposed)return
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,restoredPlugins:result.value })
+    },
+    studioUpdateProfile:async (displayName)=>{
+      const result=await ctx.remote.studioCloud.updateProfile(displayName)
+      if(!result.ok)throw result.error
+      await refreshStudio()
+    },
+    studioPreview:async()=>{
+      const generation=studioGeneration
+      const result=await ctx.remote.studioCloud.preview()
+      if(generation!==studioGeneration)return
+      if(!result.ok)throw result.error
+      publishStudio({ ...studioSnapshot,preview:result.value })
+    },
+    studioSelect:async (choices)=>{
+      const result=await ctx.remote.studioCloud.select(choices)
+      if(!result.ok)throw result.error
+      const { preview:_preview,...next }=studioSnapshot
+      publishStudio(next)
+      await refreshStudio()
+    },
+    studioPause:async (paused)=>{
+      const result=await ctx.remote.studioCloud.pause(paused)
+      if(!result.ok)throw result.error
+      await refreshStudio()
+    },
+    studioRefresh:async()=>{
+      const result=await ctx.remote.studioCloud.synchronize()
+      if(!result.ok)throw result.error
+      await refreshStudio()
+    },
+    studioClose:()=>{ publishStudio({ ...studioSnapshot,visible:false }) },
+  }
+  const studioStream=ctx.remote.$stream<StudioState>({
+    name:'studio-cloud',open:signal=>ctx.remote.studioCloud.watch(signal),ended:()=>new Error('Studio account stream ended'),
+  })
+  ctx.effect(() => () => { studioDisposed = true; return studioStream.dispose() }, 'Studio account status stream')
+  void (async () => {
+    for await (const frame of studioStream) {
+      const previous = studioSnapshot.state
+      if (previous?.origin !== frame.value.origin || previous.identity?.id !== frame.value.identity?.id) {
+        studioGeneration++
+        publishStudio({ state: frame.value, visible: studioSnapshot.visible, error: false })
+      } else publishStudio({ ...studioSnapshot, state: frame.value, error: false })
+      frame.accept()
+    }
+  })().catch(() => {
+    if (!studioDisposed) publishStudio({ ...studioSnapshot, error: true })
+  })
+  ctx.slots.inject('settings.section',()=>ctx.slots.register({
+    name:'settings.section',id:'studio-cloud',order:-20,label:()=>t('studioNav'),locale:'settings.account',inject:()=>studio,
+  },StudioSection))
+  ctx.slots.inject('shell.overlay',()=>ctx.slots.register({
+    name:'shell.overlay',id:'studio-cloud.login',locale:'settings.account',inject:()=>studio,
+  },StudioOverlay))
   const operations: AccountSectionInjected = {
+    showStudio:()=>{publishStudio({ ...studioSnapshot,visible:true });void refreshStudio()},
     avatarFailed: (value) => { avatar.failed(value) },
     subscribeSessionExpired: listener => ctx.remote.$on('deepseek-account/session-expired', listener),
     subscribeModelSignInRequired: listener => ctx.remote.$on('deepseek-account/model-sign-in-required', listener),

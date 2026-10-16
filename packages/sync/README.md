@@ -24,6 +24,7 @@ The sync group moves redacted Studio project events and project memory between d
 
 | Package | Role | ctx key |
 |---|---|---|
+| [`studio-cloud`](studio-cloud/README.md) | Studio account and selected personal objects, independent of legacy batches | `ctx.studioCloud` |
 | [`sync-protocol`](sync-protocol/README.md) | Shared ids, batch validation, and secret redaction | none |
 | [`sync-outbox`](sync-outbox/README.md) | Local durable queue with retry and status | `ctx.syncOutbox` |
 | [`sync-server`](sync-server/README.md) | SQLite WAL HTTP server, admin console, Docker image | none |

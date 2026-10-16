@@ -54,6 +54,7 @@ const initial = (): QuotaSnapshot => ({
 
 /** Loads both provider cards in parallel and keeps a failed card retryable. */
 export class QuotaStore {
+  /** Snapshot store holding the latest provider quota state. */
   readonly store: SnapshotStore<QuotaSnapshot>
   private generation = 0
 

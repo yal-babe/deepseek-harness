@@ -105,6 +105,7 @@ export function parseCommunityFeed(raw: unknown): CommunityWireRow[] {
  * @param row - validated wire row.
  * @param installedNames - profile-installed package names (lowercase).
  * @param installedVersions - name → version for installed packages.
+ * @returns Normalized catalog entry.
  */
 export function communityEntry(
   row: CommunityWireRow,
@@ -162,6 +163,7 @@ export function communityEntry(
  * @param installed - whether the package is in this profile.
  * @param catalogVersion - directory version.
  * @param installedVersion - profile version.
+ * @returns True if catalog version differs from installed version.
  */
 export function catalogUpdateAvailable(
   installed: boolean,
@@ -181,6 +183,7 @@ function stripVersion(value: string): string {
  * @param preferred - `ic` command.
  * @param github - `igc` command.
  * @param repo - `owner/repo` fallback.
+ * @returns Resolved package install spec or undefined.
  */
 export function installSpecFromCommands(
   preferred: string | undefined,

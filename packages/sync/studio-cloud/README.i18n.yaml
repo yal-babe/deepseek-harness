@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/sync/studio-cloud/README.md
+/:
+  en: 9e32cf5cee1f9957
+  zh: 05cb1ac712c9bd7f
+/deepseek-ai-dsh-studio-cloud:
+  en: e826e460dec1170b
+  zh: e1ecaab237b4fae0
+/deepseek-ai-dsh-studio-cloud/summary:
+  en: 957e6f5ae4d67352
+  zh: 1f8b6ea5825f21f1
+/deepseek-ai-dsh-studio-cloud/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 364c80ee00a374ff
+/deepseek-ai-dsh-studio-cloud/use-this-package:
+  en: 21e7711128439f82
+  zh: 34799a132aab4b0b
+/deepseek-ai-dsh-studio-cloud/understand-the-implementation:
+  en: 8a676b77a1c477f2
+  zh: d614c5e88edffb79
+/deepseek-ai-dsh-studio-cloud/further-exploration:
+  en: 2db5f545147e7fdd
+  zh: c81f782cbb15cbb5
+/deepseek-ai-dsh-studio-cloud/model-experience:
+  en: ba4c69f38da53c29
+  zh: 04cfc836bbe02dbc
+/deepseek-ai-dsh-studio-cloud/model-experience/kv-cache-effect:
+  en: cb84a2c8fc896e18
+  zh: 074b604bba532c09
+/deepseek-ai-dsh-studio-cloud/known-limitations-and-deferred-work:
+  en: d4e5e3f698e0e8db
+  zh: f4a68bc32efcdf30
+/deepseek-ai-dsh-studio-cloud/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 3bb0c20c93f16f98

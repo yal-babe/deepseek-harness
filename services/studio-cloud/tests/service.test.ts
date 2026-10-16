@@ -1,7 +1,7 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { randomUUID, randomBytes, createCipheriv } from 'node:crypto'
-import { mkdtemp, rm, readFile } from 'node:fs/promises'
+import { randomUUID, randomBytes, createCipheriv, createHash } from 'node:crypto'
+import { mkdtemp, rm, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pg from 'pg'
@@ -10,6 +10,7 @@ import { S3Client, CreateBucketCommand, ListObjectsV2Command } from '@aws-sdk/cl
 import { buildApp } from '../src/app.js'
 import { loadConfig } from '../src/config.js'
 import { createBackup, cleanup } from '../src/maintenance.js'
+import { partPath } from '../src/files.js'
 import { policiesDefault } from '../src/db.js'
 
 const baseUrl = process.env.TEST_DATABASE_URL
@@ -59,6 +60,79 @@ describe('standalone cloud service against PostgreSQL',()=>{
   assert.doesNotMatch(page.headers['content-security-policy']!,/upgrade-insecure-requests/)
   assert.equal((await request('POST','/v1/auth/register',{})).statusCode,404)
   assert.equal((await request('GET','/v1/admin/users')).statusCode,401)
+ })
+ it('advertises protocol limits and keeps profile edits in the versioned sync history',async()=>{
+  const caps=(await request('GET','/v1/capabilities')).json()
+  assert.equal(caps.protocolVersion,1);assert.equal(caps.sessionRestore,false)
+  const {auth}=await newUser(),requestId=randomUUID()
+  const body={requestId,baseVersion:0,displayName:'Personal name'}
+  assert.equal((await request('PUT','/v1/me/profile',body,auth)).statusCode,200)
+  assert.equal((await request('PUT','/v1/me/profile',body,auth)).statusCode,200)
+  assert.equal((await request('GET','/v1/auth/session',undefined,auth)).json().displayName,'Personal name')
+  assert.equal((await request('GET','/v1/sync/pull',undefined,auth)).json().changes.length,1)
+  assert.equal((await request('PUT','/v1/me/profile',{...body,requestId:randomUUID(),displayName:'conflict'},auth)).statusCode,409)
+  assert.equal((await request('GET','/v1/me/profile',undefined,auth)).json().displayName,'Personal name')
+ })
+ it('resumes a file exceeding 4 MiB, checks immutable retries and isolates every download',async()=>{
+  const {auth}=await newUser(),other=await newUser(),id=randomUUID()
+  const bytes=randomBytes(5*1024*1024+127),sha256=createHash('sha256').update(bytes).digest('hex')
+  const create=await request('POST','/v1/files',{id,bytes:bytes.length,sha256},auth)
+  assert.equal(create.statusCode,200,create.body)
+  const chunk=create.json().partBytes
+  assert.equal((await request('POST',`/v1/files/${id}/complete`,{},auth)).statusCode,409)
+  assert.equal((await push(auth,[{...plain('manifest'),fileRefs:[id]}])).statusCode,400)
+  for(let offset=0;offset<bytes.length;offset+=chunk){
+   const payload=bytes.subarray(offset,offset+chunk),url=`/v1/files/${id}/parts/${offset/chunk}`
+   const response=await service.app.inject({method:'PUT',url,payload,headers:{...headers(auth),'content-type':'application/octet-stream'}})
+   assert.equal(response.statusCode,200,response.body)
+   if(offset===0){
+    assert.equal((await request('GET',`/v1/files/${id}`,undefined,auth)).json().parts.length,1)
+    const retry=await service.app.inject({method:'PUT',url,payload,headers:{...headers(auth),'content-type':'application/octet-stream'}})
+    assert.equal(retry.statusCode,200)
+    const replaced=await service.app.inject({method:'PUT',url,payload:Buffer.alloc(payload.length),headers:{...headers(auth),'content-type':'application/octet-stream'}})
+    assert.equal(replaced.statusCode,409)
+   }
+  }
+  assert.equal((await request('POST',`/v1/files/${id}/complete`,{},auth)).statusCode,200)
+  assert.equal((await request('POST',`/v1/files/${id}/complete`,{},auth)).statusCode,200)
+  assert.equal((await push(auth,[{...plain('manifest'),fileRefs:[id]}])).statusCode,200)
+  assert.equal((await push(other.auth,[{...plain('manifest'),fileRefs:[id]}])).statusCode,400)
+  for(const path of [`/v1/files/${id}`,`/v1/files/${id}/content`]) assert.equal((await request('GET',path,undefined,other.auth)).statusCode,404)
+  assert.equal((await request('POST',`/v1/files/${id}/complete`,{},other.auth)).statusCode,404)
+  const downloaded=await request('GET',`/v1/files/${id}/content`,undefined,auth)
+  assert.equal(downloaded.statusCode,200);assert.deepEqual(downloaded.rawPayload,bytes)
+  assert.ok((await request('GET','/v1/me/storage',undefined,auth)).json().usedBytes>bytes.length)
+  const owner=(await request('GET','/v1/auth/session',undefined,auth)).json().id
+  const backup=await createBackup(service.services,null)
+  const first=(await request('GET',`/v1/files/${id}`,undefined,auth)).json().parts[0]
+  await unlink(partPath(service.services,owner,first.sha256))
+  assert.equal((await request('GET',`/v1/files/${id}/content`,undefined,auth)).statusCode,409)
+  const restored=await request('POST',`/v1/admin/backups/${backup.id}/restore`,{confirmation:'RESTORE',password:adminPassword},admin)
+  assert.equal(restored.statusCode,200,restored.body)
+  admin=await login('admin',adminPassword)
+  const renewed=await login((await service.services.db.query('SELECT username FROM users WHERE id=$1',[owner])).rows[0].username)
+  assert.deepEqual((await request('GET',`/v1/files/${id}/content`,undefined,renewed)).rawPayload,bytes)
+ })
+ it('reserves file quota, rejects damaged completion and cleans expired unreferenced uploads',async()=>{
+  const {auth}=await newUser(),id=randomUUID(),bytes=Buffer.from('private attachment'),sha256=createHash('sha256').update(bytes).digest('hex')
+  const owner=(await request('GET','/v1/auth/session',undefined,auth)).json().id
+  await request('PATCH',`/v1/admin/users/${owner}`,{quotaBytes:bytes.length},admin)
+  assert.equal((await request('POST','/v1/files',{id,bytes:bytes.length,sha256},auth)).statusCode,200)
+  assert.equal((await request('POST','/v1/files',{id:randomUUID(),bytes:1,sha256},auth)).statusCode,413)
+  assert.equal((await request('GET','/v1/me/storage',undefined,auth)).json().usedBytes,bytes.length)
+  const uploaded=await service.app.inject({method:'PUT',url:`/v1/files/${id}/parts/0`,payload:bytes,headers:{...headers(auth),'content-type':'application/octet-stream'}})
+  assert.equal(uploaded.statusCode,200,uploaded.body)
+  assert.equal((await request('POST',`/v1/files/${id}/complete`,{},auth)).statusCode,200)
+  await service.services.db.query("UPDATE cloud_files SET created_at=now()-interval '100 days' WHERE user_id=$1",[owner])
+  await cleanup(service.services)
+  assert.equal((await request('GET',`/v1/files/${id}`,undefined,auth)).statusCode,404)
+  assert.equal((await request('GET','/v1/me/storage',undefined,auth)).json().usedBytes,0)
+  await assert.rejects(readFile(partPath(service.services,owner,sha256)),{code:'ENOENT'})
+  const bad=randomUUID()
+  await request('POST','/v1/files',{id:bad,bytes:bytes.length,sha256:'0'.repeat(64)},auth)
+  await service.app.inject({method:'PUT',url:`/v1/files/${bad}/parts/0`,payload:bytes,headers:{...headers(auth),'content-type':'application/octet-stream'}})
+  assert.equal((await request('POST',`/v1/files/${bad}/complete`,{},auth)).json().error.code,'FILE_CHECKSUM')
+  assert.equal((await request('GET',`/v1/files/${bad}/content`,undefined,auth)).statusCode,404)
  })
  it('refuses startup with a different deployment master key without changing stored state',async()=>{
   await assert.rejects(buildApp({...service.services.config,MASTER_KEY:randomBytes(32).toString('hex')}))

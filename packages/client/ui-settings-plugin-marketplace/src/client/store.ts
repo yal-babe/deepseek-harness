@@ -66,6 +66,7 @@ const PAGE_SIZE = 24
 
 /** Controller for the marketplace section. */
 export class MarketplaceStore {
+  /** Snapshot store holding the latest plugin marketplace state. */
   readonly store: SnapshotStore<MarketplaceState>
   private noticeSeq = 0
   private searchGeneration = 0

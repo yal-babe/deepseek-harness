@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for plugin-marketplace-requirements.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/plugin-marketplace-requirements.md
+/dsh-studio-plugin-marketplace-requirements:
+  en: 5acdda6b032a04e0
+  zh: e3379bb401772e24
+/dsh-studio-plugin-marketplace-requirements/plugin-sources:
+  en: 1384d35eef5949af
+  zh: a08aa01868a04d89
+/dsh-studio-plugin-marketplace-requirements/basic-capabilities:
+  en: cadc37dd0db49680
+  zh: 5cf283f55ec9caf7
+/dsh-studio-plugin-marketplace-requirements/integration-requirements:
+  en: f436221c65bf9561
+  zh: 0872400c8a99945b
+/dsh-studio-plugin-marketplace-requirements/acceptance-criteria:
+  en: 8216730ea7314041
+  zh: 13549aff2485e150

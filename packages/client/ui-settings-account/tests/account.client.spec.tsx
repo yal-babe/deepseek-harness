@@ -189,7 +189,7 @@ it.each([en, zh].flatMap(copy => ([false, true, 'unknown'] as const).map(running
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())} wide openOnboarding={() => {}} openSettings={openSettings}
     t={key => key in copy ? copy[key as AccountKey] : key} />)
   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
-  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.signOut])
+  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.studioLogin, copy.signOut])
   await expect(`${screen.getByRole('menu').textContent}\n`).toMatchFileSnapshot(`./expected/menu-${copy === en ? 'en' : 'zh'}.txt`)
   fireEvent.click(screen.getByRole('menuitem', { name: copy.settings }))
   expect(openSettings).toHaveBeenCalledOnce()
@@ -304,12 +304,13 @@ it('falls back to the signed-in label when name and contact are missing', async 
   expect(screen.getByText(en.signedIn)).toBeTruthy()
 })
 
-it('opens the DSH Studio preview from the signed-out menu without starting DeepSeek sign-in', async () => {
+it('opens the DSH Studio account opener from the signed-out menu without starting DeepSeek sign-in', async () => {
   const operations = mount({ status: 'signed-out', attempt: null })
   cleanup()
   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
   const start = vi.fn(async () => {})
-  render(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} start={start}
+  const showStudio = vi.fn()
+  render(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} start={start} showStudio={showStudio}
     useAccount={selector => selector(operations.hooks.account.getSnapshot())}
     useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())}
@@ -318,9 +319,7 @@ it('opens the DSH Studio preview from the signed-out menu without starting DeepS
   fireEvent.click(screen.getByRole('button', { name: en.menu }))
   fireEvent.click(screen.getByRole('menuitem', { name: en.studioLogin }))
   expect(start).not.toHaveBeenCalled()
-  expect(screen.getByText(en.studioPreviewDescription)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: en.studioPreviewClose }))
-  expect(screen.queryByText(en.studioPreviewDescription)).toBeNull()
+  expect(showStudio).toHaveBeenCalledOnce()
 })
 
 it('keeps the confirmation dialog open after a failed sign-out', async () => {
@@ -676,13 +675,13 @@ it('reports a rejected settings login and disables login while initial state is 
   expect(screen.getByRole('status').textContent).toBe(en.failed)
 })
 
-it('dismisses a collapsed signed-out menu and opens the static Studio preview', async () => {
+it('dismisses a collapsed signed-out menu and requests independent Studio sign-in', async () => {
   const operations = mount({ status: 'signed-out', attempt: null })
   cleanup()
   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
   const props = {
     ...({} as GlobalStandardProps), ...operations, wide: false, settingsOpen: false,
-    openSettings: vi.fn(), openOnboarding: vi.fn(),
+    openSettings: vi.fn(), openOnboarding: vi.fn(), showStudio: vi.fn(),
     useAccount: <T,>(select: (value: AccountSnapshot) => T) => select(operations.hooks.account.getSnapshot()),
     useTheme: <T,>(select: (value: ThemeSnapshot) => T) => select(operations.hooks.theme.getSnapshot()),
     useQuota: <T,>(select: (value: QuotaSnapshot) => T) => select(operations.hooks.quota.getSnapshot()),
@@ -695,9 +694,7 @@ it('dismisses a collapsed signed-out menu and opens the static Studio preview', 
   expect(screen.queryByRole('menu')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: en.menu }))
   fireEvent.click(screen.getByRole('menuitem', { name: en.studioLogin }))
-  expect(screen.getByText(en.studioPreviewDescription)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: en.studioPreviewClose }))
-  expect(screen.queryByText(en.studioPreviewDescription)).toBeNull()
+  expect(props.showStudio).toHaveBeenCalledOnce()
 })
 
 it('paints the bonus notice under the open settings panel and reports its display once', async () => {

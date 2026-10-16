@@ -302,6 +302,14 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg_plugin_catalog["plugin-catalog"]
+  svc_pluginCatalog["ctx.pluginCatalog<br/>Plugin catalog management"]
+  pkg_provider_quota["provider-quota"]
+  svc_providerQuota["ctx.providerQuota<br/>Provider quota and usage tracking"]
+  pkg_studio_cloud["studio-cloud"]
+  svc_studioCloud["ctx.studioCloud<br/>Personal cloud synchronization"]
+  pkg_usage_stats["usage-stats"]
+  svc_usageStats["ctx.usageStats<br/>Session usage statistics snapshot"]
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
@@ -390,9 +398,11 @@ flowchart LR
   pkg_otel --> svc_otel
   pkg_permission_presets --> svc_permissionPresets
   pkg_plan_mode --> svc_planMode
+  pkg_plugin_catalog --> svc_pluginCatalog
   pkg_plugin_manager --> svc_pluginManager
   pkg_plugin_market --> svc_pluginMarket
   pkg_plugin_package_inventory_deepseek --> svc_deepseekLlmApiExtensions
+  pkg_provider_quota --> svc_providerQuota
   pkg_ptc_runtime --> svc_ptcRuntime
   pkg_ptc_runtime_node --> svc_ptcRuntime
   pkg_pwsh_local --> svc_shell
@@ -430,6 +440,7 @@ flowchart LR
   pkg_storage_domain --> svc_storageDomain
   pkg_storage_json --> svc_storage
   pkg_storage_sqlite --> svc_storage
+  pkg_studio_cloud --> svc_studioCloud
   pkg_subagent --> svc_subagents
   pkg_subagent_acp --> svc_subagents
   pkg_subagent_claude_code --> svc_subagents
@@ -449,6 +460,7 @@ flowchart LR
   pkg_tool_subagent --> svc_subagentModelSelection
   pkg_tools --> svc_tools
   pkg_typert_registry --> svc_typert
+  pkg_usage_stats --> svc_usageStats
   pkg_user_approval --> svc_approval
   pkg_user_questions --> svc_userQuestions
   pkg_web --> svc_web
@@ -729,5 +741,9 @@ flowchart LR
 | `ctx.lsp` | `seam` | [`lsp`](../packages/lsp/lsp) | [`lsp-stdio`](../packages/lsp/lsp-stdio) | [`tool-lsp`](../packages/lsp/tool-lsp) | - | Provider registration and selection plus normalized query execution over exactly four operations; the seam offers no protocol escape hatch, so a backend translates into the normalized request and result. |
 | `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | Owns the in-memory definition registry, the vm sandbox for host halves, and the request-run round trip; browser pages reach the same service over the wire through its remote namespace. |
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport. |
+| `ctx.pluginCatalog` | `core` | [`plugin-catalog`](../packages/boot/plugin-catalog) | - | - | - | Discovers and manages plugin catalog metadata, queries installable entries, and handles install, uninstall, and enable state transitions. |
+| `ctx.providerQuota` | `core` | `provider-quota` | - | - | - | Exposes browser-safe provider quota cards and reset receipt operations for Codex and Antigravity quotas. |
+| `ctx.studioCloud` | `core` | [`studio-cloud`](../packages/sync/studio-cloud) | - | - | - | Manages Studio authentication, isolated durable sync outbox queues, incremental object synchronization, and session continuation receipts. |
+| `ctx.usageStats` | `core` | [`usage-stats`](../packages/session/usage-stats) | - | - | - | Folds session token usage and activity into point-in-time usage snapshots for the personal center interface. |
 
 Maintenance mode: hybrid: services are discovered from Cordis declarations; interface/implementation/consumer roles are classified in `scripts/gen-doc-graphs.ts` with a completeness guard.

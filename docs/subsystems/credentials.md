@@ -494,6 +494,30 @@ OAuth commands and reconnect-safe state stream, keyed by credential record.
 
 Source: [`packages/api/oauth-controller/src/index.ts`](../../packages/api/oauth-controller/src/index.ts)
 
+<a id="ctxproviderquota--providerquota"></a>
+
+### `ctx.providerQuota` — `ProviderQuota`
+
+Codex and Antigravity quota over stored Host grants.
+
+```ts cordis-catalog
+/**
+ * Read one provider's safe quota view.
+ * @param provider - `codex` or `antigravity`.
+ * @returns unsigned when no grant is stored; ready or failed otherwise.
+ */
+@Remote async get(provider: QuotaProviderId): Promise<ProviderQuotaView>
+
+/**
+ * Redeem one Codex rate-limit reset credit after the Client confirms.
+ * Does not call CLI Proxy `resetCooldown`.
+ * @returns whether WHAM accepted the redeem, plus the latest usage card.
+ */
+@Remote async consumeCodexReset(): Promise<ConsumeCodexResetResult>
+```
+
+Source: [`packages/api/provider-quota/src/index.ts`](../../packages/api/provider-quota/src/index.ts)
+
 <a id="authorization-events"></a>
 
 ### `authorization/*` events

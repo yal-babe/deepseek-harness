@@ -2502,6 +2502,31 @@ export interface PlanModeConfig {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-plan-mode -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-plugin-catalog -->
+<a id="deepseek-aidsh-plugin-catalog"></a>
+
+## `@deepseek-ai/dsh-plugin-catalog`
+
+- `inject`: `loader`
+- `source`: [`packages/boot/plugin-catalog/src/index.ts:77`](../packages/boot/plugin-catalog/src/index.ts)
+
+```ts config-catalog
+/** Configurable feed origins and cache lifetime. */
+export interface Config {
+  /** Community API origin (`https://api.dsh-plugin.org`). */
+  communityOrigin?: string
+  /** Catalog language file: `en` or `zh`. */
+  communityLocale?: 'en' | 'zh'
+  /** Codex marketplace.json URL. */
+  codexMarketplaceUrl?: string
+  /** Milliseconds to reuse a successful feed download. */
+  cacheTtlMs?: number
+  /** HTTP timeout for feed downloads. */
+  fetchTimeoutMs?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-plugin-catalog -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-plugin-manager -->
 <a id="deepseek-aidsh-plugin-manager"></a>
 
@@ -2878,7 +2903,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-session-log-export`
 
 - `inject`: `commands` · `connection`
-- `source`: [`packages/session-query/session-log-export/src/index.ts:46`](../packages/session-query/session-log-export/src/index.ts)
+- `source`: [`packages/session-query/session-log-export/src/index.ts:47`](../packages/session-query/session-log-export/src/index.ts)
 
 ```ts config-catalog
 /** Session-log archive policy. */
@@ -3402,6 +3427,29 @@ export interface Config {
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-storage-sqlite -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-studio-cloud -->
+<a id="deepseek-aidsh-studio-cloud"></a>
+
+## `@deepseek-ai/dsh-studio-cloud`
+
+- `inject`: `credentials`
+- `source`: [`packages/sync/studio-cloud/src/index.ts:62`](../packages/sync/studio-cloud/src/index.ts)
+
+```ts config-catalog
+/** Deployment options; the service origin itself is selected by the login form. */
+export interface Config {
+  /** Per-request deadline, including account and sync reads. */
+  requestTimeoutMs?: number
+  /** Private account-scoped queue root; omission uses the Studio subdirectory of DSH_HOME. */
+  stateDirectory?: string
+  /** Continuous sync interval after explicit selection. */
+  syncIntervalMs?: number
+  /** Maximum bytes per immutable Session or attachment chunk. */
+  sessionChunkBytes?: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-studio-cloud -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-subagent -->
 <a id="deepseek-aidsh-subagent"></a>
@@ -4701,6 +4749,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-agent` | — | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
 | `@deepseek-ai/dsh-api-account-controller` | `deepseekAccount` · `agents` | [`packages/api/account-controller/src/index.ts`](../packages/api/account-controller/src/index.ts) |
 | `@deepseek-ai/dsh-api-oauth-controller` | `oauthBridge` | [`packages/api/oauth-controller/src/index.ts`](../packages/api/oauth-controller/src/index.ts) |
+| `@deepseek-ai/dsh-api-provider-quota` | `credentials` | [`packages/api/provider-quota/src/index.ts`](../packages/api/provider-quota/src/index.ts) |
 | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
 | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
 | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
@@ -4728,6 +4777,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-model-selection` | — | [`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-personal-center` | — | [`packages/client/ui-personal-center/src/index.ts`](../packages/client/ui-personal-center/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-plan` | — | [`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-plugin-market` | — | [`packages/client/ui-plugin-market/src/index.ts`](../packages/client/ui-plugin-market/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-reference` | — | [`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts) |
@@ -4740,6 +4790,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-oauth` | — | [`packages/client/ui-settings-oauth/src/index.ts`](../packages/client/ui-settings-oauth/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-plugin-inventory` | — | [`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` | — | [`packages/client/ui-settings-plugin-marketplace/src/index.ts`](../packages/client/ui-settings-plugin-marketplace/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-plugins` | — | [`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
@@ -4804,6 +4855,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-tool-schedule` | `tools` | [`packages/schedule/tool-schedule/src/index.ts`](../packages/schedule/tool-schedule/src/index.ts) |
 | `@deepseek-ai/dsh-tool-subagent-control` | `tools` · `subagents` | [`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts) |
 | `@deepseek-ai/dsh-tool-working-directory` | `tools` · `workingDirectory` | [`packages/session/tool-working-directory/src/index.ts`](../packages/session/tool-working-directory/src/index.ts) |
+| `@deepseek-ai/dsh-usage-stats` | `sessionQuery` | [`packages/session/usage-stats/src/index.ts`](../packages/session/usage-stats/src/index.ts) |
 | `@deepseek-ai/dsh-user-questions` | — | [`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts) |
 | `@deepseek-ai/dsh-webhook` | `agents` · `agentDefaultModel` · `agentPresets` · `permissionPresets` · `sessionTitle` · `workspaceRegistry` | [`packages/experimental/webhook/src/index.ts`](../packages/experimental/webhook/src/index.ts) |
 | `@deepseek-ai/dsh-workspace` | `storageDomain` · `sessionPersistence` | [`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts) |

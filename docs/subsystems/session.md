@@ -1141,6 +1141,23 @@ Types: [CreateSessionOptions](persistence.md) · [PrepareSessionOptions](persist
 
 Source: [`packages/core/session/src/index.ts`](../../packages/core/session/src/index.ts)
 
+<a id="ctxusagestats--usagestats"></a>
+
+### `ctx.usageStats` — `UsageStats`
+
+Local usage fold over session-query, excluding workspace-archived sessions.
+
+```ts cordis-catalog
+/**
+ * Fold unarchived sessions into calendar-day, model, and tool totals.
+ * @param timezoneOffsetSeconds - seconds east of UTC for local day buckets.
+ * @returns a snapshot that contains no event bodies or credentials.
+ */
+@Remote async snapshot(timezoneOffsetSeconds: number): Promise<UsageSnapshot>
+```
+
+Source: [`packages/session/usage-stats/src/index.ts`](../../packages/session/usage-stats/src/index.ts)
+
 <a id="api-session-events"></a>
 
 ### `api-session/*` events

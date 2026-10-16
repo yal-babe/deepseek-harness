@@ -12,6 +12,7 @@ export const CODEX_SKILLS_HOME_SEGMENT = 'skills'
 /**
  * Parse `community:owner/slug` or `codex:name`.
  * @param id - catalog entry id.
+ * @returns Parsed catalog id components or undefined.
  */
 export function parseCatalogId(id: string): { source: 'community' | 'codex'; key: string } | undefined {
   const community = /^community:(.+)$/u.exec(id)
@@ -25,6 +26,7 @@ export function parseCatalogId(id: string): { source: 'community' | 'codex'; key
  * Absolute directory for one installed Codex plugin's skills.
  * @param pluginName - Codex plugin name.
  * @param dshHome - optional Harness home override.
+ * @returns Absolute directory path for the installed plugin skills.
  */
 export function codexSkillsDir(pluginName: string, dshHome?: string): string {
   validatePluginName(pluginName)
@@ -35,6 +37,8 @@ export function codexSkillsDir(pluginName: string, dshHome?: string): string {
  * Whether Codex skills for `pluginName` already exist on disk.
  * @param pluginName - Codex plugin name.
  * @param exists - async existence probe.
+ * @param dshHome - optional Harness home override.
+ * @returns Promise resolving to true if skills are installed.
  */
 export async function codexSkillsInstalled(
   pluginName: string,
@@ -50,6 +54,7 @@ export async function codexSkillsInstalled(
  * @param skillNames - skill directory names under the plugin's skills folder.
  * @param fetchText - HTTP GET that returns response text.
  * @param options - optional home and skills subpath (defaults to `skills`).
+ * @returns Installation outcome receipt.
  */
 export async function installCodexSkills(
   pluginName: string,
@@ -96,6 +101,8 @@ export async function installCodexSkills(
 /**
  * Remove materialized Codex skills for one plugin.
  * @param pluginName - Codex plugin name.
+ * @param dshHome - optional Harness home override.
+ * @returns Uninstallation outcome receipt.
  */
 export async function uninstallCodexSkills(
   pluginName: string,
@@ -122,6 +129,7 @@ export async function uninstallCodexSkills(
 /**
  * Build a failure result when install is not available.
  * @param entry - catalog entry.
+ * @returns Incompatible or unsupported installation result.
  */
 export function unsupportedInstall(entry: CatalogEntry): CatalogInstallResult {
   return {

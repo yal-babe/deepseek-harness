@@ -179,6 +179,7 @@ export class PluginCatalog extends TypertRemoteService {
   /**
    * Read one entry by id, enriching Codex rows with plugin.json detail.
    * @param id - `community:…` or `codex:…`.
+   * @returns catalog entry matching the given identifier.
    */
   @Remote
   async get(id: string): Promise<CatalogEntry> {
@@ -223,6 +224,7 @@ export class PluginCatalog extends TypertRemoteService {
    * Install a marketplace entry.
    * Named `installEntry` because the client Remote namespace service already defines `install`.
    * @param id - catalog entry id.
+   * @returns installation outcome.
    */
   @Remote
   async installEntry(id: string): Promise<CatalogInstallResult> {
@@ -244,6 +246,7 @@ export class PluginCatalog extends TypertRemoteService {
   /**
    * Uninstall a marketplace entry.
    * @param id - catalog entry id.
+   * @returns uninstallation outcome.
    */
   @Remote
   async uninstall(id: string): Promise<CatalogInstallResult> {
@@ -579,8 +582,6 @@ export class PluginCatalog extends TypertRemoteService {
     return await response.text()
   }
 }
-
-export const Config = PluginCatalog.Config
 
 export default PluginCatalog
 

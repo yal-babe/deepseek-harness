@@ -7,6 +7,8 @@ const schema = z.object({
  ALLOW_HTTP: z.enum(['true', 'false']).default('false'),
  HOST: z.string().default('0.0.0.0'), PORT: z.coerce.number().int().min(1).max(65535).default(8788),
  DATA_DIR: z.string().default('./data'),
+ FILE_PART_BYTES: z.coerce.number().int().min(65536).max(4194304).default(1048576),
+ FILE_MAX_BYTES: z.coerce.number().int().min(1).max(1073741824).default(67108864),
  ACCESS_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
  REFRESH_TTL_SECONDS: z.coerce.number().int().min(3600).max(7776000).default(2592000),
  BOOTSTRAP_ADMIN: z.string().regex(/^[a-z0-9][a-z0-9_.-]{2,31}$/).default('admin'),

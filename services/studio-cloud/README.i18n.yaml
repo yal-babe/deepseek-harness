@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write services/studio-cloud/README.md
+/dsh-studio-cloud:
+  en: 276f7a48f543e657
+  zh: b16cd56e0086b5ac
+/dsh-studio-cloud/docker-launch:
+  en: 4970dacdcacf8c31
+  zh: 6b594224bd6a2840
+/dsh-studio-cloud/provided-features:
+  en: f9287b4509b768b3
+  zh: 7c8121f511c2ee85
+/dsh-studio-cloud/administration-and-storage:
+  en: 09c3b16d69ce8de7
+  zh: 21c74caa49ca0ce5
+/dsh-studio-cloud/api-overview:
+  en: c1882ad2ca490cdd
+  zh: 07fc9a57d5db0c01
+/dsh-studio-cloud/module-development-and-testing:
+  en: 683383acd1e535ad
+  zh: c8c943101b3b591b
+/dsh-studio-cloud/file-synchronization-rules:
+  en: 3dba13a39f77cbe7
+  zh: 218fd312e60405c8

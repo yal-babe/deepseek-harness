@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { randomUUID, createHmac, timingSafeEqual } from 'node:crypto'
 import { transaction } from './db.js'
@@ -12,7 +12,7 @@ const encryptedPayload = z.object({ algorithm: z.literal('AES-256-GCM'), keyVers
 const changeSchema = z.object({ id: objectId, kind: z.enum(['profile','preference','project','conversation','plugin']),
  parentId: objectId.nullable().default(null), namespace: objectId.nullable().default(null),
  baseVersion: z.number().int().nonnegative().max(2147483646), formatVersion: z.number().int().positive().max(1000),
- encrypted: z.boolean(), payload: z.json().nullable(), deleted: z.boolean().default(false),
+ fileRefs:z.array(z.uuid()).max(1000).default([]), encrypted: z.boolean(), payload: z.json().nullable(), deleted: z.boolean().default(false),
 }).strict().refine(c => c.kind !== 'plugin' || c.namespace !== null, 'Plugin data requires namespace')
 const pushSchema = z.object({ requestId: z.uuid(), changes: z.array(changeSchema).min(1).max(100) }).strict()
 const cursorSchema = z.object({ user: z.uuid(), epoch: z.uuid(), seq: z.number().int().nonnegative().safe() }).strict()
@@ -38,12 +38,13 @@ function readCursor(s: Services, raw: string) {
 export async function usage(s: Services, userId: string) {
  const row = (await s.db.query(`SELECT
  COALESCE((SELECT sum(bytes) FROM sync_objects WHERE user_id=$1),0)+
- COALESCE((SELECT sum(bytes) FROM sync_changes WHERE user_id=$1),0) AS bytes`, [userId])).rows[0]
+ COALESCE((SELECT sum(bytes) FROM sync_changes WHERE user_id=$1),0)+
+ COALESCE((SELECT sum(bytes) FROM cloud_files WHERE user_id=$1),0) AS bytes`, [userId])).rows[0]
  return Number(row.bytes)
 }
 function view(row: Record<string, unknown>) {
  return { id: row.id, kind: row.kind, parentId: row.parent_id, namespace: row.namespace, version: row.version,
-  formatVersion: row.format_version, encrypted: row.encrypted, payload: row.payload, deleted: row.deleted_at !== null }
+  formatVersion: row.format_version, encrypted: row.encrypted, payload: row.payload, fileRefs:row.file_refs, deleted: row.deleted_at !== null }
 }
 /** Serialize each user's writes with its ownership row, including quota checks and sequence allocation. */
 export async function syncRoutes(app: FastifyInstance, s: Services) {
@@ -51,7 +52,7 @@ export async function syncRoutes(app: FastifyInstance, s: Services) {
   const u = await identity(s, req), p = await policies(s)
   const row = (await s.db.query('SELECT quota_bytes,encryption_mode FROM users WHERE id=$1', [u.id])).rows[0]
   return { usedBytes: await usage(s, u.id), quotaBytes: Number(row.quota_bytes ?? p.defaultQuotaBytes), encryptionMode: row.encryption_mode,
-   accounting: 'current_objects_and_change_history' }
+   accounting: 'current_objects_change_history_and_files' }
  })
  app.get('/v1/me/crypto', async req => {
   const u = await identity(s, req)
@@ -72,7 +73,7 @@ export async function syncRoutes(app: FastifyInstance, s: Services) {
    await audit(c, u.id, 'crypto.configured')
   }); return { ok: true }
  })
- app.post('/v1/sync/push', async req => {
+ const push = async (req: FastifyRequest) => {
   const u = await identity(s, req), b = pushSchema.parse(req.body), p = await policies(s)
   if (new Set(b.changes.map(v => v.id)).size !== b.changes.length) fail(400, 'DUPLICATE_OBJECT', '批次内对象 ID 不得重复')
   const requestDigest = digest(JSON.stringify(b))
@@ -107,23 +108,35 @@ export async function syncRoutes(app: FastifyInstance, s: Services) {
      const children = await c.query('SELECT id FROM sync_objects WHERE user_id=$1 AND parent_id=$2 AND deleted_at IS NULL LIMIT 1', [u.id,item.id])
      if (children.rowCount) fail(409, 'PROJECT_NOT_EMPTY', '请先删除项目下的对象')
     }
+    if (item.kind === 'profile' && item.id === 'studio-profile') {
+     if (item.encrypted || item.deleted || item.formatVersion !== 1) fail(400,'PROFILE_FORMAT','个人资料需要普通同步版本 1')
+     const profile = z.object({displayName:z.string().trim().max(120)}).strict().parse(item.payload)
+     await c.query('UPDATE users SET display_name=$1 WHERE id=$2',[profile.displayName,u.id])
+    }
+    if (item.deleted && item.fileRefs.length) fail(400,'INVALID_DELETE','删除操作不能包含文件引用')
+    for (const file of item.fileRefs) {
+     const owned = await c.query('SELECT id FROM cloud_files WHERE user_id=$1 AND id=$2 AND complete',[u.id,file])
+     if (!owned.rowCount) fail(400,'FILE_REFERENCE_INVALID','引用的文件不存在、尚未完成或不属于当前账号')
+    }
     const bytes = Buffer.byteLength(JSON.stringify(item.payload))
     if (bytes > p.maxObjectBytes) fail(413, 'OBJECT_TOO_LARGE', '单个同步对象超过大小限制')
     const version = item.baseVersion + 1
-    await c.query(`INSERT INTO sync_objects(user_id,id,kind,parent_id,namespace,version,format_version,encrypted,payload,bytes,deleted_at)
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $11 THEN now() ELSE NULL END)
+    await c.query(`INSERT INTO sync_objects(user_id,id,kind,parent_id,namespace,version,format_version,encrypted,payload,bytes,deleted_at,file_refs)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $11 THEN now() ELSE NULL END,$12)
      ON CONFLICT(user_id,id) DO UPDATE SET version=excluded.version,format_version=excluded.format_version,
      payload=CASE WHEN $11 THEN sync_objects.payload ELSE excluded.payload END,
      bytes=CASE WHEN $11 THEN sync_objects.bytes ELSE excluded.bytes END,
+     file_refs=CASE WHEN $11 THEN sync_objects.file_refs ELSE excluded.file_refs END,
      encrypted=excluded.encrypted,deleted_at=CASE WHEN $11 THEN COALESCE(sync_objects.deleted_at,now()) ELSE NULL END,updated_at=now()`,
-     [u.id,item.id,item.kind,item.parentId,item.namespace,version,item.formatVersion,item.encrypted,item.payload,bytes,item.deleted])
+     [u.id,item.id,item.kind,item.parentId,item.namespace,version,item.formatVersion,item.encrypted,item.payload,bytes,item.deleted,JSON.stringify(item.fileRefs)])
     const value = { ...item, version }
     await c.query('INSERT INTO sync_changes(user_id,seq,object_id,value,bytes) VALUES($1,$2,$3,$4,$5)',
      [u.id, ++seq, item.id, value, Buffer.byteLength(JSON.stringify(value))])
     versions.push({ id: item.id, version })
    }
    const used = (await c.query(`SELECT COALESCE((SELECT sum(bytes) FROM sync_objects WHERE user_id=$1),0)+
-    COALESCE((SELECT sum(bytes) FROM sync_changes WHERE user_id=$1),0) AS bytes`, [u.id])).rows[0]
+    COALESCE((SELECT sum(bytes) FROM sync_changes WHERE user_id=$1),0)+
+ COALESCE((SELECT sum(bytes) FROM cloud_files WHERE user_id=$1),0) AS bytes`, [u.id])).rows[0]
    if (Number(used.bytes) > Number(user.quota_bytes ?? p.defaultQuotaBytes) && b.changes.some(v => !v.deleted))
     fail(413, 'QUOTA_EXCEEDED', '个人存储额度不足；可先下载或删除数据')
    await c.query('UPDATE users SET sync_seq=$1 WHERE id=$2', [seq,u.id])
@@ -131,6 +144,17 @@ export async function syncRoutes(app: FastifyInstance, s: Services) {
    await c.query('INSERT INTO sync_requests(user_id,request_id,digest,result) VALUES($1,$2,$3,$4)', [u.id,b.requestId,requestDigest,result])
    return result
   })
+ }
+ app.post('/v1/sync/push',push)
+ app.get('/v1/me/profile',async req => {
+  const u = await identity(s,req)
+  const row = (await s.db.query("SELECT version,payload FROM sync_objects WHERE user_id=$1 AND id='studio-profile' AND deleted_at IS NULL",[u.id])).rows[0]
+  return { displayName:u.display_name, version:row?.version ?? 0 }
+ })
+ app.put('/v1/me/profile',async req => {
+  const b = z.object({requestId:z.uuid(),baseVersion:z.number().int().nonnegative(),displayName:z.string().trim().max(120)}).strict().parse(req.body)
+  req.body = {requestId:b.requestId,changes:[{id:'studio-profile',kind:'profile',baseVersion:b.baseVersion,formatVersion:1,encrypted:false,payload:{displayName:b.displayName}}]}
+  return push(req)
  })
  app.get('/v1/sync/pull', async req => {
   const u = await identity(s, req)
@@ -159,7 +183,7 @@ export async function syncRoutes(app: FastifyInstance, s: Services) {
     await c.query('INSERT INTO sync_snapshots(id,user_id,seq,epoch) VALUES($1,$2,$3,$4)', [id,u.id,user.sync_seq,user.sync_epoch])
     await c.query(`INSERT INTO sync_snapshot_items(snapshot_id,id,value) SELECT $1,id,jsonb_build_object(
      'id',id,'kind',kind,'parentId',parent_id,'namespace',namespace,'version',version,'formatVersion',format_version,
-     'encrypted',encrypted,'payload',CASE WHEN deleted_at IS NULL THEN payload ELSE NULL END,'deleted',deleted_at IS NOT NULL)
+     'fileRefs',file_refs,'encrypted',encrypted,'payload',CASE WHEN deleted_at IS NULL THEN payload ELSE NULL END,'deleted',deleted_at IS NOT NULL)
      FROM sync_objects WHERE user_id=$2`, [id,u.id])
    }
    const snapshot = (await c.query('SELECT * FROM sync_snapshots WHERE id=$1 AND user_id=$2 AND expires_at>now()', [id,u.id])).rows[0]

@@ -13,13 +13,13 @@ export async function adminRoutes(app: FastifyInstance, s: Services) {
   return (await s.db.query(`SELECT (SELECT count(*) FROM users) AS users,
    (SELECT count(*) FROM auth_sessions WHERE NOT revoked AND refresh_expires>now()) AS devices,
    (SELECT count(*) FROM sync_objects) AS objects,
-   (SELECT COALESCE(sum(bytes),0) FROM sync_objects)+(SELECT COALESCE(sum(bytes),0) FROM sync_changes) AS bytes,
+   (SELECT COALESCE(sum(bytes),0) FROM sync_objects)+(SELECT COALESCE(sum(bytes),0) FROM sync_changes)+(SELECT COALESCE(sum(bytes),0) FROM cloud_files) AS bytes,
    (SELECT count(*) FROM backups) AS backups`)).rows[0]
  })
  app.get('/v1/admin/users', async req => {
   await identity(s,req,true)
   return (await s.db.query(`SELECT u.id,u.username,u.email,u.display_name,u.role,u.disabled,u.must_change_password,u.quota_bytes,u.encryption_mode,u.created_at,
-   COALESCE((SELECT sum(bytes) FROM sync_objects WHERE user_id=u.id),0)+COALESCE((SELECT sum(bytes) FROM sync_changes WHERE user_id=u.id),0) AS used_bytes
+   COALESCE((SELECT sum(bytes) FROM sync_objects WHERE user_id=u.id),0)+COALESCE((SELECT sum(bytes) FROM sync_changes WHERE user_id=u.id),0)+COALESCE((SELECT sum(bytes) FROM cloud_files WHERE user_id=u.id),0) AS used_bytes
    FROM users u ORDER BY u.created_at DESC LIMIT 500`)).rows
  })
  app.post('/v1/admin/users', async req => {

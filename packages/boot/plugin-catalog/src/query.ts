@@ -6,6 +6,7 @@ import type { CatalogEntry, CatalogKind, CatalogSort } from './types.ts'
  * Filter catalog rows by text, Hub category, Codex kind, and installed-only.
  * @param entries - normalized rows for the selected source.
  * @param options - search controls; omitted fields do not restrict.
+ * @returns Filtered catalog entries array.
  */
 export function filterCatalog(
   entries: readonly CatalogEntry[],
@@ -33,6 +34,7 @@ export function filterCatalog(
  * Sort a catalog page. Installed rows are not forced to the front; the Installed tab filters instead.
  * @param entries - filtered rows.
  * @param sort - Hub sort key; default stars.
+ * @returns Sorted copy of catalog entries array.
  */
 export function sortCatalog(
   entries: readonly CatalogEntry[],
@@ -47,6 +49,7 @@ export function sortCatalog(
  * Substring match over title, name, description, author, category, and tags.
  * @param entry - catalog row.
  * @param needle - already-lowercased query.
+ * @returns True if entry matches needle.
  */
 export function matchesCatalogQuery(entry: CatalogEntry, needle: string): boolean {
   const haystack = [

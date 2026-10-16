@@ -153,6 +153,10 @@ export const SERVICE_PAGE: Record<string, string> = {
   directoryPickerController: 'workspace.md',
   syncOutbox: 'sync.md',
   syncMemory: 'sync.md',
+  pluginCatalog: 'boot.md',
+  providerQuota: 'credentials.md',
+  studioCloud: 'sync.md',
+  usageStats: 'session.md',
 }
 
 /**
@@ -994,6 +998,23 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   TerminalFrame: 'Browser terminal stream frames are owned by packages/api/terminal-controller/README.md',
   TerminalRetentionFrame: 'Browser terminal window holds are owned by packages/api/terminal-controller/README.md',
   WebTerminalId: 'Browser terminal identity is owned by packages/api/terminal-controller/README.md',
+  ProviderQuotaView: 'Provider quota snapshot contract is owned by packages/api/provider-quota/README.md',
+  QuotaProviderId: 'Quota provider identifier is owned by packages/api/provider-quota/README.md',
+  ConsumeCodexResetResult: 'Provider quota reset receipt is owned by packages/api/provider-quota/README.md',
+  CatalogSearchQuery: 'Plugin catalog search query contract is owned by packages/boot/plugin-catalog/README.md',
+  CatalogSearchResult: 'Plugin catalog search result contract is owned by packages/boot/plugin-catalog/README.md',
+  CatalogEntry: 'Plugin catalog item entry is owned by packages/boot/plugin-catalog/README.md',
+  CatalogInstallResult: 'Plugin catalog install result contract is owned by packages/boot/plugin-catalog/README.md',
+  StudioState: 'Personal cloud synchronization state is owned by packages/sync/studio-cloud/README.md',
+  SyncContribution: 'Personal cloud registration contribution contract is owned by packages/sync/studio-cloud/README.md',
+  StudioHistoryItem: 'Personal cloud history item summary is owned by packages/sync/studio-cloud/README.md',
+  StudioHistoryView: 'Personal cloud history record view is owned by packages/sync/studio-cloud/README.md',
+  StudioContinuationResult: 'Personal cloud session continuation result is owned by packages/sync/studio-cloud/README.md',
+  StudioTokenActivity: 'Personal cloud token activity stream frame is owned by packages/sync/studio-cloud/README.md',
+  StudioRestoredPlugin: 'Personal cloud restored plugin descriptor is owned by packages/sync/studio-cloud/README.md',
+  StudioPreviewRow: 'Personal cloud diff preview row is owned by packages/sync/studio-cloud/README.md',
+  StudioIdentity: 'Personal cloud identity contract is owned by packages/sync/studio-cloud/README.md',
+  UsageSnapshot: 'Session usage statistics snapshot is owned by packages/session/usage-stats/README.md',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

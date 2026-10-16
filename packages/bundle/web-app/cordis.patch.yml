@@ -61,6 +61,9 @@
         enabled: true
         appVersion: !!js process.env.DSH_CLIENT_VERSION
 
+    - id: studio-cloud
+      name: '@deepseek-ai/dsh-studio-cloud'
+
     - id: sync-outbox
       name: '@deepseek-ai/dsh-sync-outbox'
       disabled: !!js "ctx.get('profileContext')?.name !== 'desktop'"

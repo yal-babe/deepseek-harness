@@ -1,0 +1,176 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { StudioForm } from '../src/client/StudioAccount.tsx'
+import type { StudioOperations, StudioSnapshot } from '../src/client/StudioAccount.tsx'
+import type { StudioUserId } from '@deepseek-ai/dsh-studio-cloud/types'
+import { en } from '../src/client/locales.ts'
+
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
+
+function mockOperations(overrides?: Partial<StudioOperations>): StudioOperations {
+  return {
+    studioLogin: vi.fn(),
+    studioLogout: vi.fn(),
+    studioChangePassword: vi.fn(),
+    studioRefresh: vi.fn(),
+    studioPreview: vi.fn(),
+    studioSelect: vi.fn(),
+    studioPause: vi.fn(),
+    studioAction: vi.fn(),
+    studioDevices: vi.fn(),
+    studioRevoke: vi.fn(),
+    studioHistories: vi.fn(),
+    studioReadHistory: vi.fn(),
+    studioProjects: vi.fn(),
+    studioBindProject: vi.fn(),
+    studioUnbindProject: vi.fn(),
+    studioForkHistory: vi.fn().mockResolvedValue({ sessionId: 'session-child-123' }),
+    studioTokenActivity: vi.fn(),
+    studioRestoredPlugins: vi.fn(),
+    studioUpdateProfile: vi.fn(),
+    ...overrides,
+  }
+}
+
+describe('StudioForm', () => {
+  it('renders project bindings and triggers bind and unbind', async () => {
+    const operations = mockOperations()
+    const snapshot: StudioSnapshot = {
+      state: {
+        origin: 'https://cloud.example.com',
+        identity: { id: 'user-1' as StudioUserId, username: 'testuser', displayName: 'Test User', email: null, mustChangePassword: false },
+        phase: 'ready',
+        usedBytes: 1000,
+        quotaBytes: 100000,
+        pending: 0,
+      },
+      visible: true,
+      error: false,
+      projects: [
+        { id: 'proj-bound', title: 'Bound Project', localId: 'ws-1' },
+        { id: 'proj-unbound', title: 'Unbound Project', localId: null },
+      ],
+    }
+
+    render(<StudioForm snapshot={snapshot} t={key => en[key]} {...operations} />)
+
+    expect(screen.getByText('Bound Project')).toBeDefined()
+    expect(screen.getByText('Unbound Project')).toBeDefined()
+    expect(screen.getByText(/Bound to local workspace: ws-1/)).toBeDefined()
+
+    // Click unbind
+    const unbindBtn = screen.getByText(en.studioUnbindProject)
+    await act(async () => {
+      fireEvent.click(unbindBtn)
+    })
+    expect(operations.studioUnbindProject).toHaveBeenCalledWith('proj-bound')
+
+    // Bind unbound project
+    const input = screen.getByPlaceholderText(en.studioWorkspaceSelect)
+    fireEvent.change(input, { target: { value: 'ws-new' } })
+    const bindBtn = screen.getByText(en.studioBindProject)
+    await act(async () => {
+      fireEvent.click(bindBtn)
+    })
+    expect(operations.studioBindProject).toHaveBeenCalledWith('proj-unbound', 'ws-new')
+  })
+
+  it('renders downloaded histories and triggers fork continuation', async () => {
+    const operations = mockOperations()
+    const snapshot: StudioSnapshot = {
+      state: {
+        origin: 'https://cloud.example.com',
+        identity: { id: 'user-1' as StudioUserId, username: 'testuser', displayName: 'Test User', email: null, mustChangePassword: false },
+        phase: 'ready',
+        usedBytes: 1000,
+        quotaBytes: 100000,
+        pending: 0,
+      },
+      visible: true,
+      error: false,
+      histories: [
+        { id: 'hist-1', version: 1, title: 'Saved Conversation', sourceSessionId: 'sess-1', throughSeq: 5, missing: [] },
+      ],
+    }
+
+    render(<StudioForm snapshot={snapshot} t={key => en[key]} {...operations} />)
+
+    expect(screen.getByText('Saved Conversation')).toBeDefined()
+
+    const input = screen.getByPlaceholderText(en.studioWorkspaceSelect)
+    fireEvent.change(input, { target: { value: 'ws-target' } })
+
+    const forkBtn = screen.getByText(en.studioForkHistory)
+    fireEvent.click(forkBtn)
+    expect(operations.studioForkHistory).toHaveBeenCalledWith('hist-1', 'ws-target')
+  })
+
+  it('displays token activity and restored plugins', async () => {
+    const operations = mockOperations()
+    const snapshot: StudioSnapshot = {
+      state: {
+        origin: 'https://cloud.example.com',
+        identity: { id: 'user-1' as StudioUserId, username: 'testuser', displayName: 'Test User', email: null, mustChangePassword: false },
+        phase: 'ready',
+        usedBytes: 1000,
+        quotaBytes: 100000,
+        pending: 0,
+      },
+      visible: true,
+      error: false,
+      tokenActivity: {
+        totalTokens: 5000,
+        inputTokens: 3500,
+        outputTokens: 1500,
+        cacheReadTokens: 500,
+        reasoningTokens: 200,
+        turnsCount: 12,
+        sessionsCount: 3,
+      },
+      restoredPlugins: [
+        { moduleName: '@plugin/python', enabled: true, version: '1.2.0', installed: true },
+        { moduleName: '@plugin/rust', enabled: false, installed: false },
+      ],
+    }
+
+    render(<StudioForm snapshot={snapshot} t={key => en[key]} {...operations} />)
+
+    expect(screen.getByText(/Total tokens: 5,000/)).toBeDefined()
+    expect(screen.getByText(/Input tokens: 3,500/)).toBeDefined()
+    expect(screen.getByText(/Turns: 12/)).toBeDefined()
+
+    expect(screen.getByText(/@plugin\/python @ 1.2.0/)).toBeDefined()
+    expect(screen.getByText(/Installed · Enabled/)).toBeDefined()
+    expect(screen.getByText(/@plugin\/rust/)).toBeDefined()
+    expect(screen.getByText(/Not installed · Disabled/)).toBeDefined()
+  })
+
+  it('triggers updateProfile when editing display name', async () => {
+    const operations = mockOperations()
+    const snapshot: StudioSnapshot = {
+      state: {
+        origin: 'https://cloud.example.com',
+        identity: { id: 'user-1' as StudioUserId, username: 'testuser', displayName: 'Initial Name', email: null, mustChangePassword: false },
+        phase: 'ready',
+        usedBytes: 1000,
+        quotaBytes: 100000,
+        pending: 0,
+      },
+      visible: true,
+      error: false,
+    }
+
+    render(<StudioForm snapshot={snapshot} t={key => en[key]} {...operations} />)
+
+    const nameInput = screen.getByPlaceholderText(en.studioDisplayName)
+    fireEvent.change(nameInput, { target: { value: 'New Name' } })
+
+    const updateBtn = screen.getByText(en.studioUpdateProfile)
+    fireEvent.click(updateBtn)
+    expect(operations.studioUpdateProfile).toHaveBeenCalledWith('New Name')
+  })
+})

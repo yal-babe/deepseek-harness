@@ -24,6 +24,7 @@ sync 组在设备之间传输脱敏后的 Studio 项目事件与项目记忆。�
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
+| [`studio-cloud`](studio-cloud/README.zh.md) | Studio 账号与用户选择的个人对象，独立于旧批次协议 | `ctx.studioCloud` |
 | [`sync-protocol`](sync-protocol/README.zh.md) | 共享 id、批次校验与密钥脱敏 | 无 |
 | [`sync-outbox`](sync-outbox/README.zh.md) | 带重试与状态的本地持久队列 | `ctx.syncOutbox` |
 | [`sync-server`](sync-server/README.zh.md) | SQLite WAL HTTP 服务器、管理控制台、Docker 镜像 | 无 |

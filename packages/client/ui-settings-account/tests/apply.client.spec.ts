@@ -654,7 +654,7 @@ it('ignores a terminal stream error when plugin disposal already owns teardown',
   const original = c.ctx.remote.$stream.bind(c.ctx.remote)
   const spy = vi.spyOn(c.ctx.remote, '$stream').mockImplementation((options) => {
     const stream = original(options)
-    stream.signal.addEventListener('abort', () => { disposal = c.unload(SELF) }, { once: true })
+    if (options.name === 'account') stream.signal.addEventListener('abort', () => { disposal = c.unload(SELF) }, { once: true })
     return stream
   })
   await c.reload(SELF)
