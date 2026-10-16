@@ -1,0 +1,37 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8788}:8788"
+    environment:
+      DATABASE_URL: postgresql://studio:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/studio
+      MASTER_KEY: ${MASTER_KEY:?Set MASTER_KEY to 64 random hex characters}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8788}
+      ALLOW_HTTP: ${ALLOW_HTTP:-false}
+      BOOTSTRAP_ADMIN: ${BOOTSTRAP_ADMIN:-admin}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
+      DATA_DIR: /service/data
+    volumes:
+      - app-data:/service/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: studio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: studio
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studio -d studio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
+  app-data:

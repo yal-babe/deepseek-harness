@@ -1,0 +1,37 @@
+{
+  "name": "dsh-studio-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
+    "setup": "node scripts/init-env.mjs",
+    "test:browser": "node --test tests/browser.test.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/helmet": "^13.0.0",
+    "@fastify/rate-limit": "^10.0.0",
+    "@node-rs/argon2": "^2.0.0",
+    "fastify": "^5.0.0",
+    "nodemailer": "^10.1.1",
+    "pg": "^8.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/nodemailer": "^7.0.0",
+    "@types/pg": "^8.0.0",
+    "playwright": "^1.64.1",
+    "s3rver": "^3.7.1",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.0"
+  }
+}

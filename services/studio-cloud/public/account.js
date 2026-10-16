@@ -1,0 +1,17 @@
+const form=document.querySelector('#form'),result=document.querySelector('#result'),params=new URLSearchParams(location.hash.slice(1)),action=params.get('action')??'forgot',token=params.get('token')
+history.replaceState(null,'',location.pathname)
+function field(name,label,type='text') { const wrap=document.createElement('label');wrap.textContent=label; const input=document.createElement('input');input.name=name;input.type=type;input.required=true; if(type==='password')input.minLength=12;wrap.append(input);form.append(wrap) }
+if(action==='invite'){document.querySelector('#heading').textContent='接受邀请';field('username','账号（小写字母/数字，3–32位）');field('password','密码（至少12位）','password')}
+else if(action==='reset'){document.querySelector('#heading').textContent='重置密码';field('password','新密码（至少12位）','password');document.querySelector('#hint').textContent='重置密码不会恢复或解密端到端加密数据。'}
+else if(action==='password'){document.querySelector('#heading').textContent='修改账号密码';field('currentPassword','当前密码','password');field('newPassword','新密码（至少12位）','password')}
+else if(action==='bind'){document.querySelector('#heading').textContent='绑定登录邮箱';field('email','邮箱','email');field('password','当前密码','password')}
+else if(action==='email'){document.querySelector('#heading').textContent='验证绑定邮箱';document.querySelector('#hint').textContent='点击确认完成邮箱验证。'}
+else {document.querySelector('#heading').textContent='找回密码';field('email','已验证的绑定邮箱','email')}
+const button=document.createElement('button');button.textContent='确认';form.append(button)
+form.addEventListener('submit',async e=>{e.preventDefault();button.disabled=true;try{const body=Object.fromEntries(new FormData(form));let path='/v1/auth/forgot-password';if(action==='invite')path='/v1/auth/accept-invite';if(action==='reset')path='/v1/auth/reset-password';if(action==='email')path='/v1/auth/verify-email';if(action==='password')path='/v1/me/password';if(action==='bind')path='/v1/me/email';if(['invite','reset','email'].includes(action))body.token=token;const headers={'Content-Type':'application/json'};if(['password','bind'].includes(action)){const session=await fetch('/v1/auth/session');if(!session.ok)throw new Error('请先返回登录');headers['X-CSRF-Token']=(await session.json()).csrf}const response=await fetch(path,{method:'POST',headers,body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error?.message??'操作失败');result.textContent=data.message??(action==='bind'?'验证邮件已发送，请打开邮件中的链接':'操作成功，可返回登录');form.reset()}catch(error){result.textContent=error.message}finally{button.disabled=false}})
+
+if(action==='profile'){
+ form.hidden=true;document.querySelector('#heading').textContent='个人账号';
+ document.querySelector('#hint').textContent='此处仅管理账号安全，数据同步由后续客户端接入。';
+ fetch('/v1/auth/session').then(async response=>{if(!response.ok)throw new Error('登录已失效，请返回登录');const user=await response.json();result.textContent=`账号：${user.username}；绑定邮箱：${user.email??'未绑定'}`;for(const [text,path] of [['修改密码','/account#action=password'],['绑定或修改邮箱','/account#action=bind']]){const p=document.createElement('p'),a=document.createElement('a');a.textContent=text;a.href=path;a.onclick=event=>{event.preventDefault();location.href=path;location.reload()};p.append(a);result.after(p)}const logout=document.createElement('button');logout.textContent='退出登录';logout.onclick=async()=>{await fetch('/v1/auth/logout',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':user.csrf},body:'{}'});location.href='/admin'};result.after(logout)}).catch(error=>{result.textContent=error.message})
+}
