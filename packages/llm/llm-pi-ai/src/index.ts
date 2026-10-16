@@ -89,6 +89,21 @@ export type {
   ResolvedPiAiProviderProfile,
 } from './config.ts'
 export { recordKeyFor } from './auth.ts'
+export {
+  accessTokenFromCodexGrant,
+  consumeCodexRateLimitResetCredit,
+  extractCodexChatgptAccountId,
+  extractCodexSubscriptionActiveUntilMs,
+  fetchCodexQuota,
+  idTokenFromCodexGrant,
+  isCodexConsumeSuccess,
+  parseCodexResetCredits,
+  parseCodexSubscriptionActiveUntilMs,
+  parseCodexSubscriptionModels,
+  parseCodexUsage,
+  unsignedCodexQuota,
+} from './quota.ts'
+export type { CodexQuotaSnapshot, CodexQuotaWindow, CodexResetCredit, CodexSubscriptionModel } from './quota.ts'
 export { supportedProtocols } from './provider.ts'
 
 export const name = 'llm-pi-ai'

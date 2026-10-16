@@ -277,6 +277,8 @@
 
     { "path": "./packages/api/account-controller" },
     { "path": "./packages/api/oauth-controller" },
+    { "path": "./packages/api/provider-quota" },
+    { "path": "./packages/session/usage-stats" },
     { "path": "./packages/credentials/deepseek-account-platform" },
     { "path": "./packages/credentials/deepseek-account" },
     { "path": "./packages/client/ui-deliverables/tsconfig.host.json" },

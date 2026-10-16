@@ -6,7 +6,7 @@ import { StateDot } from '@deepseek-ai/dsh-client-ui-primitives/src/StateDot.tsx
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { WelcomeApi } from '../welcome-api.ts'
 
-type Page = 'entry' | 'key' | 'account'
+type Page = 'entry' | 'key' | 'account' | 'studio'
 
 /**
  * Render the standalone welcome flow using shell-owned operations and localized copy.
@@ -41,7 +41,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
     setPage(next)
   }
   function showAccount(state: AccountView) {
-    if (pageRef.current === 'key' || (state.attempt === null && pageRef.current === 'entry')) return
+    if (pageRef.current === 'key' || pageRef.current === 'studio' || (state.attempt === null && pageRef.current === 'entry')) return
     attemptRef.current = state.attempt
     setAttempt(state.attempt)
     setStarting(false)
@@ -169,7 +169,7 @@ export function Welcome({ api }: { api: WelcomeApi }) {
   const title = phase === 'initializing' ? m.welcomeAuthStarting
     : waiting ? m.welcomeAuthWaiting : phase === 'expired' ? m.welcomeAuthExpired
       : phase === 'failed' ? m.welcomeAuthFailed : m.welcomeAuthExchanging
-  const heading = page === 'entry' ? 'welcome-heading' : page === 'key' ? 'key-title' : 'auth-status'
+  const heading = page === 'entry' ? 'welcome-heading' : page === 'key' ? 'key-title' : page === 'studio' ? 'studio-title' : 'auth-status'
 
   return <>
     {expiryNotice && <Toast text={m.welcomeSessionExpired} onDone={() => { setExpiryNotice(false) }} />}
@@ -208,9 +208,17 @@ export function Welcome({ api }: { api: WelcomeApi }) {
           disabled={cancelling || phase === 'committing' || phase === 'succeeded' || (phase === 'initializing' && !attempt?.id)}
           onClick={() => { void cancel() }}>{m.welcomeAuthCancel}</button>
       </div>
+      <section id="studio-page" className="key-heading" hidden={page !== 'studio'}>
+        <h1 id="studio-title">{m.welcomeStudioTitle}</h1>
+        <p id="studio-description">{m.welcomeStudioDescription}</p>
+      </section>
       <div id="entry-actions" className="actions" hidden={page !== 'entry'}>
-        <button id="sign-in" className="primary" type="button" onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'sign_in' }); void start() }}>{m.welcomeSignIn}</button>
+        <button id="studio-login" className="primary" type="button" onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'studio-login' }); navigate('studio') }}>{m.welcomeStudioLogin}</button>
+        <button id="sign-in" className="secondary" type="button" onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'sign_in' }); void start() }}>{m.welcomeSignIn}</button>
         <button ref={keyButton} id="api-key" className="secondary" type="button" onClick={() => { void api.analytics?.('auth_page_click', { button_name: 'api-key' }); navigate('key') }}>{m.welcomeApiKey}</button>
+      </div>
+      <div id="studio-actions" className="actions" hidden={page !== 'studio'}>
+        <button id="studio-back" className="back" type="button" onClick={() => { navigate('entry') }}>{m.welcomeStudioBack}</button>
       </div>
       <div id="key-actions" className="actions" hidden={page !== 'key'}>
         <button id="save-key" className="primary" type="submit" form="key-form" disabled={busy || draft.trim() === ''}>{m.welcomeKeySave}</button>

@@ -6,7 +6,7 @@ import {
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AccountSectionInjected } from './AccountSection.tsx'
 import { SignOutDialog } from './SignOutDialog.tsx'
-import { SignInDialog } from './SignInDialog.tsx'
+import { StudioLoginDialog } from './StudioLoginDialog.tsx'
 import { LogoutIcon } from './LogoutIcon.tsx'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import { AccountNoticeCard } from './AccountNotice.tsx'
@@ -20,9 +20,9 @@ export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'
  * @returns account menu launcher.
  */
 export function AccountMenu({
-  subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, openOnboarding, settingsOpen,
-  useAccount, useTheme, signOut, hasRunningAccountTasks, refreshAccount, bonusNoticeShown, bonusNoticeDismissed,
-  contactUs, showLogin, start, cancel, avatarFailed, t,
+  subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, settingsOpen,
+  useAccount, signOut, hasRunningAccountTasks, refreshAccount, bonusNoticeShown, bonusNoticeDismissed,
+  contactUs, avatarFailed, t,
 }: AccountMenuProps) {
   const anchor = useRef<HTMLDivElement>(null)
   // The launcher outlives the panel, so a false-to-true edge is one Settings entry:
@@ -33,7 +33,6 @@ export function AccountMenu({
     settingsWasOpen.current = settingsOpen
   }, [refreshAccount, settingsOpen])
   const account = useAccount(state => state)
-  const colorScheme = useTheme(snapshot => snapshot.active.colorScheme)
   const signedIn = account.view?.status === 'credential-stored'
   const [signInNotice, setSignInNotice] = useState(0)
   useEffect(() => subscribeModelSignInRequired?.(() => { setSignInNotice(value => value + 1) }), [subscribeModelSignInRequired])
@@ -46,14 +45,13 @@ export function AccountMenu({
   const trigger = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState(false)
   const [signOutImpact, setSignOutImpact] = useState<boolean | 'unknown'>()
+  const [studioOpen, setStudioOpen] = useState(false)
   const requestSignOut = async () => {
     setBusy(true)
     try { setSignOutImpact(await hasRunningAccountTasks()); setOpen(false) }
     catch (_error) { setSignOutImpact('unknown'); setOpen(false) }
     finally { setBusy(false) }
   }
-  // The plugin's start publishes `loginFailed` before it rejects, so the dialog owns the report.
-  const beginSignIn = (): void => { setOpen(false); void start().catch(() => undefined) }
   return <div ref={anchor} className={css.root}>
     {signInNotice > 0 && <Toast key={signInNotice} text={t('modelSignInRequired')} onDone={() => { setSignInNotice(0) }} />}
     {expiryNotice && <Toast text={t('sessionExpired')} onDone={() => { setExpiryNotice(false) }} />}
@@ -76,18 +74,16 @@ export function AccountMenu({
           ...(settingsShortcut === undefined ? {} : { shortcut: settingsShortcut }) },
         { id: 'contact', label: t('contactUs'), icon: <IconPaperPlaneOutlineMedium size={16} /> },
         ...(signedIn ? [{ id: 'signout', label: t('signOut'), icon: <LogoutIcon />, disabled: busy }]
-          : [{ id: 'signin', label: t('signIn'), icon: <IconUserOutlineMedium size={16} /> }]),
+          : [{ id: 'signin', label: t('studioLogin'), icon: <IconUserOutlineMedium size={16} /> }]),
       ]}
       onClose={() => { setOpen(false) }}
       onSelect={(id) => {
         if (id === 'settings') { setOpen(false); trigger.current?.focus(); openSettings() }
         else if (id === 'contact') { setOpen(false); contactUs() }
-        else if (id === 'signin') beginSignIn()
+        else if (id === 'signin') { setOpen(false); setStudioOpen(true) }
         else void requestSignOut()
       }} />
-    {account.loginVisible && !account.onboarding && <SignInDialog account={account} colorScheme={colorScheme}
-      start={start} cancel={cancel} t={t}
-      close={() => { showLogin(false) }} useApiKey={() => { showLogin(false); openOnboarding('deepseek-official') }} />}
+    {studioOpen && <StudioLoginDialog t={t} onClose={() => { setStudioOpen(false) }} />}
     {signedIn && signOutImpact !== undefined && <SignOutDialog running={signOutImpact} signOut={signOut}
       close={() => { setSignOutImpact(undefined) }} t={t} />}
   </div>

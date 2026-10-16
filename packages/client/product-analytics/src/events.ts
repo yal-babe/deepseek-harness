@@ -6,7 +6,7 @@ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
 export interface ProductEventMap {
   desktop_app_launch: Record<string, never>
   auth_page_view: Record<string, never>
-  auth_page_click: { button_name: 'sign_in' | 'api-key' }
+  auth_page_click: { button_name: 'sign_in' | 'api-key' | 'studio-login' }
   api_key_save_click: Record<string, never>
   onboarding_page_view: { page_name: OnboardingPage }
   onboarding_page_click: {
@@ -35,7 +35,7 @@ export interface ProductEventMap {
     parent_message_id?: MessageId
     click_position: 'footer' | 'sidebar'
   }
-  sidebar_menu_click: { menu_name: 'plugin' | 'cron' }
+  sidebar_menu_click: { menu_name: 'plugin' | 'cron' | 'personal' }
   plugin_toggle: { plugin_name: string; plugin_type: 'plugin' | 'bundle'; is_enabled: boolean; is_builtin: boolean }
   plugin_add_button_click: Record<string, never>
   plugin_install_click: { input_value: string }

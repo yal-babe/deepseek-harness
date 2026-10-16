@@ -123,6 +123,8 @@
     "@deepseek-ai/dsh-ptc-runtime-node": "workspace:*",
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/dsh-plugin-catalog": "workspace:*",
+    "@deepseek-ai/dsh-api-provider-quota": "workspace:*",
+    "@deepseek-ai/dsh-usage-stats": "workspace:*",
     "@deepseek-ai/dsh-authorization": "workspace:*",
     "@deepseek-ai/dsh-deepseek-account-platform": "workspace:*",
     "@deepseek-ai/dsh-config-editor": "workspace:*",

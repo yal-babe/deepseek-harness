@@ -98,6 +98,8 @@
     "@deepseek-ai/dsh-office-to-pdf": "workspace:*",
     "@deepseek-ai/dsh-api-account-controller": "workspace:*",
     "@deepseek-ai/dsh-api-oauth-controller": "workspace:*",
+    "@deepseek-ai/dsh-api-provider-quota": "workspace:*",
+    "@deepseek-ai/dsh-usage-stats": "workspace:*",
     "@deepseek-ai/dsh-llm-oauth-bridge": "workspace:*",
     "@deepseek-ai/dsh-deepseek-account": "workspace:*",
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*"

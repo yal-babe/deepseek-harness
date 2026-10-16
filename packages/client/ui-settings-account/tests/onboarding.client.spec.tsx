@@ -6,6 +6,7 @@ import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { AccountOnboarding } from '../src/client/AccountOnboarding.tsx'
 import type { AccountSnapshot } from '../src/client/AccountSection.tsx'
+import type { QuotaSnapshot } from '../src/client/quota-store.ts'
 import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en } from '../src/client/locales.ts'
 
@@ -30,10 +31,14 @@ it('claims onboarding while loading, offers API key fallback, and completes afte
     complete: vi.fn(), useApiKey: vi.fn(), setOnboarding: vi.fn(), showLogin: vi.fn(),
     useAccount: <T,>(select: (snapshot: AccountSnapshot) => T) => select(account),
     useTheme: <T,>(select: (snapshot: ThemeSnapshot) => T) => select(theme),
+    useQuota: <T,>(select: (snapshot: QuotaSnapshot) => T) => select({
+      status: 'idle', codex: null, antigravity: null, consumeBusy: false, notice: null,
+    }),
     start: vi.fn(async () => {}), cancel: vi.fn(async () => {}), signOut: vi.fn(async () => {}),
     contactUs: vi.fn(), t: makeTranslate(en),
     refreshAccount: vi.fn(async () => {}), bonusNoticeShown: vi.fn(), bonusNoticeDismissed: vi.fn(),
     avatarFailed: vi.fn(),
+    refreshQuota: vi.fn(async () => {}), consumeCodexReset: vi.fn(async () => {}), dismissQuotaNotice: vi.fn(),
   }
   const view = render(<AccountOnboarding {...props} />)
   expect(props.setOnboarding).toHaveBeenCalledExactlyOnceWith(true)

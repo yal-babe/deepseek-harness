@@ -33,6 +33,7 @@ The packages below provide the Remote layer; the package READMEs own the exhaust
 | [`session-controller/`](session-controller/README.md) | Owns Session commands, history streams, live control state, and Agent/Session identity policy. | `ctx.sessionController` / `ctx.remote.session` |
 | [`settings-controller/`](settings-controller/README.md) | Owns the configuration-surface reads and writes over the settings-domain seams. | `ctx.settingsController`, `ctx.credentialsController` / `ctx.remote.settings`, `ctx.remote.credentials` |
 | [`oauth-controller/`](oauth-controller/README.md) | Exposes UI-driven OAuth commands and a snapshot stream. | `ctx.oauthController` / `ctx.remote.oauth` |
+| [`provider-quota/`](provider-quota/README.md) | Reads Codex and Antigravity quota with stored Host grants and returns browser-safe views. | `ctx.providerQuota` / `ctx.remote.providerQuota` |
 | [`workspace-controller/`](workspace-controller/README.md) | Owns Workspace mutations and the complete Client Workspace projection. | `ctx.workspaceController` / `ctx.remote.workspace` |
 | [`terminal-controller/`](terminal-controller/README.md) | Session-owned interactive shells, screen recovery and browser terminal control. | `ctx.terminalController` / `ctx.remote.terminal` |
 | [`workspace-files/`](workspace-files/README.md) | Owns bounded workspace file access — `stat`, paged `read`, `list`, and the instrumented-operation `changes` feed — and the Client `file` resource provider over it. | `ctx.workspaceFiles` / `ctx.remote.workspaceFiles` |

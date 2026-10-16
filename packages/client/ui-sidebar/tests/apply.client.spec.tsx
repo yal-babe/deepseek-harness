@@ -96,6 +96,22 @@ describe('ui-sidebar apply', () => {
     expectTypeOf<Parameters<SidebarRootInjected['selectPanel']>[0]>().toEqualTypeOf<MainPanelId>()
   })
 
+  it('reports plugin, cron, and personal sidebar clicks', async () => {
+    const b = await bench()
+    const track = vi.fn()
+    b.ctx.provide('productAnalytics', { track } as never)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
+    injected.selectPanel('plugins' as MainPanelId)
+    injected.selectPanel('schedules' as MainPanelId)
+    injected.selectPanel('personal-center' as MainPanelId)
+    expect(track.mock.calls).toEqual([
+      ['sidebar_menu_click', { menu_name: 'plugin' }],
+      ['sidebar_menu_click', { menu_name: 'cron' }],
+      ['sidebar_menu_click', { menu_name: 'personal' }],
+    ])
+  })
+
   it('waits for the sidebar declaration before registering', async () => {
     const b = await bench(false)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })

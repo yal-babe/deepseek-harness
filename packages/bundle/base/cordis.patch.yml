@@ -25,6 +25,12 @@
     - id: plugin-catalog
       name: '@deepseek-ai/dsh-plugin-catalog'
 
+    - id: provider-quota
+      name: '@deepseek-ai/dsh-api-provider-quota'
+
+    - id: usage-stats
+      name: '@deepseek-ai/dsh-usage-stats'
+
     - id: timer
       name: '@deepseek-ai/cordis-plugin-timer'
 

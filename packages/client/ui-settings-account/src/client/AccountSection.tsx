@@ -11,6 +11,8 @@ import { AccountAvatar } from './AccountAvatar.tsx'
 import type { AccountAvatarSnapshot } from './account-avatar.ts'
 import { authorizeUrlWithTheme } from './authorize-url.ts'
 import type { BonusNotice } from './bonus-notices.ts'
+import { QuotaCards } from './QuotaCards.tsx'
+import type { QuotaSnapshot } from './quota-store.ts'
 import css from './AccountSection.module.css'
 
 /** Safe account snapshot shared by the settings page and launcher. */
@@ -60,7 +62,15 @@ export interface AccountSectionInjected {
     account: HostObservable<AccountSnapshot>
     /** Palette the Platform login pages follow. */
     theme: HostObservable<ThemeSnapshot>
+    /** Codex and Antigravity quota cards. */
+    quota: HostObservable<QuotaSnapshot>
   }
+  /** Refresh Codex and Antigravity quota in parallel. */
+  refreshQuota: () => Promise<void>
+  /** Redeem one Codex reset credit after the section confirms. */
+  consumeCodexReset: () => Promise<void>
+  /** Drop the last Codex redeem toast. */
+  dismissQuotaNotice: () => void
   /**
    * Retry a failed avatar and read the profile, balance, bonus wallets and unnotified bonus once. The Settings launcher
    * calls it on each entry, and a page opener on return from top-up.
@@ -90,9 +100,21 @@ export interface AccountSectionInjected {
 export type AccountSectionProps =
   PropsRuntime<'settings.section'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
 /** @param props - localized actions, account subscription, and the shared Platform page channel. @returns account settings UI. */
-export function AccountSection({ t, useAccount, useTheme, start, cancel, openPlatformPage, avatarFailed }: AccountSectionProps) {
+export function AccountSection({
+  t, useAccount, useTheme, useQuota, start, cancel, openPlatformPage, avatarFailed, refreshQuota, consumeCodexReset, dismissQuotaNotice,
+}: AccountSectionProps) {
   const { view: state, details, avatar, failed: streamFailed } = useAccount(value => value)
   const colorScheme = useTheme(snapshot => snapshot.active.colorScheme)
+  const quota: QuotaSnapshot = {
+    status: useQuota(value => value.status),
+    consumeBusy: useQuota(value => value.consumeBusy),
+    notice: useQuota(value => value.notice),
+    codex: useQuota(value => value.codex),
+    antigravity: useQuota(value => value.antigravity),
+  }
+  const refreshQuotaRef = useRef(refreshQuota)
+  refreshQuotaRef.current = refreshQuota
+  useEffect(() => { void refreshQuotaRef.current() }, [])
   // The shared host owns the native view; this page holds only its own request,
   // and only while it is the latest owner.
   const releasePage = useRef<(() => void) | undefined>(undefined)
@@ -146,35 +168,27 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
     : attempt?.phase === 'expired' ? t('expired')
       : active ? t(attempt.phase === 'initializing' ? 'initializing' : attempt.phase === 'waiting-browser' ? 'waiting' : 'completing')
         : signedIn ? profile?.contact ?? t(details?.profile === undefined ? 'loading' : 'profileUnavailable') : t('signInDescription')
-  if (!signedIn && !active) return (
-    <section className={css.signedOut} aria-label={t('nav')}>
-      <div className={css.signedOutContent}>
-        <div className={css.signedOutCopy}>
-          <span className={css.signedOutTitle}>{t('settingsSignedOutTitle')}</span>
-          <span className={css.signedOutDescription} role="status">
-            {failed || streamFailed ? t('failed') : t('settingsSignedOutDescription')}
-          </span>
-        </div>
-        <Button variant="primary" className={css.signInButton} disabled={busy || state === undefined}
-          onClick={() => { void run(start) }}>{t('signIn')}</Button>
-      </div>
-    </section>
-  )
-  return (
-    <section className={css.section} aria-label={t('nav')}>
+  const deepseekCard = (
+    <article className={css.quotaCard} aria-label={t('deepseekTitle')}>
       <div className={css.card}>
         <div className={css.identity}>
           <span className={css.avatar} data-avatar-status={signedIn ? avatar?.status : undefined}>
             <AccountAvatar avatar={signedIn ? avatar : undefined} avatarFailed={avatarFailed} />
           </span>
           <div className={css.identityCopy}>
-            <span className={css.name}>{signedIn ? profile?.name ?? t('signedIn') : t('signedOut')}</span>
-            <span className={css.status} role="status">{status}</span>
+            <span className={css.name}>
+              {signedIn ? profile?.name ?? t('signedIn') : t('settingsSignedOutTitle')}
+            </span>
+            <span className={css.status} role="status">
+              {!signedIn && !active ? (failed || streamFailed ? t('failed') : t('settingsSignedOutDescription')) : status}
+            </span>
           </div>
         </div>
         {signedIn && <a className={css.accountInfo} href={new URL('/', state.links.usageUrl).href} target="_blank" rel="noopener noreferrer">
           {t('accountInfo')}<IconRightUpOutlineRegular size={12} />
         </a>}
+        {!signedIn && !active && <Button variant="primary" className={css.signInButton} disabled={busy || state === undefined}
+          onClick={() => { void run(start) }}>{t('signIn')}</Button>}
       </div>
       {active && <div className={css.actions}>
         {attempt.authorizeUrl && <a className={css.linkButton} href={authorizeUrlWithTheme(attempt.authorizeUrl, colorScheme)}
@@ -221,6 +235,14 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
           </div>
         </div>
       </div>
+    </article>
+  )
+  return (
+    <section className={css.section} aria-label={t('nav')}>
+      <QuotaCards quota={quota} t={t} onRetry={() => { void refreshQuota() }}
+        onConsume={consumeCodexReset} onNoticeDone={dismissQuotaNotice}>
+        {deepseekCard}
+      </QuotaCards>
     </section>
   )
 }

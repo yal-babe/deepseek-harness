@@ -115,6 +115,12 @@
       "path": "../oauth-controller"
     },
     {
+      "path": "../provider-quota"
+    },
+    {
+      "path": "../../session/usage-stats"
+    },
+    {
       "path": "../../llm/llm-oauth-bridge"
     },
     {

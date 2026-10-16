@@ -54,6 +54,8 @@ kind: "package-reference"
 
 模型目录按端点与凭证缓存。首次加载合并并发请求；已有目录立即返回，并在 `catalogMaxAgeMs`（默认 300000 毫秒）后后台刷新。后台刷新失败会保留原目录，并在该间隔后重试。退出登录后下次读取清除缓存；插件卸载会中止未完成的目录请求。输出用量包含回答与思考 token，思考量同时作为输出的子集展示。
 
+Host 额度辅助函数按管理中心的 URL 回退顺序 POST `retrieveUserQuotaSummary`，并把 `loadCodeAssist` 的 `paidTier` 优先于 `currentTier` 映射为档位。[provider-quota](../../api/provider-quota/README.zh.md) 暴露这些快照；Antigravity 没有重置卡。
+
 当挂载了 `ctx.authorization` 时，本插件提供键为 `llm-antigravity/default` 的一个 flow。同时挂载 `webServer` 的 Host 组合会在 `oauthRedirectPath` 上注册回调，并用授权 URL 通知用户。其他组合会请用户粘贴重定向后的 URL 或授权码。flow 提交 version-1 grant，含 `accessToken`、可选 `refreshToken` 与 `expiresAt`。过期 grant 在同一批进行中的请求里只刷新一次；无法刷新的 grant 会让后续请求以 `AUTH` 失败。
 
 ### 失败
@@ -78,6 +80,7 @@ kind: "package-reference"
 | [`src/config.ts`](src/config.ts) | Schema 与按请求快照 |
 | [`src/oauth.ts`](src/oauth.ts) | PKCE 授权、回调、兑换、刷新 |
 | [`src/errors.ts`](src/errors.ts) | HTTP 与传输分类 |
+| [`src/quota.ts`](src/quota.ts) | Cloud Code 额度摘要与 `loadCodeAssist` 档位映射 |
 
 </details>
 

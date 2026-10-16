@@ -2,5 +2,6 @@ DSH Studio
 DSH Studio
 Welcome to DSH Studio
 Build potential. Explore intelligence.
-Sign in
+DSH Studio sign-in
+Sign in with DeepSeek
 Add API Key

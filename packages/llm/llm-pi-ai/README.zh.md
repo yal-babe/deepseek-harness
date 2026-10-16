@@ -92,6 +92,8 @@ kind: "package-reference"
 
 ### 登录提供方
 
+本包的 Host 额度辅助函数用已存 `openai-codex` oauth grant 读取 ChatGPT WHAM usage、subscriptions、Codex 模型目录与 rate-limit reset credits。[provider-quota](../../api/provider-quota/README.zh.md) 把这些快照暴露给浏览器；令牌留在 Host。
+
 pi-ai 提供登录的提供方可以通过 harness 授权 seam 登录：流程提供 OAuth 或交互式密钥提示（密钥键入 pi-ai 自己的登录提示，而非设置表单），得到的凭据存储在 harness 凭据存储的 `llm-pi-ai/<provider id>` 记录中。存储的登录在其路由的 `apiKeyEnv` 覆盖之下完成认证，并在存储的跨进程锁下自行刷新；退出登录即删除存储记录。仅提供 OAuth 的目录路由在存入 grant 之前不会向选择器公布模型。Codex 的浏览器/设备码选择由 Host 自动选浏览器。Codex 的回调粘贴提示会一直挂起，直到本机回环服务器或取消撤回它，因此 Models 卡片停留在授权 URL 上。除非已设置 `PI_OAUTH_CALLBACK_HOST`，Codex 浏览器回调绑定 `localhost:1455`，以匹配 OpenAI 登记的 redirect。落在记录文法之外——小写连字符标识符——的手工声明路由键无法登录，因为对它的记录写入会以 `LlmError('UNSTORABLE_PROVIDER_ID')` 拒绝；这类路由改用 `apiKeyEnv` 或提供方 ambient 设置认证。
 
 ### 解析模型目录

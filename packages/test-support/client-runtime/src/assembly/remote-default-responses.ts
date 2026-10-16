@@ -42,6 +42,48 @@ export const remoteDefaultResponses: RemoteTable = {
     'account/ackBonusNotified': ok(true),
     // ui-settings-oauth reads Codex attempt state at apply.
     'oauth/getState': ok({ status: 'idle', inFlight: false, credentialConfigured: false }),
+    // ui-settings-account and ui-personal-center quota cards.
+    'providerQuota/get': (provider: 'codex' | 'antigravity') => ok(provider === 'antigravity'
+      ? { provider: 'antigravity', status: 'unsigned', plan: null, tierId: null, groups: [] }
+      : {
+        provider: 'codex',
+        status: 'unsigned',
+        planType: null,
+        subscriptionActiveUntilMs: null,
+        creditBalance: null,
+        creditsUnlimited: false,
+        windows: [],
+        resetCredits: [],
+        resetCreditsAvailableCount: null,
+        models: [],
+      }),
+    'providerQuota/consumeCodexReset': ok({
+      ok: false,
+      quota: {
+        provider: 'codex',
+        status: 'unsigned',
+        planType: null,
+        subscriptionActiveUntilMs: null,
+        creditBalance: null,
+        creditsUnlimited: false,
+        windows: [],
+        resetCredits: [],
+        resetCreditsAvailableCount: null,
+        models: [],
+      },
+    }),
+    // ui-personal-center Host usage fold.
+    'usageStats/snapshot': ok({
+      timezoneOffsetSeconds: 0,
+      generatedAt: 0,
+      totals: { uncachedInputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 },
+      sessionCount: 0,
+      toolCalls: 0,
+      days: [],
+      models: [],
+      tools: [],
+      sessions: [],
+    }),
   },
   // Stream endpoints the roster opens later than boot; declared so a spec that forgets the script gets a stream miss.
   streams: [

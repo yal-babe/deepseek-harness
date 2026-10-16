@@ -21,6 +21,7 @@ import { AccountPlatformHost, type AccountPlatformHostInjected } from './Account
 import { AccountMenu } from './AccountMenu.tsx'
 import { createPlatformPages, type PlatformPages } from './platform-pages.ts'
 import { AccountSection, type AccountSnapshot, type AccountSectionInjected } from './AccountSection.tsx'
+import { QuotaStore } from './quota-store.ts'
 import { createBonusNoticeController } from './bonus-notices.ts'
 import { accountClientMetadata } from './client-metadata.ts'
 import { en, zh, type AccountKey } from './locales.ts'
@@ -41,7 +42,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Services required by account settings. */
-export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.session', 'theme', 'configForms']
+export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.providerQuota', 'remote.session', 'theme', 'configForms']
 /** Register account UI in Desktop and plain Web clients. @param ctx - client plugin context. */
 export function apply(ctx: Context): void {
   const desktop = 'dshDesktop' in globalThis
@@ -153,12 +154,14 @@ export function apply(ctx: Context): void {
   // lets an entry request one.
   const platformPages = createPlatformPages()
   ctx.effect(() => () => { platformPages.dispose() }, 'account: platform page request')
+  const quota = new QuotaStore(ctx.remote)
+  ctx.effect(() => () => { quota.dispose() }, 'account: provider quota')
   // One account refresh: the recharge/bonus wallet and the unnotified-bonus read,
   // whichever surface asks — a Settings entry, or returning from top-up. Both
   // reads are independent, and a concurrent refresh shares the in-flight request.
   const refreshAccount = async (): Promise<void> => {
     avatar.retry()
-    await Promise.all([refresh(), notices.refresh()])
+    await Promise.all([refresh(), notices.refresh(), quota.refresh()])
   }
   /**
    * Narrow the shared channel to one surface's post-return read: only a viewer
@@ -220,7 +223,11 @@ export function apply(ctx: Context): void {
         getSnapshot: () => ctx.theme.getTheme(),
         subscribe: listener => ctx.on('theme/change', listener),
       },
+      quota: quota.store,
     },
+    refreshQuota: () => quota.refresh(),
+    consumeCodexReset: () => quota.consumeReset(),
+    dismissQuotaNotice: () => { quota.dismissNotice() },
     async start() {
       publish({ ...snapshot, loginVisible: true, loginFailed: false })
       const transport = (globalThis as typeof globalThis & {
@@ -311,21 +318,8 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('settings.launcher', () => ctx.slots.register({
     name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
   }, AccountMenu))
-  ctx.slots.inject('settings.section', () => {
-    let unregister: (() => void) | undefined
-    const update = () => {
-      if (snapshot.view?.status === 'credential-stored') {
-        unregister ??= ctx.slots.register({
-          name: 'settings.section', id: 'account', order: -10, label: () => t('nav'),
-          locale: 'settings.account', inject: () => operations,
-        }, AccountSection)
-      } else {
-        unregister?.()
-        unregister = undefined
-      }
-    }
-    listeners.add(update)
-    update()
-    return () => { listeners.delete(update); unregister?.() }
-  })
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section', id: 'account', order: -10, label: () => t('nav'),
+    locale: 'settings.account', inject: () => operations,
+  }, AccountSection))
 }

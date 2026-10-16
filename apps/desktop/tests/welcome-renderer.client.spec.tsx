@@ -329,6 +329,18 @@ it.each(['zh-CN', 'en'])('returns from completed sign-in to the initial page aft
   await expect(view.copy()).toMatchFileSnapshot(`./expected/welcome/${language}.expected.txt`)
 })
 
+it('opens the DSH Studio preview without starting sign-in', () => {
+  const view = mount()
+  fireEvent.click(view.button('#studio-login'))
+  expect(view.api.startSignIn).not.toHaveBeenCalled()
+  expect(view.api.analytics).toHaveBeenCalledWith('auth_page_click', { button_name: 'studio-login' })
+  expect(view.document.querySelector<HTMLElement>('#studio-page')!.hidden).toBe(false)
+  expect(view.document.querySelector('#studio-description')!.textContent).toBe(view.api.messages.welcomeStudioDescription)
+  fireEvent.click(view.button('#studio-back'))
+  expect(view.api.startSignIn).not.toHaveBeenCalled()
+  expect(view.button('#sign-in').closest('[hidden]')).toBeNull()
+})
+
 it('reports each return to the welcome entry once, including account cancellation', async () => {
   const view = mount()
   expect(view.api.analytics).not.toHaveBeenCalled()

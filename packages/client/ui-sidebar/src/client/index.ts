@@ -68,7 +68,11 @@ export function apply(ctx: ClientContext): void {
     startSession: (workspaceId) => { workspaceNavigation.startSession(workspaceId) },
     toggleSidebar: () => { ctx.layout.toggleSidebar() },
     selectPanel: (id) => {
-      if (id === 'plugins' || id === 'schedules') ctx.get('productAnalytics')?.track('sidebar_menu_click', { menu_name: id === 'plugins' ? 'plugin' : 'cron' })
+      if (id === 'plugins' || id === 'schedules' || id === 'personal-center') {
+        ctx.get('productAnalytics')?.track('sidebar_menu_click', {
+          menu_name: id === 'plugins' ? 'plugin' : id === 'schedules' ? 'cron' : 'personal',
+        })
+      }
       ctx.layout.selectPanel(id)
     },
     hooks: { panels, shortcuts: ctx.shortcuts.catalog },

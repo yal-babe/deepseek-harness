@@ -86,7 +86,7 @@ export async function openWelcomeWindow(locale: DesktopLocale, operations: Welco
     assertSender(event)
     if (typeof attributes !== 'object' || attributes === null || Array.isArray(attributes)) throw new Error('desktop welcome: invalid analytics attributes')
     if (eventName === 'auth_page_click' && 'button_name' in attributes && Object.keys(attributes).length === 1
-      && (attributes.button_name === 'sign_in' || attributes.button_name === 'api-key')) {
+      && (attributes.button_name === 'sign_in' || attributes.button_name === 'api-key' || attributes.button_name === 'studio-login')) {
       await operations.analytics?.(eventName, { button_name: attributes.button_name })
     } else if ((eventName === 'auth_page_view' || eventName === 'api_key_save_click') && Object.keys(attributes).length === 0) {
       await operations.analytics?.(eventName, {})
@@ -123,7 +123,6 @@ export async function openWelcomeWindow(locale: DesktopLocale, operations: Welco
     if (!window.isDestroyed()) window.destroy()
     throw error
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Another window can replace ownership during loadFile.
   if (active && !window.isDestroyed()) {
     window.show()
     void operations.analytics?.('auth_page_view', {})

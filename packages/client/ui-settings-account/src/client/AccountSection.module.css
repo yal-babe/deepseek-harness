@@ -216,3 +216,96 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+.quotaStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quotaCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+  min-width: 0;
+}
+
+.quotaCard .card,
+.quotaCard .balanceCard {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.quotaTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.quotaRow,
+.windowMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.quotaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quotaGroupLabel {
+  font-weight: 500;
+}
+
+.window {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.windowTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-skeleton);
+  overflow: hidden;
+}
+
+.windowFill {
+  height: 100%;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.quotaFailed,
+.resetConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resetButton,
+.quotaActions {
+  align-self: flex-start;
+}
+
+.quotaActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modelList {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

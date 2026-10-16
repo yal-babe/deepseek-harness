@@ -8,6 +8,8 @@ import userQuestionsRemote from '@deepseek-ai/dsh-user-questions/remote'
 import commandsRemote from '@deepseek-ai/dsh-commands/remote'
 import accountRemote from '@deepseek-ai/dsh-api-account-controller/remote'
 import oauthRemote from '@deepseek-ai/dsh-api-oauth-controller/remote'
+import providerQuotaRemote from '@deepseek-ai/dsh-api-provider-quota/remote'
+import usageStatsRemote from '@deepseek-ai/dsh-usage-stats/remote'
 import settingsControllerRemote from '@deepseek-ai/dsh-api-settings-controller/remote'
 import officeToPdfRemote from '@deepseek-ai/dsh-office-to-pdf/remote'
 import goalsRemote from '@deepseek-ai/dsh-goal/remote'
@@ -54,6 +56,15 @@ export type {} from '@deepseek-ai/dsh-commands/remote'
 export type {} from '@deepseek-ai/dsh-api-settings-controller/remote'
 export type {} from '@deepseek-ai/dsh-api-account-controller/remote'
 export type {} from '@deepseek-ai/dsh-api-oauth-controller/remote'
+export type {} from '@deepseek-ai/dsh-api-provider-quota/remote'
+export type {} from '@deepseek-ai/dsh-usage-stats/remote'
+export type {
+  AntigravityQuotaGroupView, AntigravityQuotaView, CodexQuotaView, ConsumeCodexResetResult,
+  ProviderQuotaView, QuotaProviderId, QuotaWindowView, ResetCreditView,
+} from '@deepseek-ai/dsh-api-provider-quota/types'
+export type {
+  UsageDayBucket, UsageModelRow, UsageSessionRow, UsageSnapshot, UsageTokenTotals, UsageToolRow,
+} from '@deepseek-ai/dsh-usage-stats/types'
 export type { OAuthAttemptStatus, OAuthAttemptView, OAuthPromptOptionView, OAuthPromptView } from '@deepseek-ai/dsh-llm-oauth-bridge/types'
 export type {} from '@deepseek-ai/dsh-goal/remote'
 export type {} from '@deepseek-ai/dsh-schedule/remote'
@@ -191,6 +202,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   try {
     for (const contribution of [
       productAnalyticsRemote, agentPresetsRemote, commandsRemote, settingsControllerRemote, accountRemote, oauthRemote,
+      providerQuotaRemote, usageStatsRemote,
       goalsRemote, llmRemote, dynamicRemote, scheduleRemote,
       pluginInventoryRemote, pluginManagerRemote, pluginCatalogRemote, pluginRegistryProbeRemote,
       messageFeedbackRemote, sessionFeedbackRemote,

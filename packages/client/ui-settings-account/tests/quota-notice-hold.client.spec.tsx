@@ -61,9 +61,16 @@ function sectionOperations(account: AccountSnapshot, pages: PlatformPages): Acco
     hooks: {
       account: { getSnapshot: () => account, subscribe: () => () => {} },
       theme: { getSnapshot: () => theme, subscribe: () => () => {} },
+      quota: {
+        getSnapshot: () => ({ status: 'idle' as const, codex: null, antigravity: null, consumeBusy: false, notice: null }),
+        subscribe: () => () => {},
+      },
     },
     openPlatformPage: pages.open,
     refreshAccount: async () => {},
+    refreshQuota: async () => {},
+    consumeCodexReset: async () => {},
+    dismissQuotaNotice: () => {},
     avatarFailed: () => {},
     bonusNoticeShown: () => {}, bonusNoticeDismissed: () => {},
     hasRunningAccountTasks: async () => false,

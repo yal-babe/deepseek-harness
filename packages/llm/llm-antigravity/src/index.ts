@@ -22,6 +22,7 @@ export {
   AntigravityAdapter,
   antigravityCatalogVisible,
   catalogModelInfo,
+  resolveAccessToken,
   serializeRequest,
   translateSse,
 } from './adapter.ts'
@@ -59,6 +60,21 @@ export {
   tokenRequestFields,
 } from './oauth.ts'
 export type { AntigravityGrant } from './oauth.ts'
+export {
+  ANTIGRAVITY_QUOTA_URLS,
+  buildAntigravityQuotaGroups,
+  fetchAntigravityQuota,
+  fetchAntigravityQuotaForToken,
+  mapAntigravityPlan,
+  parseAntigravitySubscription,
+  unsignedAntigravityQuota,
+} from './quota.ts'
+export type {
+  AntigravityPlan,
+  AntigravityQuotaBucket,
+  AntigravityQuotaGroup,
+  AntigravityQuotaSnapshot,
+} from './quota.ts'
 
 /** Function-plugin name; also the credential-record scope. */
 export const name = PLUGIN_NAME

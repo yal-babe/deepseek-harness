@@ -28,6 +28,11 @@ it.each([en, zh])('offers sign in or the existing API key editor', async (copy) 
   expect(props.useApiKey).toHaveBeenCalledOnce()
   expect(props.start).not.toHaveBeenCalled()
 })
+it('offers DeepSeek sign-in without a DSH Studio preview action', () => {
+  const props = mount(null)
+  expect(screen.queryByRole('button', { name: en.studioLogin })).toBeNull()
+  expect(props.start).not.toHaveBeenCalled()
+})
 it.each([en, zh])('requires a user action after timeout', async (copy) => {
   const props = mount({ id, phase: 'expired', errorCode: 'expired' }, copy)
   expect(props.start).not.toHaveBeenCalled()

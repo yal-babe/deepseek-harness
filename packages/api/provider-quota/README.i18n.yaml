@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/api/provider-quota/README.md
+/:
+  en: f5e9abdd7cc75fee
+  zh: 1142823330015adb
+/deepseek-ai-dsh-api-provider-quota:
+  en: d8c327ecb65c4bdb
+  zh: bac0752396281aa6
+/deepseek-ai-dsh-api-provider-quota/summary:
+  en: 04317ddeb442cb6c
+  zh: 72229cca3f71e3c4
+/deepseek-ai-dsh-api-provider-quota/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-api-provider-quota/use-this-package:
+  en: 92f1f73d05b356b4
+  zh: c36a4859f96005fc
+/deepseek-ai-dsh-api-provider-quota/understand-the-implementation:
+  en: 3f8b381349fa7248
+  zh: 60000cd322b4370a
+/deepseek-ai-dsh-api-provider-quota/further-exploration:
+  en: 17c5b22e5ef5dde4
+  zh: baca4df0d3b35d90
+/deepseek-ai-dsh-api-provider-quota/model-experience:
+  en: 20f11d5b174470e7
+  zh: ac8a7a5b7e076ff2
+/deepseek-ai-dsh-api-provider-quota/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: e6d410fef4af337e
+/deepseek-ai-dsh-api-provider-quota/known-limitations-and-deferred-work:
+  en: b107895f575dd45c
+  zh: c8236b74a40eb50d
+/deepseek-ai-dsh-api-provider-quota/known-limitations-and-deferred-work/dev-note:
+  en: 35028d7a2c0d83cb
+  zh: 31ad2f1d69833900

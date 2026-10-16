@@ -49,6 +49,7 @@ session 组让对话持久保存，恢复已发布的日志格式，并使已提
 | [`session-projection-cache/`](session-projection-cache/README.zh.md) | 持久化投影检查点，使冷读跳过全量日志加载 | `ctx.sessionProjectionCache` |
 | [`session-stats/`](session-stats/README.zh.md) | 通过 `sessionStats` 单元提供全日志会话计数与墙钟时间 | 注册到 `ctx.sessionProjections` |
 | [`session-turn-outline/`](session-turn-outline/README.zh.md) | 通过 `turnOutline` 单元提供全日志轮次大纲（轮次、`turn/start` seq、提示词预览） | 注册到 `ctx.sessionProjections` |
+| [`usage-stats/`](usage-stats/README.zh.md) | 把未归档 Session 日志折叠为本机用量统计，供个人中心使用 | `ctx.usageStats` / `ctx.remote.usageStats` |
 
 ### 标题
 
