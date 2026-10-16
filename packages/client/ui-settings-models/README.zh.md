@@ -152,3 +152,9 @@ Models 页面包含 **DeepSeek 账号**（`deepseek-account`，英文为 **DeepS
 无。
 
 </details>
+
+OAuth 账号行提供认证操作，不显示供应商编辑按钮。
+
+账号行保留状态点与认证操作，不重复显示已登录文案。
+
+OAuth 卡片统一排列账号名称、状态点与认证操作。

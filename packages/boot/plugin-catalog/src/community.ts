@@ -70,7 +70,8 @@ export function parseCommunityFeed(raw: unknown): CommunityWireRow[] {
     const t = stringArray(row, 't')
     const f = stringArray(row, 'f')
     const d = optionalString(row, 'd')
-    const r = optionalString(row, 'r')
+    const repository = typeof row.r === 'object' && row.r !== null ? row.r as Record<string, unknown> : undefined
+    const r = repository === undefined ? optionalString(row, 'r') : optionalString(repository, 'repo')
     const ic = optionalString(row, 'ic')
     const igc = optionalString(row, 'igc')
     const v = optionalString(row, 'v')

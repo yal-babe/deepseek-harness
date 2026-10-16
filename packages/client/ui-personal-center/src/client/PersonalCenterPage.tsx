@@ -1,14 +1,15 @@
 /** Personal Center main panel. */
 
 import { useEffect, type ReactNode } from 'react'
-import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { AntigravityQuotaView, CodexQuotaView, QuotaWindowView } from '@deepseek-ai/dsh-api-provider-quota/types'
 import type { UsageSnapshot, UsageTokenTotals } from '@deepseek-ai/dsh-usage-stats/types'
 import { formatGmt8 } from './formatGmt8.ts'
 import type { PersonalCenterKey } from './locales.ts'
-import type { HeatmapMode, PersonalCenterStore } from './store.ts'
+import type { AccountWallet } from '@deepseek-ai/dsh-deepseek-account/types'
+import type { DeepSeekSummary, HeatmapMode, PersonalCenterStore } from './store.ts'
 import css from './PersonalCenterPage.module.css'
 
 /** Injected store and session opener. */
@@ -22,10 +23,7 @@ export interface PersonalCenterInjected {
 export type PersonalCenterPageProps =
   PropsLocale<'personalCenter'> & InjectFace<PersonalCenterInjected>
 
-const WEEKDAYS: PersonalCenterKey[] = [
-  'weekdayMon', 'weekdayTue', 'weekdayWed', 'weekdayThu', 'weekdayFri', 'weekdaySat', 'weekdaySun',
-]
-const HEAT_WEEKS = 26
+const HEAT_WEEKS = 53
 
 /**
  * Render local usage and quota windows.
@@ -55,29 +53,30 @@ export function PersonalCenterPage({
         : <>
           {state.status === 'error' && <p className={css.muted}>{t('loadFailed')}</p>}
           <section className={css.kpis} aria-label={t('tokens')}>
-            <Kpi label={t('deepseekBalance')} value={state.deepseek.status === 'ready' ? (state.deepseek.balance ?? t('unsigned')) : state.deepseek.status === 'failed' ? t('quotaFailed') : t('unsigned')} />
-            <Kpi label={t('spend')} value={t('spendUnavailable')} />
             <Kpi label={t('today')} value={formatTokens(sum(today))} hint={t('tokens')} />
             <Kpi label={t('allTime')} value={formatTokens(sum(usage?.totals ?? emptyTokens()))} hint={t('tokens')} />
             <Kpi label={t('sessions')} value={String(usage?.sessionCount ?? 0)} />
             <Kpi label={t('toolCalls')} value={String(usage?.toolCalls ?? 0)} />
           </section>
-          <section className={css.quotaColumn} aria-label={t('quota')}>
-            <ProviderWindows title={t('codexTitle')} status={state.quota.codex?.status}
-              windows={codexWindows(state.quota.codex)} t={t} />
-            <ProviderWindows title={t('antigravityTitle')} status={state.quota.antigravity?.status}
-              windows={antigravityWindows(state.quota.antigravity)} t={t} />
-          </section>
           <section className={css.card}>
-            <h2 className={css.sectionTitle}>{t('heatmap')}</h2>
-            <div className={css.modes}>
-              {(['daily', 'weekly', 'cumulative'] as const).map(mode => (
-                <Button key={mode} variant={state.heatmap === mode ? 'primary' : 'outline'}
-                  onClick={() => { controller.setHeatmap(mode) }}>{t(mode)}</Button>
-              ))}
+            <div className={css.activityHead}>
+              <h2 className={css.sectionTitle}>{t('heatmap')}</h2>
+              <div className={css.modes}>
+                {(['daily', 'weekly', 'cumulative'] as const).map(mode => (
+                  <Button key={mode} className={css.modeButton} variant="ghost" aria-pressed={state.heatmap === mode}
+                    onClick={() => { controller.setHeatmap(mode) }}>{t(mode)}</Button>
+                ))}
+              </div>
             </div>
             {usage === null || usage.days.length === 0 ? <p className={css.muted}>{t('empty')}</p>
               : <Heatmap usage={usage} mode={state.heatmap} t={t} />}
+          </section>
+          <section className={css.quotaColumn} aria-label={t('quota')}>
+            <WalletCard summary={state.deepseek} t={t} />
+            <ProviderWindows title={t('codexTitle')} status={state.quota.codex?.status}
+              windows={codexWindows(state.quota.codex)} t={t} />
+            <ProviderWindows title={t('antigravityTitle')} status={state.quota.antigravity?.status}
+              windows={[]} groups={state.quota.antigravity?.groups} t={t} />
           </section>
           <section className={css.kpis} aria-label={t('tokens')}>
             <Kpi label={t('uncached')} value={formatTokens((usage?.totals ?? emptyTokens()).uncachedInputTokens)} />
@@ -88,20 +87,22 @@ export function PersonalCenterPage({
           <div className={css.split}>
             <section className={css.card}>
               <h2 className={css.sectionTitle}>{t('models')}</h2>
+              {(usage?.models.length ?? 0) === 0 && <p className={css.emptyList}>{t('emptyModels')}</p>}
               <ul className={css.list}>
                 {(usage?.models ?? []).map(row => (
                   <li key={row.model} className={css.row}>
                     <span>{row.model.length > 0 ? row.model : t('noModel')}</span>
-                    <span>{formatTokens(sum(row.tokens))}</span>
+                    <span className={css.value}>{formatTokens(sum(row.tokens))}</span>
                   </li>
                 ))}
               </ul>
             </section>
             <section className={css.card}>
               <h2 className={css.sectionTitle}>{t('tools')}</h2>
+              {(usage?.tools.length ?? 0) === 0 && <p className={css.emptyList}>{t('emptyTools')}</p>}
               <ul className={css.list}>
                 {(usage?.tools ?? []).map(row => (
-                  <li key={row.name} className={css.row}><span>{row.name}</span><span>{String(row.count)}</span></li>
+                  <li key={row.name} className={css.row}><span>{row.name}</span><span className={css.value}>{String(row.count)}</span></li>
                 ))}
               </ul>
             </section>
@@ -111,9 +112,14 @@ export function PersonalCenterPage({
             {recents.length === 0 ? <p className={css.muted}>{t('empty')}</p>
               : <ul className={css.list}>
                 {recents.map(row => (
-                  <li key={row.sessionId} className={css.row}>
-                    <button type="button" onClick={() => { openSession(SessionId(row.sessionId)) }}>{row.title}</button>
-                    <span className={css.muted}>{formatTokens(sum(row.tokens))} · {formatGmt8(row.updatedAt)}</span>
+                  <li key={row.sessionId} className={css.sessionItem}>
+                    <button className={css.sessionButton} type="button" aria-label={row.title} onClick={() => { openSession(SessionId(row.sessionId)) }}>
+                      <span className={css.sessionTitle}>{row.title}</span>
+                      <span className={css.sessionMeta}>
+                        <span className={css.value}>{formatTokens(sum(row.tokens))}</span>
+                        <span className={css.muted}>{formatGmt8(row.updatedAt)}</span>
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>}
@@ -122,10 +128,41 @@ export function PersonalCenterPage({
   </div>
 }
 
-function ProviderWindows({ title, status, windows, t }: {
+function WalletCard({ summary, t }: { summary: DeepSeekSummary; t: (key: PersonalCenterKey) => string }): ReactNode {
+  const wallets = summary.wallets ?? []
+  const bonusWallets = summary.bonusWallets ?? []
+  return <section className={css.card}>
+    <h2 className={css.sectionTitle}>{t('deepseekBalance')}</h2>
+    {summary.status !== 'ready' ? <p className={css.muted}>{t(summary.status === 'failed' ? 'quotaFailed' : 'unsigned')}</p>
+      : <>
+        <div className={css.windowMeta}>
+          <span className={css.muted}>{t('rechargeBalance')}</span>
+          <span className={css.value}>{wallets.length === 0 ? summary.balance ?? t('balanceUnavailable') : wallets.map(walletAmount).join(' + ')}</span>
+        </div>
+        {bonusWallets.length === 0 ? <div className={css.windowMeta}>
+          <span className={css.muted}>{t('bonusBalance')}</span><span className={css.value}>{t(summary.wallets === undefined ? 'balanceUnavailable' : 'noBonus')}</span>
+        </div> : bonusWallets.map((wallet) => {
+          const expires = wallet.expiresAt == null ? NaN : Date.parse(wallet.expiresAt)
+          return <div className={css.window} key={wallet.currency}>
+            <div className={css.windowMeta}>
+              <span className={css.muted}>{t('bonusBalance')}</span><span className={css.value}>{walletAmount(wallet)}</span>
+            </div>
+            {Number.isFinite(expires) && <span className={css.muted}>{t('bonusExpires')} {formatGmt8(expires)}</span>}
+          </div>
+        })}
+      </>}
+  </section>
+}
+
+function walletAmount(wallet: AccountWallet): string {
+  return `${wallet.currency === 'CNY' ? '¥' : '$'}${Number(wallet.balance).toFixed(2)}`
+}
+
+function ProviderWindows({ title, status, windows, groups, t }: {
   title: string
   status: 'unsigned' | 'ready' | 'failed' | undefined
   windows: QuotaWindowView[]
+  groups?: AntigravityQuotaView['groups'] | undefined
   t: (key: PersonalCenterKey) => string
 }): ReactNode {
   return <div className={css.card}>
@@ -133,8 +170,12 @@ function ProviderWindows({ title, status, windows, t }: {
     {status !== 'ready' ? <span className={css.muted}>
       {status === 'failed' ? t('quotaFailed') : t('unsigned')}
     </span>
-      : windows.length === 0 ? <span className={css.muted}>{t('empty')}</span>
-        : windows.map(window => <WindowRow key={window.id} window={window} t={t} />)}
+      : groups !== undefined && groups.length > 0 ? groups.map(group => <div className={css.quotaGroup} key={group.id}>
+        <span className={css.groupLabel}>{group.label ?? group.id}</span>
+        {group.buckets.map(window => <WindowRow key={window.id} window={window} t={t} />)}
+      </div>)
+        : windows.length === 0 ? <span className={css.muted}>{t('empty')}</span>
+          : windows.map(window => <WindowRow key={window.id} window={window} t={t} />)}
   </div>
 }
 
@@ -148,6 +189,7 @@ function WindowRow({ window, t }: { window: QuotaWindowView; t: (key: PersonalCe
     <div className={css.windowTrack} aria-hidden="true">
       <div className={css.windowFill} style={{ width: remaining === null ? '0%' : `${String(Math.max(0, Math.min(100, remaining)))}%` }} />
     </div>
+    {window.resetAtMs !== null && <span className={css.muted}>{t('resetsAt')} {formatGmt8(window.resetAtMs)}</span>}
   </div>
 }
 
@@ -176,39 +218,47 @@ function Heatmap({ usage, mode, t }: {
   mode: HeatmapMode
   t: (key: PersonalCenterKey) => string
 }): ReactNode {
-  if (mode === 'cumulative') {
-    return <div className={css.heatCells}>
-      <span className={css.cell} data-level="4" title={String(sum(usage.totals))} />
-    </div>
-  }
-  if (mode === 'weekly') {
-    const cells = weeklyCells(usage)
-    const max = Math.max(1, ...cells.map(cell => cell.tokens))
-    return <div className={css.heatCells}>
-      {cells.map((cell) => {
-        const ratio = cell.tokens / max
-        const level = cell.tokens === 0 ? 0 : ratio < 0.25 ? 1 : ratio < 0.5 ? 2 : ratio < 0.75 ? 3 : 4
-        return <span key={cell.key} className={css.cell} data-level={String(level)} title={`${cell.key}: ${String(cell.tokens)}`} />
-      })}
-    </div>
-  }
   const grid = calendarGrid(usage)
+  if (mode === 'weekly') {
+    const weeks = new Map(weeklyCells(usage).map(cell => [cell.key, cell.tokens]))
+    for (let index = 0; index < grid.cells.length; index += 7) {
+      const first = grid.cells[index]
+      if (first === undefined) continue
+      for (const cell of grid.cells.slice(index, index + 7)) cell.tokens = weeks.get(first.key) ?? 0
+    }
+  }
+  if (mode === 'cumulative') {
+    let total = 0
+    for (const cell of grid.cells) {
+      total += cell.tokens
+      cell.tokens = total
+    }
+  }
+  const today = localDay(Date.now(), usage.timezoneOffsetSeconds)
   const max = Math.max(1, ...grid.cells.map(cell => cell.tokens))
+  const months = grid.cells.filter((cell, index) =>
+    index % 7 === 0 && (index === 0 || cell.key.slice(0, 7) !== grid.cells[index - 7]?.key.slice(0, 7)))
   return <div className={css.heatCalendar}>
-    <div className={css.heatWeekdays}>
-      {WEEKDAYS.map(day => <span key={day}>{t(day)}</span>)}
-    </div>
     <div className={css.heatGrid}>
       {grid.cells.map((cell) => {
         const ratio = cell.tokens / max
         const level = cell.tokens === 0 ? 0 : ratio < 0.25 ? 1 : ratio < 0.5 ? 2 : ratio < 0.75 ? 3 : 4
-        return <span key={cell.key} className={css.cell} data-level={String(level)} title={`${cell.key}: ${String(cell.tokens)}`} />
+        const date = dateOfDay(cell.key)
+        const day = t('activityDate').replace('{month}', String(date.getUTCMonth() + 1))
+          .replace('{day}', String(date.getUTCDate()))
+        const count = new Intl.NumberFormat(t('numberLocale'), { notation: 'compact', maximumFractionDigits: 1 }).format(cell.tokens)
+        const label = `${day}\n${count} ${t('tokens')}`
+        return <Tooltip key={cell.key} label={label} side="top" portal disabled={cell.key > today}>
+          <span className={css.cell} role="img" tabIndex={cell.key <= today && cell.tokens > 0 ? 0 : undefined}
+            aria-label={label} data-future={cell.key > today || undefined} data-level={String(level)} />
+        </Tooltip>
       })}
     </div>
-    <div className={css.heatLegend}>
-      <span>{t('less')}</span>
-      {[0, 1, 2, 3, 4].map(level => <span key={level} className={css.cell} data-level={String(level)} />)}
-      <span>{t('more')}</span>
+    <div className={css.heatMonths} aria-hidden="true">
+      {months.map(cell => <span key={cell.key}
+        style={{ gridColumn: String(Math.floor(grid.cells.indexOf(cell) / 7) + 1) }}>
+        {t('activityMonth').replace('{month}', String(dateOfDay(cell.key).getUTCMonth() + 1))}
+      </span>)}
     </div>
   </div>
 }
@@ -239,16 +289,12 @@ function dateOfDay(day: string): Date {
 function weeklyCells(usage: UsageSnapshot): { key: string; tokens: number }[] {
   const weeks = new Map<string, number>()
   for (const day of usage.days) {
-    const week = day.day.slice(0, 8) + weekBucket(day.day)
+    const date = dateOfDay(day.day)
+    date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7)
+    const week = date.toISOString().slice(0, 10)
     weeks.set(week, (weeks.get(week) ?? 0) + sum(day.tokens))
   }
   return [...weeks.entries()].map(([key, tokens]) => ({ key, tokens }))
-}
-
-function weekBucket(day: string): string {
-  const date = new Date(`${day}T00:00:00.000Z`)
-  const index = Math.floor((date.getUTCDate() - 1) / 7)
-  return String(index)
 }
 
 function todayTokens(usage: UsageSnapshot): UsageTokenTotals {
@@ -280,9 +326,4 @@ function localDay(ms: number, offsetSeconds: number): string {
 
 function codexWindows(view: CodexQuotaView | null | undefined): QuotaWindowView[] {
   return view?.status === 'ready' ? view.windows : []
-}
-
-function antigravityWindows(view: AntigravityQuotaView | null | undefined): QuotaWindowView[] {
-  if (view?.status !== 'ready') return []
-  return view.groups.flatMap(group => group.buckets)
 }

@@ -80,3 +80,5 @@ Host Remote：下载并缓存社区插件目录与 Codex 市场源，为设置�
 社区契约：`https://api.dsh-plugin.org/plugins.{en|zh}.json`。Codex 契约：`https://raw.githubusercontent.com/openai/plugins/main/.agents/plugins/marketplace.json` 及各插件 `plugin.json`。
 
 </details>
+
+社区条目从仓库包清单解析缺失图标，并按目录缓存有效期缓存结果。

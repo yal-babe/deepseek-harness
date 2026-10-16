@@ -226,7 +226,7 @@ it('paints heatmap intensity from zero through the highest bucket', () => {
         codex: {
           provider: 'codex', status: 'ready', planType: 'plus', subscriptionActiveUntilMs: null,
           creditBalance: null, creditsUnlimited: false, windows: [
-            { id: 'primary', kind: 'fiveHour', group: 'standard', featureName: null, remainingPercent: 40, resetAtMs: null },
+            { id: 'primary', kind: 'fiveHour', group: 'standard', featureName: null, remainingPercent: 40, resetAtMs: Date.parse('2026-10-17T00:00:00Z') },
             { id: 'review', kind: 'weekly', group: 'codeReview', featureName: null, remainingPercent: 90, resetAtMs: null },
             { id: 'extra', kind: 'unknown', group: 'additional', featureName: 'fast', remainingPercent: null, resetAtMs: null },
             { id: 'month', kind: 'monthly', group: 'standard', featureName: null, remainingPercent: 10, resetAtMs: null },
@@ -237,12 +237,15 @@ it('paints heatmap intensity from zero through the highest bucket', () => {
           provider: 'antigravity', status: 'ready', plan: 'pro', tierId: 'g1-pro-tier',
           groups: [{
             id: 'gemini', label: 'Gemini', buckets: [
-              { id: '5h', kind: 'fiveHour', group: 'standard', featureName: null, remainingPercent: 25, resetAtMs: null },
+              { id: '5h', kind: 'fiveHour', group: 'standard', featureName: null, remainingPercent: 25, resetAtMs: Date.parse('2026-10-18T00:00:00Z') },
             ],
           }],
         },
       },
-      deepseek: { status: 'ready', name: 'Ada', balance: null },
+      deepseek: { status: 'ready', name: 'Ada', balance: null,
+        wallets: [{ currency: 'CNY', balance: '38.22' }],
+        bonusWallets: [{ currency: 'CNY', balance: '5.00', expiresAt: '2026-11-01T00:00:00Z' }],
+      },
       heatmap: 'daily',
       cached: false,
     }),
@@ -253,7 +256,13 @@ it('paints heatmap intensity from zero through the highest bucket', () => {
     useSnapshot={selector => selector(controller.store.getSnapshot())}
     openSession={() => {}}
   />)
-  expect(container.querySelectorAll('[data-level][title]').length).toBe(26 * 7)
+  expect(container.querySelectorAll('[data-level][aria-label]').length).toBe(53 * 7)
+  expect(screen.getByText('Gemini')).toBeTruthy()
+  expect(screen.getByText('¥38.22')).toBeTruthy()
+  expect(screen.getByText('¥5.00')).toBeTruthy()
+  expect(screen.getByText(`${en.bonusExpires} 2026-11-01 08:00`)).toBeTruthy()
+  expect(screen.getByText(`${en.resetsAt} 2026-10-17 08:00`)).toBeTruthy()
+  expect(screen.getByText(`${en.resetsAt} 2026-10-18 08:00`)).toBeTruthy()
   expect(screen.getByText(`40% ${en.remaining}`)).toBeTruthy()
   expect(screen.getByText(en.windowMonthly)).toBeTruthy()
   expect(screen.getByText(`${en.windowCodeReview} · ${en.windowWeekly}`)).toBeTruthy()

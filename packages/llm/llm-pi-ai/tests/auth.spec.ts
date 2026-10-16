@@ -6,7 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
 import { credentialKey, credentialRef } from '@deepseek-ai/dsh-credentials'
 import { createLaunchEnvironmentSnapshot, DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
-import { authContextFrom, credentialStoreFrom, recordKeyFor } from '../src/auth.ts'
+import { authContextFrom, credentialStoreFrom, currentCodexGrant, recordKeyFor } from '../src/auth.ts'
 
 const home = vi.hoisted(() => ({ unavailable: false }))
 
@@ -257,4 +257,55 @@ describe('pi-ai ambient auth context', () => {
 
     await expect(context.fileExists(join(dir, 'creds'))).resolves.toBe(true)
   })
+})
+
+it('refreshes an expired Codex grant before quota reads and persists the replacement', async () => {
+  const ctx = await stored()
+  await credentialStoreFrom(ctx).modify('openai-codex', async () => ({
+    type: 'oauth', access: 'expired', refresh: 'refresh-token', expires: 0,
+  }))
+  const token = 'header.' + Buffer.from(JSON.stringify({
+    'https://api.openai.com/auth': { chatgpt_account_id: 'account' },
+  })).toString('base64url') + '.signature'
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+    access_token: token, refresh_token: 'rotated-refresh', expires_in: 3600,
+  }), { status: 200, headers: { 'content-type': 'application/json' } }))
+  try {
+    const record = await currentCodexGrant(ctx)
+    expect(record).toMatchObject({ kind: 'grant', payload: { access: token, refresh: 'rotated-refresh' } })
+    expect(fetchMock).toHaveBeenCalledOnce()
+  } finally {
+    fetchMock.mockRestore()
+  }
+})
+
+it('retains subscription identity claims while rotating the stored grant once', async () => {
+  const ctx = await stored()
+  await credentialStoreFrom(ctx).modify('openai-codex', async () => ({
+    type: 'oauth', access: 'current-access', refresh: 'current-refresh', expires: Date.now() + 3_600_000,
+  }))
+  const identity = 'header.' + Buffer.from(JSON.stringify({
+    'https://api.openai.com/auth': { chatgpt_subscription_active_until: '2026-12-01T00:00:00Z' },
+  })).toString('base64url') + '.signature'
+  const request = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+    access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 3600, id_token: identity,
+  }), { status: 200 }))
+  try {
+    expect(await currentCodexGrant(ctx, true)).toMatchObject({
+      kind: 'grant', payload: { access: 'new-access', refresh: 'new-refresh', id_token: identity },
+    })
+    await currentCodexGrant(ctx, true)
+    expect(request).toHaveBeenCalledOnce()
+  } finally { request.mockRestore() }
+})
+
+it('keeps the current credential when the identity refresh fails', async () => {
+  const ctx = await stored()
+  const current = { type: 'oauth' as const, access: 'current-access', refresh: 'current-refresh', expires: Date.now() + 3_600_000 }
+  await credentialStoreFrom(ctx).modify('openai-codex', async () => current)
+  const request = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 401 }))
+  try {
+    await expect(currentCodexGrant(ctx, true)).rejects.toMatchObject({ code: 'AUTH' })
+    expect(await credentialStoreFrom(ctx).read('openai-codex')).toEqual(current)
+  } finally { request.mockRestore() }
 })

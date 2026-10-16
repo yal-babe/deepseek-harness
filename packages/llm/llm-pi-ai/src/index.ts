@@ -88,9 +88,10 @@ export type {
   PiAiThinkingFormat,
   ResolvedPiAiProviderProfile,
 } from './config.ts'
-export { recordKeyFor } from './auth.ts'
+export { recordKeyFor, currentCodexGrant } from './auth.ts'
 export {
   accessTokenFromCodexGrant,
+  codexAdapterModels,
   consumeCodexRateLimitResetCredit,
   extractCodexChatgptAccountId,
   extractCodexSubscriptionActiveUntilMs,

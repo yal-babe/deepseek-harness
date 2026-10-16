@@ -6,7 +6,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-token-meter/src/projection.ts'
 import type { UsageSnapshot, UsageTokenTotals } from '@deepseek-ai/dsh-usage-stats/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
+import type { AccountWallet, AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { AntigravityQuotaView, CodexQuotaView } from '@deepseek-ai/dsh-api-provider-quota/types'
 
 const emptyTokens = (): UsageTokenTotals => ({
@@ -21,6 +21,10 @@ export interface DeepSeekSummary {
   status: 'unsigned' | 'ready' | 'failed'
   name: string | null
   balance: string | null
+  /** All recharge currencies returned by the balance query. */
+  wallets?: readonly AccountWallet[]
+  /** Gift wallets, including expiry when Platform supplies it. */
+  bonusWallets?: readonly AccountWallet[]
 }
 
 /** Codex and Antigravity cards shown on Personal Center. */
@@ -145,6 +149,8 @@ export class PersonalCenterStore {
       return {
         status: 'ready',
         name: profile.value.value.name,
+        ...balance.ok && balance.value?.status === 'ready'
+          ? { wallets, bonusWallets: balance.value.bonusWallets } : {},
         balance: primary === undefined ? null : formatBalance(primary.balance, primary.currency === 'CNY' ? '¥' : '$'),
       }
     } catch (_accountUnavailable) {

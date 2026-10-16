@@ -18,9 +18,11 @@ export function QuotaCards({ quota, t, onRetry, onConsume, onNoticeDone, childre
   children?: ReactNode
 }): ReactNode {
   const [confirm, setConfirm] = useState(false)
-  const [modelsOpen, setModelsOpen] = useState(false)
+  const [modelsOpen, setModelsOpen] = useState<'codex' | 'antigravity' | null>(null)
   const codex = quota.codex
   const antigravity = quota.antigravity
+  const modelView = modelsOpen === 'antigravity' ? antigravity : codex
+  const models = modelView?.models ?? []
   return <>
     <div className={css.quotaStack}>
       {children}
@@ -28,9 +30,9 @@ export function QuotaCards({ quota, t, onRetry, onConsume, onNoticeDone, childre
         consumeBusy={quota.consumeBusy}
         onRetry={onRetry}
         onConsume={() => { setConfirm(true) }}
-        onModels={() => { setModelsOpen(true) }} />
+        onModels={() => { setModelsOpen('codex') }} />
       <AntigravityCard view={antigravity} loading={quota.status === 'loading' && antigravity === null} t={t}
-        onRetry={onRetry} />
+        onRetry={onRetry} onModels={() => { setModelsOpen('antigravity') }} />
     </div>
     {confirm && <Modal open title={t('resetConfirmTitle')} closeLabel={t('close')} onClose={() => { setConfirm(false) }}>
       <p className={css.resetConfirm}>{t('resetConfirmDescription')}</p>
@@ -42,13 +44,14 @@ export function QuotaCards({ quota, t, onRetry, onConsume, onNoticeDone, childre
         }}>{t('resetConfirm')}</Button>
       </div>
     </Modal>}
-    {modelsOpen && <Modal open title={t('modelsTitle')} closeLabel={t('close')} onClose={() => { setModelsOpen(false) }}>
-      {codex === null || codex.models.length === 0
-        ? <p className={css.secondary}>{t('modelsEmpty')}</p>
+    {modelsOpen && <Modal open title={t('modelsTitle')} closeLabel={t('close')} onClose={() => { setModelsOpen(null) }}>
+      {modelView?.provider === 'codex' && modelView.modelsFromCatalog === true
+        ? <p className={css.secondary}>{t('modelsCatalog')}</p>
+        : modelView?.modelsError !== undefined ? <p className={css.secondary}>{t('modelsUnavailable')}</p> : null}
+      {models.length === 0
+        ? modelView?.modelsError === undefined && <p className={css.secondary}>{t('modelsEmpty')}</p>
         : <ul className={css.modelList}>
-          {codex.models.map(model => (
-            <li key={model.id}>{model.name ?? model.id}</li>
-          ))}
+          {models.map(model => <li key={model.id}>{model.name ?? model.id}</li>)}
         </ul>}
     </Modal>}
     {quota.notice !== null && <Toast text={t(quota.notice.textKey)}
@@ -70,12 +73,13 @@ function CodexCard({ view, loading, t, consumeBusy, onRetry, onConsume, onModels
   return <article className={css.quotaCard} aria-label={t('codexTitle')}>
     <h3 className={css.quotaTitle}>{t('codexTitle')}</h3>
     {loading ? <p className={css.secondary}>{t('loading')}</p>
-      : view === null || view.status === 'failed' ? <Failed t={t} onRetry={onRetry} />
+      : view === null ? <Failed t={t} onRetry={onRetry} />
         : view.status === 'unsigned' ? <p className={css.secondary}>{t('goModelsSignIn')}</p>
           : <>
+            {view.status === 'failed' && <Failed t={t} onRetry={onRetry} />}
             <Row label={t('plan')} value={planLabel(view.planType, t)} />
-            {view.subscriptionActiveUntilMs !== null && <Row label={t('subscriptionUntil')}
-              value={formatGmt8(view.subscriptionActiveUntilMs)} />}
+            <Row label={t('subscriptionUntil')}
+              value={view.subscriptionActiveUntilMs === null ? t('subscriptionNotProvided') : formatGmt8(view.subscriptionActiveUntilMs)} />
             {view.creditsUnlimited ? <Row label={t('creditBalance')} value={t('creditsUnlimited')} />
               : view.creditBalance !== null ? <Row label={t('creditBalance')} value={view.creditBalance} /> : null}
             <Row label={t('resetCredits')} value={String(available)} />
@@ -92,7 +96,8 @@ function CodexCard({ view, loading, t, consumeBusy, onRetry, onConsume, onModels
   </article>
 }
 
-function AntigravityCard({ view, loading, t, onRetry }: {
+function AntigravityCard({ view, loading, t, onRetry, onModels }: {
+  onModels: () => void
   view: AntigravityQuotaView | null
   loading: boolean
   t: (key: AccountKey) => string
@@ -109,6 +114,9 @@ function AntigravityCard({ view, loading, t, onRetry }: {
               <span className={css.quotaGroupLabel}>{group.label ?? group.id}</span>
               {group.buckets.map(bucket => <WindowBar key={bucket.id} window={bucket} t={t} />)}
             </div>)}
+            <div className={css.quotaActions}>
+              <Button variant="outline" onClick={onModels}>{t('models')}</Button>
+            </div>
           </>}
   </article>
 }

@@ -274,3 +274,9 @@ This Dev Note is non-authoritative working context: undecided directions and not
 - The `compat` switch set is pinned to pi-ai's compat types by drift gates; an upstream upgrade that adds a field, gives a further protocol a compat type, or widens a value union fails the build until someone classifies it.
 
 </details>
+
+Codex subscription expiry supports nested authentication claims; model discovery reports failures separately from empty results.
+
+Codex quota readers refresh expired grants using the model authentication flow and retain subscription and model results when usage returns an HTTP failure.
+
+Codex identity enrichment preserves id_token during refresh because the upstream adapter omits it. The refresh commits access, refresh, expiry, and identity together under the existing credential lock; failed requests preserve the previous grant.

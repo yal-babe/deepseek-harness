@@ -144,7 +144,7 @@ it.each([en, zh])('renders account cards without inventing profile or balance da
   expect(screen.getAllByText(copy.loading)).toHaveLength(3)
   expect(screen.getByRole('link', { name: copy.usage }).getAttribute('href')).toBe('http://localhost:8081/usage')
   expect(screen.getByRole('link', { name: copy.topUp }).getAttribute('href')).toBe('http://localhost:8081/top_up')
-  expect(screen.queryByRole('button', { name: copy.signOut })).toBeNull()
+  expect(screen.getByRole('button', { name: copy.signOut })).toBeTruthy()
   expect(document.body.textContent).not.toContain('209.00')
   await expect(`${screen.getByRole('region').textContent}\n`).toMatchFileSnapshot(`./expected/account-${copy === en ? 'en' : 'zh'}.txt`)
 })
@@ -829,4 +829,14 @@ it.each(['desktopOnboardingVisible', 'onboarding'] as const)('defers bonus displ
   reopened.rerender(await accountMenu(operations, () => snapshot, false))
   await vi.waitFor(() => { expect(operations.bonusNoticeShown).toHaveBeenCalledExactlyOnceWith(notice.orderId) })
   expect(screen.getByText(notice.message)).toBeTruthy()
+})
+
+it('checks running tasks before confirming sign-out from account settings', async () => {
+  const operations = mount({ status: 'credential-stored', attempt: null })
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.signOut })) })
+  expect(operations.hasRunningAccountTasks).toHaveBeenCalledOnce()
+  expect(operations.signOut).not.toHaveBeenCalled()
+  const dialog = screen.getByRole('dialog')
+  await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: en.signOut })) })
+  expect(operations.signOut).toHaveBeenCalledOnce()
 })

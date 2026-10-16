@@ -253,3 +253,19 @@ describe('quota helpers', () => {
     }, Date.parse('2026-10-15T00:00:00.000Z')).windows[0]?.resetAtMs).toBe(Date.parse('2026-10-15T00:00:30.000Z'))
   })
 })
+
+it('keeps subscription and model results when the usage endpoint refuses access', async () => {
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const headers = new Headers(init?.headers)
+    expect(headers.get('user-agent')).toContain('codex-tui/')
+    const url = input instanceof Request ? input.url : input.toString()
+    if (url.includes('/subscriptions')) return jsonResponse({ active_until: '2026-12-01T00:00:00Z' })
+    if (url.includes('/codex/models')) return jsonResponse({ models: [{ slug: 'gpt-5.5' }] })
+    if (url.includes('/wham/usage')) return jsonResponse({}, 403)
+    return jsonResponse({})
+  }
+  const result = await fetchCodexQuota({ accessToken: 'token', chatgptAccountId: 'account', fetchImpl })
+  expect(result.status).toBe('failed')
+  expect(result.subscriptionActiveUntilMs).toBe(Date.parse('2026-12-01T00:00:00Z'))
+  expect(result.models).toEqual([{ id: 'gpt-5.5', name: null }])
+})

@@ -76,3 +76,9 @@ None; this package neither assembles nor sends a provider request.
 Field mapping follows CLI Proxy Management Center `fetchCodexQuota` / `fetchAntigravityQuota`. Reset-card expiry in the UI is Asia/Shanghai without a timezone suffix.
 
 </details>
+
+Model catalogs expose loading failures separately from empty results for Codex and Antigravity.
+
+Expired Codex grants refresh through the adapter credential store before quota requests. Model discovery failures retain an explicitly labeled installed adapter catalog.
+
+When subscription lookup cannot provide an expiry, Codex reads identity claims from a credential-store-locked refresh without discarding quota or model results.

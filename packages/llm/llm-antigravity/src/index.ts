@@ -106,3 +106,5 @@ export function apply(ctx: Context, config: Config): void {
   }])
   registerAntigravityFlow(ctx, options)
 }
+
+export { fetchAvailableModels } from './catalog.ts'

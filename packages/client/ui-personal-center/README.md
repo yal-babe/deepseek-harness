@@ -74,3 +74,13 @@ None; this package neither assembles nor sends a provider request.
 ### Dev Note
 
 None.
+
+The daily heatmap shows 53 weeks with blue intensity levels; cumulative mode preserves the daily calendar.
+
+The activity calendar uses blue daily cells, month labels below the grid, and accessible date and token tooltips.
+
+Dashboard sections share one border-box width. Usage lists separate names and numeric totals; recent-session rows expose a full-row action and adapt metadata at narrow widths.
+
+The full-year activity grid shrinks with its container; Antigravity quotas retain their named groups.
+
+The DeepSeek card separates recharge and gift wallets, shows gift expiry when supplied, and keeps unavailable balances distinct from empty gift wallets. Provider windows show their reset instant in Asia/Shanghai.

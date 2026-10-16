@@ -54,6 +54,8 @@ export interface AccountProfile {
 export interface AccountWallet {
   readonly currency: 'CNY' | 'USD'
   readonly balance: string
+  /** Wallet expiry supplied by Platform, absent for wallets without expiry metadata. */
+  readonly expiresAt?: string | null
 }
 /** Independent query outcomes allow profile and balance failures to render separately. */
 export interface AccountDetails {

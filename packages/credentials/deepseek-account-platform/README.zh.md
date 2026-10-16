@@ -106,3 +106,5 @@ accountRequestHeaders 覆盖 requestHeaders，供 current、余额以及内嵌 P
 账号提供者的 `embeddedPageDist` 配置为内嵌用量和充值页面 URL 添加 `dist` 查询参数。默认值为空；私有前端分支选择值应写在本地 profile patch 中。此配置不改变 API 地址或凭证传递方式。
 
 Platform 钱包余额接受带可选科学计数法的十进制字符串（包括 `0E-16`），提供方保留原始字符串供调用方使用。
+
+钱包投影将 expires_at 保留为可选 expiresAt，不从赠金通知推算有效期。

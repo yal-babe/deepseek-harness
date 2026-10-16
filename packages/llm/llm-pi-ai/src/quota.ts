@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { catalogProvider } from './catalog.ts'
 
 /** ChatGPT WHAM usage endpoint. */
 export const CODEX_USAGE_URL = 'https://chatgpt.com/backend-api/wham/usage'
@@ -82,6 +83,8 @@ export interface CodexQuotaSnapshot {
   resetCreditsAvailableCount: number | null
   /** Subscription catalog entries whose visibility is not hidden. */
   models: CodexSubscriptionModel[]
+  /** Catalog query failed independently of the usage request. */
+  modelsError?: string
   /** Host-safe failure text when `status` is `failed`. */
   error?: string
 }
@@ -166,7 +169,8 @@ export function extractCodexChatgptAccountId(token: string): string | undefined 
 export function extractCodexSubscriptionActiveUntilMs(token: string): number | undefined {
   const payload = decodeJwtPayload(token)
   if (payload === undefined) return undefined
-  return instantMs(payload.chatgpt_subscription_active_until)
+  const auth = asObject(payload['https://api.openai.com/auth'])
+  return instantMs(payload.chatgpt_subscription_active_until) ?? instantMs(auth?.chatgpt_subscription_active_until)
 }
 
 /**
@@ -270,10 +274,11 @@ export function parseCodexSubscriptionActiveUntilMs(raw: unknown): number | unde
     }
     return undefined
   }
-  const direct = instantMs(pick(data, 'active_until', 'activeUntil'))
+  const direct = instantMs(pick(data, 'active_until', 'activeUntil', 'chatgpt_subscription_active_until'))
   if (direct !== undefined) return direct
-  for (const key of ['items', 'subscriptions', 'data'] as const) {
-    for (const item of asArray(data[key])) {
+  for (const key of ['items', 'subscriptions', 'data', 'subscription', 'https://api.openai.com/auth'] as const) {
+    const nested = data[key]
+    for (const item of Array.isArray(nested) ? nested : [nested]) {
       const until = parseCodexSubscriptionActiveUntilMs(item)
       if (until !== undefined) return until
     }
@@ -322,6 +327,13 @@ export async function fetchCodexQuota(options: CodexQuotaFetchOptions): Promise<
   const nowMs = options.nowMs ?? Date.now()
   const headers = codexHeaders(options.accessToken, options.chatgptAccountId)
   try {
+    const [resetCredits, subscriptionMs, models] = await Promise.all([
+      loadResetCredits(fetchImpl, headers),
+      loadSubscriptionMs(fetchImpl, options),
+      loadSubscriptionModels(fetchImpl, headers),
+    ])
+    const tokenUntil = instantMs(options.subscriptionActiveUntil)
+      ?? (options.accessToken.length > 0 ? extractCodexSubscriptionActiveUntilMs(options.accessToken) : undefined)
     const usageResponse = await fetchImpl(CODEX_USAGE_URL, {
       method: 'GET',
       headers,
@@ -329,20 +341,14 @@ export async function fetchCodexQuota(options: CodexQuotaFetchOptions): Promise<
     })
     const usageText = await usageResponse.text()
     if (!usageResponse.ok) {
-      return failedQuota(`usage HTTP ${String(usageResponse.status)}`)
+      return { ...failedQuota(`usage HTTP ${String(usageResponse.status)}`),
+        subscriptionActiveUntilMs: subscriptionMs ?? tokenUntil ?? null, ...models }
     }
     let usageRaw: unknown
     try { usageRaw = JSON.parse(usageText) }
     catch (_invalidUsageJson) { return failedQuota('usage JSON is invalid') }
     const usage = parseCodexUsage(usageRaw, nowMs)
-    const [resetCredits, subscriptionMs, models] = await Promise.all([
-      loadResetCredits(fetchImpl, headers),
-      loadSubscriptionMs(fetchImpl, options),
-      loadSubscriptionModels(fetchImpl, headers),
-    ])
     const count = resetCredits.length > 0 ? resetCredits.length : usage.resetCreditsAvailableCount
-    const tokenUntil = instantMs(options.subscriptionActiveUntil)
-      ?? (options.accessToken.length > 0 ? extractCodexSubscriptionActiveUntilMs(options.accessToken) : undefined)
     return {
       status: 'ready',
       planType: usage.planType,
@@ -352,7 +358,7 @@ export async function fetchCodexQuota(options: CodexQuotaFetchOptions): Promise<
       windows: usage.windows,
       resetCredits,
       resetCreditsAvailableCount: count,
-      models,
+      ...models,
     }
   } catch (error: unknown) {
     return failedQuota(error instanceof Error ? error.message : String(error))
@@ -431,6 +437,8 @@ function codexHeaders(accessToken: string, accountId: string | undefined): Recor
   const headers: Record<string, string> = {
     authorization: `Bearer ${accessToken}`,
     accept: 'application/json',
+    'content-type': 'application/json',
+    'user-agent': 'codex-tui/0.154.0 (Mac OS 26.5.2; arm64) iTerm.app/3.6.11 (codex-tui; 0.154.0)',
   }
   if (accountId !== undefined && accountId.length > 0) headers['chatgpt-account-id'] = accountId
   return headers
@@ -485,20 +493,21 @@ async function loadSubscriptionMs(
 async function loadSubscriptionModels(
   fetchImpl: typeof fetch,
   headers: Record<string, string>,
-): Promise<CodexSubscriptionModel[]> {
+): Promise<{ models: CodexSubscriptionModel[]; modelsError?: string }> {
   try {
-    const response = await fetchImpl(`${CODEX_MODELS_URL}?client_version=1`, {
+    const response = await fetchImpl(`${CODEX_MODELS_URL}?client_version=0.154.0`, {
       method: 'GET',
       headers: {
         ...headers,
-        originator: 'Codex Desktop',
+        originator: 'codex-tui',
+        accept: 'application/json',
       },
       signal: AbortSignal.timeout(SUBSCRIPTION_TIMEOUT_MS),
     })
-    if (!response.ok) return []
-    return parseCodexSubscriptionModels(JSON.parse(await response.text()))
+    if (!response.ok) return { models: [], modelsError: 'models-unavailable' }
+    return { models: parseCodexSubscriptionModels(JSON.parse(await response.text())) }
   } catch (_modelsUnavailable) {
-    return []
+    return { models: [], modelsError: 'models-unavailable' }
   }
 }
 
@@ -631,4 +640,12 @@ function instantMs(value: unknown): number | undefined {
     return Number.isNaN(parsed) ? undefined : parsed
   }
   return undefined
+}
+
+/**
+ * List the installed Codex adapter's model catalog without claiming subscription verification.
+ * @returns configured adapter model identifiers and display names.
+ */
+export function codexAdapterModels(): CodexSubscriptionModel[] {
+  return (catalogProvider('openai-codex')?.getModels() ?? []).map(model => ({ id: model.id, name: model.name }))
 }

@@ -2434,7 +2434,8 @@ it('renders the localized account row as signed in without an edit action', asyn
     state.rows = [{ ...row, accountAvailable: true, entry: { ...row.entry, provider: 'deepseek-account' } }]
   }) })
   const item = screen.getByText(en.deepSeekAccount).closest('li')!
-  expect(within(item).getByText(en.accountSignedIn)).toBeTruthy()
+  expect(within(item).queryByText(en.accountSignedIn)).toBeNull()
+  expect(item.querySelector('[aria-hidden="true"]')).toBeTruthy()
   expect(within(item).queryByText(en.edit)).toBeNull()
 })
 

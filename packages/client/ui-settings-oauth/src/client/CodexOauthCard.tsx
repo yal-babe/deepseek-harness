@@ -151,7 +151,12 @@ export function CodexOauthCard({
 
   return (
     <div className={styles['card']}>
-      <p className={failed || showPopupBlocked ? styles['error'] : styles['status']} role="status">{notice}</p>
+      <div className={styles['identity']}>
+        <span className={styles['name']}>{provider.displayName}</span>
+        {view.credentialConfigured && !view.inFlight && !failed
+          ? <span className={styles['connected']} role="img" aria-label={notice} />
+          : <p className={failed || showPopupBlocked ? styles['error'] : styles['status']} role="status">{notice}</p>}
+      </div>
       {prompting && prompt !== undefined ? (
         <div className={styles['prompt']}>
           {prompt.kind === 'select' ? (
@@ -160,7 +165,7 @@ export function CodexOauthCard({
                 <Button
                   key={option.id}
                   variant="outline"
-                  size="sm"
+                  size="md"
                   disabled={busy}
                   onClick={() => { void run(() => answerPrompt(option.id)) }}
                 >
@@ -181,7 +186,7 @@ export function CodexOauthCard({
             {prompt.kind !== 'select' ? (
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 disabled={busy || promptValue.length === 0}
                 onClick={() => { void run(() => answerPrompt(promptValue)) }}
               >
@@ -190,7 +195,7 @@ export function CodexOauthCard({
             ) : null}
             <Button
               variant="ghost"
-              size="sm"
+              size="md"
               disabled={busy}
               onClick={() => { void run(() => declinePrompt()) }}
             >
@@ -201,22 +206,22 @@ export function CodexOauthCard({
       ) : (
         <div className={styles['actions']}>
           {view.inFlight ? (
-            <Button variant="ghost" size="sm" onClick={() => { void run(cancel) }}>
+            <Button variant="ghost" size="md" onClick={() => { void run(cancel) }}>
               {t('cancel')}
             </Button>
           ) : view.credentialConfigured ? (
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => { void run(signOut) }}>
+            <Button variant="outline" size="md" disabled={busy} onClick={() => { void run(signOut) }}>
               {t('signOut')}
             </Button>
           ) : (
-            <Button variant="primary" size="sm" disabled={busy} onClick={() => { void run(start) }}>
+            <Button variant="primary" size="md" disabled={busy} onClick={() => { void run(start) }}>
               {t('signIn')}
             </Button>
           )}
           {authorizeUrl === undefined ? null : (
             <Button
               variant={view.inFlight ? 'primary' : 'outline'}
-              size="sm"
+              size="md"
               onClick={() => { setPopupBlocked(!openAuthorizeUrl(authorizeUrl)) }}
             >
               {t('openLink')}

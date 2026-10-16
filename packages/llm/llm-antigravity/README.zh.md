@@ -140,3 +140,5 @@ SSE 的 `response.candidates[].content.parts` 成为 harness 的 reasoning、tex
 ### 开发备注
 
 默认 OAuth client id 与 secret 是 CLIProxyAPI 使用的 Antigravity 已安装应用公开凭据。token 兑换会随 PKCE verifier 发送该 secret。注册了其他 client 的部署必须设置 `oauthClientId`、`oauthClientSecret` 与匹配的 redirect URI。
+
+包导出基于凭据的模型发现功能，供账户模型列表使用。

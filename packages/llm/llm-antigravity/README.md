@@ -140,3 +140,5 @@ Recorded response content appends to the next request and does not invalidate it
 ### Dev Note
 
 The default OAuth client id and secret are the public Antigravity installed-app credentials used by CLIProxyAPI. Token exchange sends that secret with the PKCE verifier. Deployments that registered a different client must set `oauthClientId`, `oauthClientSecret`, and matching redirect URIs.
+
+The package exports credential-backed model discovery for account model lists.

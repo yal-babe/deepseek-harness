@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-credentials'
 import {
   Config,
   fetchAntigravityQuotaForToken,
+  fetchAvailableModels,
   resolveAccessToken,
   resolvedConfig,
   unsignedAntigravityQuota,
@@ -17,12 +18,13 @@ import {
 import { LlmError } from '@deepseek-ai/dsh-llm'
 import {
   accessTokenFromCodexGrant,
+  codexAdapterModels,
   consumeCodexRateLimitResetCredit,
   extractCodexChatgptAccountId,
   extractCodexSubscriptionActiveUntilMs,
   fetchCodexQuota,
   idTokenFromCodexGrant,
-  recordKeyFor,
+  currentCodexGrant,
   unsignedCodexQuota,
   type CodexQuotaSnapshot,
 } from '@deepseek-ai/dsh-llm-pi-ai'
@@ -90,11 +92,24 @@ export class ProviderQuota extends TypertRemoteService {
   private async readCodex(): Promise<CodexQuotaView> {
     const grant = await this.codexAccess()
     if (grant === undefined) return viewCodex(unsignedCodexQuota())
-    return viewCodex(await fetchCodexQuota({
+    const view = viewCodex(await fetchCodexQuota({
       accessToken: grant.access,
       ...grant.accountId === undefined ? {} : { chatgptAccountId: grant.accountId },
       ...grant.subscriptionUntil === undefined ? {} : { subscriptionActiveUntil: grant.subscriptionUntil },
     }))
+    if (view.models.length === 0) {
+      view.models = codexAdapterModels()
+      view.modelsFromCatalog = true
+    }
+    if (view.subscriptionActiveUntilMs === null) {
+      try {
+        const identity = await this.codexAccess(true)
+        view.subscriptionActiveUntilMs = identity?.subscriptionUntil ?? null
+      } catch (_identityUnavailable) {
+        // Quota and model results remain usable when identity metadata cannot be refreshed.
+      }
+    }
+    return view
   }
 
   private async readAntigravity(): Promise<AntigravityQuotaView> {
@@ -106,7 +121,14 @@ export class ProviderQuota extends TypertRemoteService {
         AbortSignal.timeout(connection.requestTimeoutMs),
         this.antigravityRefresh,
       )
-      return viewAntigravity(await fetchAntigravityQuotaForToken(connection, token))
+      const [snapshot, catalog] = await Promise.all([
+        fetchAntigravityQuotaForToken(connection, token),
+        fetchAvailableModels(connection, token).then(
+          models => ({ models: models.map(model => ({ id: model.id, name: model.name ?? null })) }),
+          () => ({ models: [], modelsError: 'models-unavailable' }),
+        ),
+      ])
+      return { ...viewAntigravity(snapshot), ...catalog }
     } catch (error: unknown) {
       if (error instanceof LlmError && (error.code === 'AUTH' || error.code === 'MISSING_CREDENTIAL')) {
         return viewAntigravity(unsignedAntigravityQuota())
@@ -121,12 +143,12 @@ export class ProviderQuota extends TypertRemoteService {
     }
   }
 
-  private async codexAccess(): Promise<{
+  private async codexAccess(includeIdentity = false): Promise<{
     access: string
     accountId?: string
     subscriptionUntil?: number
   } | undefined> {
-    const record = await this.ctx.credentials.readRecord(recordKeyFor('openai-codex'))
+    const record = await currentCodexGrant(this.ctx, includeIdentity)
     if (record === undefined || record.kind !== 'grant') return undefined
     const access = accessTokenFromCodexGrant(record.payload)
     if (access === undefined) return undefined
@@ -166,6 +188,7 @@ function viewCodex(snapshot: CodexQuotaSnapshot): CodexQuotaView {
     models: snapshot.models,
   }
   if (snapshot.error !== undefined) view.error = snapshot.error
+  if (snapshot.modelsError !== undefined) view.modelsError = snapshot.modelsError
   return view
 }
 

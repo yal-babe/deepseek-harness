@@ -76,3 +76,9 @@ Host Remote：用已存 OAuth grant 读取 Codex 与 Antigravity 额度，并返
 字段映射对齐 CLI Proxy 管理中心的 `fetchCodexQuota` / `fetchAntigravityQuota`。界面中的重置卡过期时间为 Asia/Shanghai，不带时区后缀。
 
 </details>
+
+Codex 与 Antigravity 的模型目录将加载失败和空结果分别返回。
+
+Codex 额度请求前通过适配器凭据存储刷新过期授权。模型发现失败时保留明确标注来源的已安装适配器目录。
+
+订阅查询未能提供到期时间时，Codex 通过凭据存储锁内的刷新读取身份字段，同时保留额度与模型结果。

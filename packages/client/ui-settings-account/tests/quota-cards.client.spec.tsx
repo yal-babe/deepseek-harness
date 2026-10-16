@@ -325,3 +325,20 @@ it('shows unknown when Antigravity has no plan and no tier', () => {
   />)
   expect(screen.getByText(en.planUnknown)).toBeTruthy()
 })
+
+it('opens Antigravity models and distinguishes a failed catalog from an empty catalog', () => {
+  render(<QuotaCards
+    quota={{ status: 'ready', codex: { ...ready, modelsError: 'models-unavailable' },
+      antigravity: { provider: 'antigravity', status: 'ready', plan: 'pro', tierId: null,
+        groups: [], models: [{ id: 'gemini-pro', name: 'Gemini Pro' }] },
+      consumeBusy: false, notice: null }}
+    t={key => en[key]} onRetry={() => {}} onConsume={async () => {}} onNoticeDone={() => {}}
+  />)
+  const buttons = screen.getAllByRole('button', { name: en.models })
+  fireEvent.click(buttons[1]!)
+  expect(screen.getByText('Gemini Pro')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: en.close }))
+  fireEvent.click(buttons[0]!)
+  expect(screen.getByText(en.modelsUnavailable)).toBeTruthy()
+  expect(screen.queryByText(en.modelsEmpty)).toBeNull()
+})

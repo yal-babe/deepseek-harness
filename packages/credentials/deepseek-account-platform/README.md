@@ -106,3 +106,5 @@ accountRequestHeaders overlays requestHeaders for current, balance and embedded 
 The account provider’s `embeddedPageDist` configuration adds a `dist` query parameter to embedded Usage and Top-up URLs. Its default is empty; private frontend branch selectors belong in the local profile patch. It does not change API URLs or credential delivery.
 
 Platform wallet balances accept decimal strings with optional scientific notation (including `0E-16`); the provider preserves the original string for consumers.
+
+Wallet projection preserves expires_at as optional expiresAt without inferring an expiry from bonus notifications.

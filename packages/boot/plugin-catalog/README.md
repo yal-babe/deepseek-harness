@@ -80,3 +80,5 @@ None; this package neither assembles nor sends a provider request.
 Community contract: `https://api.dsh-plugin.org/plugins.{en|zh}.json`. Codex contract: `https://raw.githubusercontent.com/openai/plugins/main/.agents/plugins/marketplace.json` plus per-plugin `plugin.json`.
 
 </details>
+
+Community entries resolve missing artwork from the repository package manifest and cache the result with the catalog TTL.

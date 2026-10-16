@@ -10,8 +10,9 @@
 }
 
 .page > * {
+  box-sizing: border-box;
   width: 100%;
-  max-width: 960px;
+  max-width: 1080px;
   margin-inline: auto;
 }
 
@@ -46,7 +47,7 @@
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
 
@@ -58,7 +59,8 @@
 }
 
 @media (min-width: 720px) {
-  .split {
+  .split,
+  .quotaColumn {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -66,8 +68,8 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 12px;
+  padding: 20px;
   border: 0.5px solid var(--dsw-alias-settings-card-stroke);
   border-radius: var(--dsw-radius-xl);
   background: var(--dsw-alias-settings-card-fill);
@@ -75,8 +77,9 @@
 }
 
 .metric {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .window {
@@ -104,58 +107,52 @@
   background: var(--dsw-alias-state-business-primary);
 }
 
-.heatCalendar {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px;
-  overflow-x: auto;
-}
 
-.heatWeekdays,
-.heatGrid {
-  display: grid;
-  grid-template-rows: repeat(7, 12px);
-  gap: 3px;
-}
-
-.heatGrid {
-  grid-auto-flow: column;
-  grid-auto-columns: 12px;
-}
-
-.heatWeekdays {
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 10px;
-  line-height: 12px;
-  text-align: center;
-}
-
-.heatLegend {
-  grid-column: 1 / -1;
+.activityHead {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.heatCells {
+.heatCalendar {
+  --heat-gap: clamp(1px, 0.3vw, 4px);
+  --heat-size: clamp(8px, 1.15vw, 16px);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(12px, 1fr));
-  gap: 3px;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  padding-block: 4px;
+}
+
+.heatGrid {
+  display: grid;
+  grid-template-rows: repeat(7, auto);
+  grid-auto-flow: column;
+  grid-template-columns: repeat(53, minmax(0, 1fr));
+  gap: var(--heat-gap);
+  min-width: 0;
 }
 
 .cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
   background: var(--dsw-alias-bg-skeleton);
 }
 
-.cell[data-level='1'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 25%, transparent); }
-.cell[data-level='2'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 50%, transparent); }
-.cell[data-level='3'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 75%, transparent); }
+.cell[data-level='1'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 20%, var(--dsw-alias-settings-card-fill)); }
+.cell[data-level='2'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 45%, var(--dsw-alias-settings-card-fill)); }
+.cell[data-level='3'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 75%, var(--dsw-alias-settings-card-fill)); }
 .cell[data-level='4'] { background: var(--dsw-alias-state-business-primary); }
+.cell[data-future] { visibility: hidden; }
+.cell:focus-visible { outline: 2px solid var(--dsw-focus-ring-color); outline-offset: 2px; }
+
+.modeButton[aria-pressed='true'] { color: var(--dsw-alias-label-primary); }
+.modeButton[aria-pressed='false'] { color: var(--dsw-alias-label-tertiary); }
 
 .modes {
   display: flex;
@@ -163,38 +160,102 @@
   flex-wrap: wrap;
 }
 
+
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
   min-width: 0;
 }
-
-.row button {
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 16px;
+  padding: 12px 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+.row + .row, .sessionItem + .sessionItem {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+.row > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.value {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sessionButton {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 10px;
   border: 0;
-  padding: 0;
+  border-radius: var(--dsw-radius-md);
   background: transparent;
   color: inherit;
   font: inherit;
+  font-size: 13px;
+  line-height: 20px;
   text-align: left;
   cursor: pointer;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
+.sessionButton:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.sessionButton:focus-visible { outline: 2px solid var(--dsw-focus-ring-color); outline-offset: 2px; }
+.sessionTitle { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sessionMeta { display: flex; align-items: center; gap: 16px; font-size: 12px; white-space: nowrap; }
+.emptyList { margin: 0; padding: 24px 0; color: var(--dsw-alias-label-tertiary); font-size: 13px; }
 
 .skeleton {
   height: 14px;
   border-radius: 4px;
   background: var(--dsw-alias-bg-skeleton);
+}
+
+
+.heatMonths {
+  display: grid;
+  grid-template-columns: repeat(53, minmax(0, 1fr));
+  gap: var(--heat-gap);
+  min-width: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.heatMonths > span { width: max-content; }
+
+@media (min-width: 720px) {
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .page { padding: 20px 16px 32px; gap: 16px; }
+  .card { padding: 16px; }
+  .metric { font-size: 22px; }
+  .row { flex-wrap: wrap; }
+}
+
+@media (min-width: 960px) { .quotaColumn { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+@media (max-width: 600px) {
+  .sessionButton { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .sessionMeta { justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
+}
+
+.heatMonths > span:last-child { justify-self: end; }
+.quotaGroup { display: flex; flex-direction: column; gap: 8px; }
+.quotaGroup + .quotaGroup { border-top: 0.5px solid var(--dsw-alias-border-l2); padding-top: 12px; }
+.groupLabel { color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 500; }
+@media (max-width: 480px) {
+  .heatMonths { font-size: 10px; }
+  .heatMonths > span:nth-child(even) { visibility: hidden; }
 }

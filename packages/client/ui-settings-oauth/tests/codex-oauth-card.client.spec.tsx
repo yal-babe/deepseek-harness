@@ -77,7 +77,8 @@ it('shows Cancel and signing-in copy while the attempt is in flight', () => {
 
 it('shows Sign out once a credential is stored', () => {
   const { signOut } = renderCard({ status: 'authorized', inFlight: false, credentialConfigured: true })
-  expect(screen.getByRole('status').textContent).toBe(en.statusAuthorized)
+  expect(screen.getByRole('img', { name: en.statusAuthorized })).toBeTruthy()
+  expect(screen.queryByText(en.statusAuthorized)).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: en.signOut }))
   expect(signOut).toHaveBeenCalledOnce()
 })
@@ -249,7 +250,8 @@ it('reports failed, cancelled, and default waiting or prompting copy', () => {
 
 it('treats an idle stored credential as signed in', () => {
   renderCard({ status: 'idle', inFlight: false, credentialConfigured: true })
-  expect(screen.getByRole('status').textContent).toBe(en.statusAuthorized)
+  expect(screen.getByRole('img', { name: en.statusAuthorized })).toBeTruthy()
+  expect(screen.queryByText(en.statusAuthorized)).toBeNull()
   expect(screen.getByRole('button', { name: en.signOut })).toBeTruthy()
 })
 
@@ -259,10 +261,12 @@ it('renders Antigravity idle and authorized copy on the antigravity row', () => 
   expect(screen.getByRole('status').textContent).toBe(en.statusIdleAntigravity)
   cleanup()
   renderCard({ status: 'idle', inFlight: false, credentialConfigured: true }, {}, antigravity)
-  expect(screen.getByRole('status').textContent).toBe(en.statusAuthorizedAntigravity)
+  expect(screen.getByRole('img', { name: en.statusAuthorizedAntigravity })).toBeTruthy()
+  expect(screen.queryByText(en.statusAuthorizedAntigravity)).toBeNull()
   cleanup()
   renderCard({ status: 'authorized', inFlight: false, credentialConfigured: true }, {}, antigravity)
-  expect(screen.getByRole('status').textContent).toBe(en.statusAuthorizedAntigravity)
+  expect(screen.getByRole('img', { name: en.statusAuthorizedAntigravity })).toBeTruthy()
+  expect(screen.queryByText(en.statusAuthorizedAntigravity)).toBeNull()
 })
 
 it('shows a Host start failure instead of staying idle', async () => {

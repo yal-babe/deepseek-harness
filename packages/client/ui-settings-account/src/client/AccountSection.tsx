@@ -11,6 +11,7 @@ import { AccountAvatar } from './AccountAvatar.tsx'
 import type { AccountAvatarSnapshot } from './account-avatar.ts'
 import { authorizeUrlWithTheme } from './authorize-url.ts'
 import type { BonusNotice } from './bonus-notices.ts'
+import { SignOutDialog } from './SignOutDialog.tsx'
 import { QuotaCards } from './QuotaCards.tsx'
 import type { QuotaSnapshot } from './quota-store.ts'
 import css from './AccountSection.module.css'
@@ -101,7 +102,8 @@ export type AccountSectionProps =
   PropsRuntime<'settings.section'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
 /** @param props - localized actions, account subscription, and the shared Platform page channel. @returns account settings UI. */
 export function AccountSection({
-  t, useAccount, useTheme, useQuota, start, cancel, openPlatformPage, avatarFailed, refreshQuota, consumeCodexReset, dismissQuotaNotice,
+  t, useAccount, useTheme, useQuota, start, cancel, signOut, hasRunningAccountTasks,
+  openPlatformPage, avatarFailed, refreshQuota, consumeCodexReset, dismissQuotaNotice,
 }: AccountSectionProps) {
   const { view: state, details, avatar, failed: streamFailed } = useAccount(value => value)
   const colorScheme = useTheme(snapshot => snapshot.active.colorScheme)
@@ -120,6 +122,13 @@ export function AccountSection({
   const releasePage = useRef<(() => void) | undefined>(undefined)
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [signOutImpact, setSignOutImpact] = useState<boolean | 'unknown'>()
+  const requestSignOut = async (): Promise<void> => {
+    setBusy(true)
+    try { setSignOutImpact(await hasRunningAccountTasks()) }
+    catch (_taskStatusUnavailable) { setSignOutImpact('unknown') }
+    finally { setBusy(false) }
+  }
   const profile = details?.profile?.status === 'ready' ? details.profile.value : undefined
   const wallets = details?.balance?.status === 'ready' ? details.balance.value : undefined
   const bonusWallets = details?.balance?.status === 'ready'
@@ -184,9 +193,11 @@ export function AccountSection({
             </span>
           </div>
         </div>
-        {signedIn && <a className={css.accountInfo} href={new URL('/', state.links.usageUrl).href} target="_blank" rel="noopener noreferrer">
-          {t('accountInfo')}<IconRightUpOutlineRegular size={12} />
-        </a>}
+        {signedIn && <div className={css.actions}>
+          <Button variant="outline" disabled={busy} onClick={() => { void requestSignOut() }}>{t('signOut')}</Button>
+          <a className={css.accountInfo} href={new URL('/', state.links.usageUrl).href} target="_blank" rel="noopener noreferrer">
+            {t('accountInfo')}<IconRightUpOutlineRegular size={12} />
+          </a></div>}
         {!signedIn && !active && <Button variant="primary" className={css.signInButton} disabled={busy || state === undefined}
           onClick={() => { void run(start) }}>{t('signIn')}</Button>}
       </div>
@@ -239,6 +250,8 @@ export function AccountSection({
   )
   return (
     <section className={css.section} aria-label={t('nav')}>
+      {signOutImpact !== undefined && <SignOutDialog running={signOutImpact} signOut={signOut}
+        close={() => { setSignOutImpact(undefined) }} t={t} />}
       <QuotaCards quota={quota} t={t} onRetry={() => { void refreshQuota() }}
         onConsume={consumeCodexReset} onNoticeDone={dismissQuotaNotice}>
         {deepseekCard}

@@ -1,19 +1,22 @@
 .card {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .status {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 18px;
   color: var(--dsw-alias-label-tertiary);
 }
 
 .error {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 18px;
   color: var(--dsw-alias-state-warn-label);
 }
@@ -36,3 +39,15 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.connected {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.identity { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.name { font-size: 14px; line-height: 22px; font-weight: 500; }
+.identity .status, .identity .error { flex-basis: 100%; }

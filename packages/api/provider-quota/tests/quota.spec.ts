@@ -127,6 +127,7 @@ it('maps a stored Codex grant onto a safe view and consume result', async () => 
 
 it('maps Antigravity remaining fractions and treats AUTH as unsigned', async () => {
   const { quota } = fixture()
+  vi.spyOn(antigravity, 'fetchAvailableModels').mockResolvedValue([{ id: 'gemini-pro', name: 'Gemini Pro' }])
   vi.spyOn(antigravity, 'resolveAccessToken').mockResolvedValue('tok')
   vi.spyOn(antigravity, 'fetchAntigravityQuotaForToken').mockResolvedValue({
     status: 'ready',
@@ -222,4 +223,21 @@ it('skips a stored Codex record that is not a grant', async () => {
     readRecord: vi.fn(async () => ({ kind: 'api-key', payload: { type: 'oauth', access: 'tok' } })),
   })
   expect((await new ProviderQuota(ctx).get('codex')).status).toBe('unsigned')
+})
+
+it('recovers subscription expiry from a refreshed identity after the subscription lookup fails', async () => {
+  const { quota } = fixture()
+  const identity = 'header.' + Buffer.from(JSON.stringify({
+    'https://api.openai.com/auth': { chatgpt_subscription_active_until: '2026-12-01T00:00:00Z' },
+  })).toString('base64url') + '.signature'
+  const grants = vi.spyOn(piAi, 'currentCodexGrant').mockImplementation(async (_ctx, includeIdentity) => ({
+    kind: 'grant',
+    payload: { type: 'oauth', access: 'access', ...includeIdentity ? { id_token: identity } : {} },
+  }))
+  vi.spyOn(piAi, 'fetchCodexQuota').mockResolvedValue({
+    ...piAi.unsignedCodexQuota(), status: 'ready', models: [{ id: 'model', name: 'Model' }],
+  })
+  const view = await quota.get('codex')
+  expect(view).toMatchObject({ subscriptionActiveUntilMs: Date.parse('2026-12-01T00:00:00Z'), models: [{ id: 'model', name: 'Model' }] })
+  expect(grants.mock.calls[1]?.[1]).toBe(true)
 })

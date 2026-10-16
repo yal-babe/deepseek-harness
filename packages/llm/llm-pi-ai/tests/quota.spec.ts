@@ -180,3 +180,11 @@ describe('fetch substitutes', () => {
     vi.useRealTimers()
   })
 })
+
+it('reads subscription expiry from the nested ChatGPT authentication claim', () => {
+  expect(parseCodexSubscriptionActiveUntilMs({
+    'https://api.openai.com/auth': {
+      chatgpt_subscription_active_until: '2026-11-01T00:00:00.000Z',
+    },
+  })).toBe(Date.parse('2026-11-01T00:00:00.000Z'))
+})

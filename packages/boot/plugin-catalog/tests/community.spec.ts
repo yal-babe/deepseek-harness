@@ -67,3 +67,9 @@ describe('communityEntry', () => {
     expect(row.category).toBe('tools')
   })
 })
+
+it('preserves repository objects from the community feed for artwork lookup', () => {
+  const [row] = parseCommunityFeed([{ s: 'hub', o: 'alice', n: 'hub',
+    r: { repo: 'alice/hub', npmPackage: '@alice/hub' } }])
+  expect(row?.r).toBe('alice/hub')
+})

@@ -117,3 +117,9 @@ Usage and top-up show a centered 24px loading indicator without visible loading 
 Default-model initialization runs after publishing and accepting the sign-in frame, without delaying subsequent account frames. Failures are recorded with `console.error` in the renderer Console and do not mark the signed-in account as failed. Profile and balance reads also report only failures, without account data or raw exceptions; successful refreshes and account frames are silent.
 
 Read-only onboarding settings and a failed initial account stream leave the workspace accessible. A failed initial settings read exposes Retry, which reissues the shared settings read. Overlapping onboarding and Platform overlays release background interaction only after their last owner unmounts.
+
+Both Codex and Antigravity cards offer model lists. Missing subscription expiry is labeled explicitly, and model request failures are distinct from empty lists.
+
+DeepSeek sign-out is available in Account and Models settings, with task-impact confirmation. Codex model lists label adapter-catalog results when subscription discovery is unavailable.
+
+The Models account row shows the sign-out action without repeating its signed-in description.

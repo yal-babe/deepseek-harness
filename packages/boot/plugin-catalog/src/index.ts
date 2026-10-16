@@ -101,6 +101,7 @@ export class PluginCatalog extends TypertRemoteService {
 
   private communityCache: (FeedCache<CommunityWireRow[]> & { locale: CatalogLocale }) | undefined
   private codexCache: FeedCache<CodexMarketplacePlugin[]> | undefined
+  private readonly artworkCache = new Map<string, FeedCache<string | null>>()
   private readonly manifestCache = new Map<string, FeedCache<CodexPluginManifest>>()
   private readonly skillListCache = new Map<string, FeedCache<{ dir: string; names: string[] }>>()
 
@@ -160,7 +161,7 @@ export class PluginCatalog extends TypertRemoteService {
     const start = (page - 1) * pageSize
     return {
       entries: await Promise.all(filtered.slice(start, start + pageSize).map(async (entry) => {
-        if (entry.source !== 'codex') return entry
+        if (entry.source !== 'codex') return await this.communityArtwork(entry)
         const manifest = await this.loadCodexManifest(entry.name)
         return {
           ...codexEntry({ name: entry.name }, manifest, { skills: true, mcp: false, hooks: false }, entry.installed),
@@ -201,7 +202,7 @@ export class PluginCatalog extends TypertRemoteService {
           )
         }
         const entry = communityEntry(row, installed.names, installed.versions)
-        return { ...entry, enabled: installed.enabled.has(entry.name.toLowerCase()) }
+        return await this.communityArtwork({ ...entry, enabled: installed.enabled.has(entry.name.toLowerCase()) })
       }
       const plugin = (await this.loadCodexMarketplace()).find(item => item.name === parsed.key)
       if (plugin === undefined) {
@@ -502,6 +503,36 @@ export class PluginCatalog extends TypertRemoteService {
       void probeError
       return false
     }
+  }
+
+  private async communityArtwork(entry: CatalogEntry): Promise<CatalogEntry> {
+    if (entry.iconUrl !== undefined) return entry
+    const repo = entry.repositoryUrl?.replace('https://github.com/', '')
+    if (repo === undefined || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repo)) return entry
+    const cached = this.artworkCache.get(repo)
+    if (cached !== undefined && Date.now() - cached.fetchedAt < (this.config.cacheTtlMs ?? 15 * 60_000)) {
+      return cached.value === null ? entry : { ...entry, iconUrl: cached.value }
+    }
+    let iconUrl: string | null = null
+    try {
+      const base = `https://raw.githubusercontent.com/${repo}/HEAD/`
+      const raw: unknown = JSON.parse(await this.fetchText(`${base}package.json`))
+      if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+        const manifest = raw as Record<string, unknown>
+        const exports = typeof manifest.exports === 'object' && manifest.exports !== null
+          ? manifest.exports as Record<string, unknown> : undefined
+        const icon = manifest.icon ?? exports?.['./icon']
+        if (typeof icon === 'string') {
+          const url = new URL(icon, base)
+          if (url.protocol === 'https:' || url.protocol === 'http:') iconUrl = url.href
+        }
+      }
+    } catch (error: unknown) {
+      // Optional artwork is independent of catalog availability; failed probes expire with the feed cache.
+      void error
+    }
+    this.artworkCache.set(repo, { fetchedAt: Date.now(), value: iconUrl })
+    return iconUrl === null ? entry : { ...entry, iconUrl }
   }
 
   private async installedPackages(): Promise<{

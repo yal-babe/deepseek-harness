@@ -13,6 +13,7 @@ const user = z.object({
 const decimal = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i
 const wallet = z.object({
   currency: z.enum(['CNY', 'USD']), balance: z.string().regex(decimal),
+  expires_at: z.string().nullish(),
 })
 const summary = z.object({ normal_wallets: z.array(wallet), bonus_wallets: z.array(wallet) })
 const bonus = z.object({
@@ -61,7 +62,11 @@ const queries: { [K in keyof AccountDetails]: {
   }) },
   balance: { path: '/api/v0/users/get_user_summary', parse: (value) => {
     const parsed = accountPayload(summary, value, 'balance')
-    return { status: 'ready', value: parsed.normal_wallets, bonusWallets: parsed.bonus_wallets }
+    const project = (row: z.infer<typeof wallet>) => ({
+      currency: row.currency, balance: row.balance,
+      ...row.expires_at === undefined ? {} : { expiresAt: row.expires_at },
+    })
+    return { status: 'ready', value: parsed.normal_wallets.map(project), bonusWallets: parsed.bonus_wallets.map(project) }
   } },
 }
 

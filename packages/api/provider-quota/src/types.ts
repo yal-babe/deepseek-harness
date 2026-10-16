@@ -59,6 +59,10 @@ export interface CodexQuotaView {
   resetCredits: ResetCreditView[]
   resetCreditsAvailableCount: number | null
   models: CodexModelView[]
+  /** Model listing failed separately from quota. */
+  modelsError?: string
+  /** Models come from the installed adapter catalog; subscription availability is unverified. */
+  modelsFromCatalog?: boolean
   error?: string
 }
 
@@ -76,6 +80,10 @@ export interface AntigravityQuotaView {
   plan: 'free' | 'pro' | 'ultra' | 'ultra-lite' | 'unknown' | null
   tierId: string | null
   groups: AntigravityQuotaGroupView[]
+  /** Live provider catalog, when queried. */
+  models?: CodexModelView[]
+  /** Model listing failed separately from quota. */
+  modelsError?: string
   error?: string
 }
 

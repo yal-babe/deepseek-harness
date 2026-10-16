@@ -1682,3 +1682,19 @@ it('reads credential-free device identity without minting a device', async () =>
   await f.account.getProfile(clientMetadata())
   expect(await f.account.getDeviceIdentity()).toEqual({ deviceId, userId: 'test-user', osVersion: expect.any(String) as string })
 })
+
+it('retains wallet expiry metadata when Platform supplies it', async () => {
+  const f = await fixture()
+  f.bonusWallets([{ currency: 'CNY', balance: '5.00', expires_at: '2026-11-01T00:00:00Z' }])
+  await storeAccount(f)
+  expect(await readDetails(f.account)).toMatchObject({
+    balance: { status: 'ready', bonusWallets: [{ currency: 'CNY', balance: '5.00', expiresAt: '2026-11-01T00:00:00Z' }] },
+  })
+})
+
+it('rejects malformed wallet expiry metadata without reporting a zero balance', async () => {
+  const f = await fixture()
+  f.bonusWallets([{ currency: 'CNY', balance: '5.00', expires_at: 123 }])
+  await storeAccount(f)
+  expect(await readDetails(f.account)).toMatchObject({ balance: { status: 'failed' } })
+})

@@ -152,3 +152,9 @@ These limits define the editor's field coverage and the page's reach; they are c
 None.
 
 </details>
+
+OAuth account rows offer authentication controls without a provider editor.
+
+Account rows keep status indicators and authentication actions without repeating signed-in text.
+
+OAuth cards own their account name, status indicator, and authentication action as one aligned row.

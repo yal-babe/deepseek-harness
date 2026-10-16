@@ -426,7 +426,10 @@ export class MarketplaceStore {
     const update = (entry: CatalogEntry): CatalogEntry => {
       if (entry.source !== 'community') return entry
       const bundle = bundles.find(item => item.name.toLowerCase() === entry.name.toLowerCase())
-      return { ...entry, installed: bundle?.installed === true, enabled: bundle?.enabled === true }
+      return {
+        ...entry, installed: bundle?.installed === true, enabled: bundle?.enabled === true,
+        ...bundle?.meta?.icon === undefined ? {} : { iconUrl: bundle.meta.icon },
+      }
     }
     const detail = this.store.getSnapshot().detail
     this.patch({

@@ -464,13 +464,14 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
               </li>
             )
           }
-          const open = !addOpen && editing?.provider === row.entry.provider
+          const accountProvider = row.entry.provider === 'deepseek-account' || isOauthAccountProvider(row.entry.provider)
+          const open = !accountProvider && !addOpen && editing?.provider === row.entry.provider
           const credentialConfigured = row.credential?.configured === true
           const credentialMissing = !credentialConfigured
             && row.apiKeyEnv !== undefined
             && row.credential?.configured === false
           return (
-            <li key={row.entry.provider} className={styles['rowCard']}>
+            <li key={row.entry.provider} className={`${styles['rowCard']} ${accountProvider ? styles['accountRow'] : ''} ${isOauthAccountProvider(row.entry.provider) ? styles['oauthRow'] : ''}`}>
               <div className={styles['rowHead']}>
                 <span className={styles['rowIdentity']}>
                   <span className={styles['rowName']}>{row.entry.displayName}</span>
@@ -485,11 +486,10 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                     ? (
                       <span className={styles['accountStatus']}>
                         <span className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`} aria-hidden="true" />
-                        {t('accountSignedIn')}
                       </span>
                     )
                     : null}
-                  {credentialConfigured
+                  {credentialConfigured && !accountProvider
                     ? (
                       <span
                         className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`}
@@ -511,7 +511,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                 </span>
                 <span className={styles['rowActions']}>
                   {/* The account catalog comes from the account listing; its model overrides live in cordis.patch.yml. */}
-                  {row.entry.provider === 'deepseek-account'
+                  {accountProvider
                     ? null
                     : (
                       <button

@@ -51,3 +51,9 @@ No model request prefix changes.
 ### Dev Note
 
 None.
+
+Account controls align status and authentication actions in a responsive row.
+
+Stored OAuth credentials display a green status indicator and an outlined sign-out button; sign-in progress and errors remain visible.
+
+The provider name and status dot share an identity group opposite the authentication action.

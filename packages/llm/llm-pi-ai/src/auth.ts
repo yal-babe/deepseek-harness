@@ -18,6 +18,9 @@ import {
 } from '@deepseek-ai/dsh-credentials'
 import type { CredentialKey, CredentialProvider, CredentialRecord } from '@deepseek-ai/dsh-credentials'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
+import { refreshCodexIdentity } from './codex-token.ts'
+import { createModels } from './models.ts'
+import { catalogProvider } from './catalog.ts'
 import { LlmError } from '@deepseek-ai/dsh-llm'
 
 /**
@@ -228,4 +231,30 @@ export function authContextFrom(ctx: Context): AuthContext {
       }
     },
   }
+}
+
+/**
+ * Refresh an expired Codex grant through the same locked credential store as model requests.
+ * @param ctx - context with the credential service.
+ * @param includeIdentity - retain subscription claims through one refresh when the grant lacks an ID token.
+ * @returns the current stored grant, or undefined when signed out.
+ */
+export async function currentCodexGrant(ctx: Context, includeIdentity = false): Promise<CredentialRecord | undefined> {
+  const store = credentialStoreFrom(ctx)
+  const credential = await store.read('openai-codex')
+  if (credential?.type === 'oauth' && credential.expires <= Date.now()) {
+    const models = createModels({ credentials: store })
+    const provider = catalogProvider('openai-codex')
+    if (provider === undefined) throw new LlmError('Codex provider is unavailable', 'NO_ADAPTER')
+    models.setProvider(provider)
+    await models.getAuth('openai-codex')
+  }
+  if (includeIdentity) {
+    await store.modify('openai-codex', async (current) => {
+      if (current?.type !== 'oauth' || current.id_token !== undefined || current.idToken !== undefined
+        || current.subscriptionMetadataChecked === true) return current
+      return await refreshCodexIdentity(current, AbortSignal.timeout(20_000))
+    })
+  }
+  return await ctx.credentials.readRecord(recordKeyFor('openai-codex'))
 }
