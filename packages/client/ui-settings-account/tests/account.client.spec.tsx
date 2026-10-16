@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, act, within } from '@testing-librar
 import { useMemo, useSyncExternalStore } from 'react'
 import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
-import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
+import type { AccountDetails, AccountUserId, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PlatformBridge } from '../src/client/PlatformOverlay.tsx'
 import { createPlatformPages, type PlatformPages } from '../src/client/platform-pages.ts'
@@ -261,7 +261,7 @@ it.each([en, zh])('offers settings, contact and sign-in from the signed-out acco
 it('labels a signed-in launcher with contact when the name is missing', async () => {
   const operations = operationsOf(
     { status: 'credential-stored', attempt: null },
-    { profile: { status: 'ready', value: { id: 'u1', name: null, contact: 'ada@example.com' } } },
+    { profile: { status: 'ready', value: { id: 'u1' as AccountUserId, name: null, contact: 'ada@example.com' } } },
   )
   cleanup()
   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
@@ -292,7 +292,7 @@ it('keeps the signed-in fallback while profile is not ready', async () => {
 it('falls back to the signed-in label when name and contact are missing', async () => {
   const operations = operationsOf(
     { status: 'credential-stored', attempt: null },
-    { profile: { status: 'ready', value: { id: 'u1', name: null, contact: null } } },
+    { profile: { status: 'ready', value: { id: 'u1' as AccountUserId, name: null, contact: null } } },
   )
   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
   render(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false}
