@@ -28,6 +28,7 @@ The boot group launches profile applications and manages their installed composi
 | [`config-editor`](config-editor/README.md) | Persists active profile configuration through Loader reconciliation | `configEditor` |
 | [`plugin-manager`](plugin-manager/README.md) | Manages current-profile plugins and bundle packages through shared CLI operations | `pluginManager` |
 | [`plugin-catalog`](plugin-catalog/README.md) | Aggregates community and Codex marketplace feeds for Settings search and install | `pluginCatalog` |
+| [`plugin-market`](plugin-market/README.md) | Reads the plugin market indexes the user configures for Discover and the `plugin_market` tool | `pluginMarket` |
 
 <a id="related-documentation"></a>
 ## Related documentation

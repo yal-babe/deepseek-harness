@@ -106,6 +106,9 @@
       "path": "../../boot/plugin-catalog"
     },
     {
+      "path": "../../boot/plugin-market"
+    },
+    {
       "path": "../../document/office-to-pdf"
     },
     {
