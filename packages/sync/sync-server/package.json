@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sync-server",
   "description": "SQLite WAL Studio sync HTTP server with FTS memory search and a first-run admin console",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-alpha.4",
   "publishConfig": {
     "access": "public"
   },

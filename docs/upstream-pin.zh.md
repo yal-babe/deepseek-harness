@@ -9,8 +9,8 @@
 | 字段 | 值 |
 | --- | --- |
 | 上游远端 | `upstream` → `https://github.com/deepseek-ai/deepseek-harness.git` |
-| 固定提交 | `571902028a75c64c1d767f4ae5fd099485f0ddf0` |
-| 上游版本 | `0.2.1-alpha.3` |
+| 固定提交 | `86a402200d95fecef4529d969836f1fe13c6cb0d` |
+| 上游版本 | `0.2.1-alpha.4` |
 | Studio 分支 | `studio/main` |
 
 固定提交表格字段是仓库引用检查的明确例外。

@@ -9,8 +9,8 @@ English reference for the DeepSeek Harness commit this Studio fork tracks.
 | Field | Value |
 | --- | --- |
 | Upstream remote | `upstream` → `https://github.com/deepseek-ai/deepseek-harness.git` |
-| Pinned commit | `571902028a75c64c1d767f4ae5fd099485f0ddf0` |
-| Upstream version | `0.2.1-alpha.3` |
+| Pinned commit | `86a402200d95fecef4529d969836f1fe13c6cb0d` |
+| Upstream version | `0.2.1-alpha.4` |
 | Studio branch | `studio/main` |
 
 The pinned-commit table field is an explicit exception to the repository reference check.

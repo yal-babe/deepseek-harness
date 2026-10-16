@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-api-provider-quota",
   "description": "Host Remote that reads Codex and Antigravity quota with stored OAuth grants and returns browser-safe views",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-alpha.4",
   "publishConfig": {
     "access": "public"
   },

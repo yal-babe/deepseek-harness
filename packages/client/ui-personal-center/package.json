@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-personal-center",
   "description": "Sidebar Personal Center: local usage statistics and Codex/Antigravity quota summaries",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-alpha.4",
   "publishConfig": {
     "access": "public"
   },

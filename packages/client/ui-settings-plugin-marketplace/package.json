@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-settings-plugin-marketplace",
   "description": "Plugin marketplace settings section: Hub-style remote catalog search, source filter, and one-click install for community and Codex feeds",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-alpha.4",
   "publishConfig": {
     "access": "public"
   },

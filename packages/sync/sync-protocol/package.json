@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-sync-protocol",
   "description": "Shared cloud-sync types and pure helpers for Studio project events, device leases, and secret redaction",
-  "version": "0.2.1-alpha.3",
+  "version": "0.2.1-alpha.4",
   "publishConfig": {
     "access": "public"
   },
