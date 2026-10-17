@@ -10,6 +10,8 @@ import { BUILTIN_FRAME_SET, clipFor, type PetFrameSet } from './frames.ts'
 import { isSnoozed, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
+import { MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
+import { usePagePosition } from './usePagePosition.ts'
 import css from './Pet.module.css'
 
 /** Milliseconds the approval buttons stay disabled after a card appears, against accidental clicks. */
@@ -41,10 +43,6 @@ export type PetProps = PropsLocale<'pet'> & InjectFace<PetInjected>
 
 type T = PetProps['t']
 
-function prefersReducedMotion(): boolean {
-  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
 /**
  * Pointer handlers that turn a primary-button press moved past the threshold into a drag,
  * and swallow the click that ends it.
@@ -72,7 +70,7 @@ function useCharacterDrag(onDrag: ((phase: PetDragPhase) => void) | undefined, o
         dragged.current = false
         if (event.button !== 0) return
         press.current = { x: event.screenX, y: event.screenY, dragging: false }
-        event.currentTarget.setPointerCapture(event.pointerId)
+        event.currentTarget.setPointerCapture?.(event.pointerId)
       },
       onPointerMove: (event: PointerEvent<HTMLButtonElement>) => {
         const current = press.current
@@ -86,6 +84,7 @@ function useCharacterDrag(onDrag: ((phase: PetDragPhase) => void) | undefined, o
       },
       onPointerUp: finish,
       onPointerCancel: finish,
+      onLostPointerCapture: finish,
     },
   }
 }
@@ -106,15 +105,42 @@ export function PetCharacter({ state, label, onClick, onMenu, onDrag, pack = BUI
   /** Desktop pet window only: dragging the character moves the window. */
   readonly onDrag?: (phase: PetDragPhase) => void
 }): ReactNode {
-  const frames = pack.frames[clipFor(state)]
+  const clip = clipFor(state)
+  const frames = pack.frames[clip]
+  const loop = pack.loops?.[clip] ?? true
   const pointer = useCharacterDrag(onDrag, onClick)
   const [index, setIndex] = useState(0)
   useEffect(() => {
     setIndex(0)
-    if (prefersReducedMotion()) return undefined
-    const timer = setInterval(() => { setIndex(current => (current + 1) % frames.length) }, 1000 / pack.fps)
-    return () => { clearInterval(timer) }
-  }, [frames, pack.fps])
+    let timer: ReturnType<typeof setInterval> | undefined
+    const started = Date.now()
+    const stop = (): void => {
+      if (timer !== undefined) clearInterval(timer)
+      timer = undefined
+    }
+    const motion = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : undefined
+    const update = (): void => {
+      const frame = Math.floor((Date.now() - started) * pack.fps / 1000)
+      setIndex(loop ? frame % frames.length : Math.min(frame, frames.length - 1))
+      if (!loop && frame >= frames.length - 1) stop()
+    }
+    const resume = (): void => {
+      stop()
+      if (motion?.matches === true || document.hidden) { setIndex(0); return }
+      update()
+      if (loop || Date.now() - started < frames.length * 1000 / pack.fps) {
+        timer = setInterval(update, Math.ceil(1000 / pack.fps))
+      }
+    }
+    resume()
+    document.addEventListener('visibilitychange', resume)
+    motion?.addEventListener?.('change', resume)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', resume)
+      motion?.removeEventListener?.('change', resume)
+    }
+  }, [frames, pack.fps, loop])
   return (
     <button type="button" className={css.character} data-state={state} aria-label={label} title={label} {...pointer}
       aria-haspopup={onMenu === undefined ? undefined : 'menu'}
@@ -394,15 +420,31 @@ export function PetMenu({ t, actions, onAction, onClose }: {
   readonly onClose: () => void
 }): ReactNode {
   const first = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   useEffect(() => { first.current?.focus() }, [])
+  useEffect(() => {
+    const outside = (event: globalThis.PointerEvent): void => {
+      if (event.target instanceof Node && !menuRef.current?.contains(event.target)) onClose()
+    }
+    document.addEventListener('pointerdown', outside)
+    return () => { document.removeEventListener('pointerdown', outside) }
+  }, [onClose])
   return (
-    <div className={css.menu} role="menu" aria-label={t('menuLabel')}
-      onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
+    <MenuSurface ref={menuRef} className={css.menu} role="menu" aria-label={t('menuLabel')}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+        const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+        const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+          : event.key === 'ArrowDown' ? (index + 1) % buttons.length
+            : event.key === 'ArrowUp' ? (index + buttons.length - 1) % buttons.length : undefined
+        if (next !== undefined) { event.preventDefault(); buttons[next]?.focus() }
+      }}>
       {actions.map((action, index) => (
         <button key={action} ref={index === 0 ? first : undefined} type="button" role="menuitem"
           onClick={() => { onClose(); onAction(action) }}>{t(`menu.${action}`)}</button>
       ))}
-    </div>
+    </MenuSurface>
   )
 }
 
@@ -471,6 +513,7 @@ function usePanel(props: PetProps): PanelState {
 export function PetOverlay(props: PetProps): ReactNode {
   const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions } = usePanel(props)
   const pack = props.usePack(current => current)
+  const position = usePagePosition()
   if (!visible) {
     // Only a Host snapshot can hide the pet. Web has no tray or global shortcut, so leave a small handle to bring it back.
     return (
@@ -481,11 +524,15 @@ export function PetOverlay(props: PetProps): ReactNode {
     )
   }
   return (
-    <div className={css.overlay} data-surface="page">
-      {open && <PetPanel {...props} focusRequest={focusRequest} />}
-      {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
+    <div className={`${css.overlay} ${css.positioned}`} data-surface="page" data-below={position.below} style={position.style}
+      onPointerDownCapture={(event) => { position.begin(event.clientX, event.clientY) }}
+      onPointerMoveCapture={(event) => { position.track(event.clientX, event.clientY) }}>
+      <div className={css.pagePanels}>
+        {open && <PetPanel {...props} focusRequest={focusRequest} />}
+        {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
+      </div>
       <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })} onClick={toggle}
-        onMenu={() => { setMenu(!menu) }} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
     </div>
   )
 }
@@ -515,8 +562,10 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
   return (
     <div className={css.window} data-surface="window">
       <div className={css.windowStack} onMouseEnter={() => { interactive(true) }} onMouseLeave={() => { interactive(false) }}>
-        {(open || forced) && <PetPanel {...props} focusRequest={focusRequest + menuFocus} />}
-        {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} onClose={() => { setMenu(false) }} />}
+        <div className={css.desktopPanels}>
+          {(open || forced) && <PetPanel {...props} focusRequest={focusRequest + menuFocus} />}
+          {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} onClose={() => { setMenu(false) }} />}
+        </div>
         <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })}
           onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }}
           onDrag={(phase) => { controller.drag(phase) }} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />

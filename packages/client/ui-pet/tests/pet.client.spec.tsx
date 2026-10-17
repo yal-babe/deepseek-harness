@@ -90,6 +90,20 @@ afterEach(() => {
 })
 
 describe('PetCharacter', () => {
+  it('holds a non-looping final frame and resumes correctly after the page becomes visible', () => {
+    const pack = { ...BUILTIN_FRAME_SET, loops: { ...BUILTIN_FRAME_SET.loops!, success: false } }
+    const { container } = render(<PetCharacter state="SUCCESS" label="pet" pack={pack} />)
+    act(() => { vi.advanceTimersByTime(2000) })
+    expect(container.querySelector('img')!.getAttribute('src')).toBe(pack.frames.success.at(-1))
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+    fireEvent(document, new Event('visibilitychange'))
+    expect(container.querySelector('img')!.getAttribute('src')).toBe(pack.frames.success[0])
+    hidden.mockReturnValue(false)
+    fireEvent(document, new Event('visibilitychange'))
+    expect(container.querySelector('img')!.getAttribute('src')).toBe(pack.frames.success.at(-1))
+    hidden.mockRestore()
+  })
+
   it('cycles frames and dims when disconnected', () => {
     const { container } = render(<PetCharacter state="DISCONNECTED" label="pet" />)
     const image = container.querySelector('img')!
@@ -111,6 +125,48 @@ describe('PetCharacter', () => {
 })
 
 describe('PetOverlay', () => {
+  it('navigates the context menu with arrow keys and dismisses it outside', () => {
+    const { props } = setup({ connected: true, snapshot: snapshot() })
+    render(<PetOverlay {...props} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    const menu = screen.getByRole('menu')
+    fireEvent.keyDown(menu, { key: 'End' })
+    expect(document.activeElement).toBe(screen.getByText('menu.hide'))
+    fireEvent.keyDown(menu, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(screen.getByText('menu.quickAsk'))
+    fireEvent.keyDown(menu, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(screen.getByText('menu.hide'))
+    fireEvent.keyDown(menu, { key: 'Home' })
+    expect(document.activeElement).toBe(screen.getByText('menu.quickAsk'))
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('persists a Web drag, restores it, and keeps the character origin when opening its panel', () => {
+    window.localStorage.clear()
+    const { props } = setup({ connected: true, snapshot: snapshot() })
+    const mounted = render(<PetOverlay {...props} />)
+    const character = screen.getByRole('button', { name: /characterLabel/u })
+    const surface = character.parentElement!
+    const startX = Number.parseFloat(surface.style.left)
+    const startY = Number.parseFloat(surface.style.top)
+    fireEvent.pointerDown(character, { button: 0, clientX: 100, clientY: 100, screenX: 100, screenY: 100, pointerId: 3 })
+    fireEvent.pointerMove(character, { clientX: 110, clientY: 110, screenX: 110, screenY: 110 })
+    fireEvent.pointerMove(character, { clientX: 50, clientY: 50, screenX: 50, screenY: 50 })
+    fireEvent.pointerUp(character)
+    fireEvent.click(character)
+    expect(screen.queryByRole('form')).toBeNull()
+    const saved = JSON.parse(window.localStorage.getItem('dsh-pet:page-position')!)
+    expect(saved).toEqual({ x: startX - 50, y: startY - 50 })
+    fireEvent.click(character)
+    expect(surface.style.left).toBe(`${saved.x}px`)
+    expect(surface.style.top).toBe(`${saved.y}px`)
+    mounted.unmount()
+    render(<PetOverlay {...props} />)
+    expect(screen.getByRole('button', { name: /characterLabel/u }).parentElement!.style.left).toBe(`${saved.x}px`)
+    window.localStorage.clear()
+  })
+
   it('leaves only a restore handle when the Host hides the pet', () => {
     const { props, controller } = setup({ connected: true, snapshot: snapshot({ visible: false }) })
     render(<PetOverlay {...props} />)

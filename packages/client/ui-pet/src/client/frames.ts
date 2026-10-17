@@ -59,6 +59,7 @@ export interface PetFrameSet {
   /** Image URL lists per clip. */
   readonly frames: Readonly<Record<PetClip, readonly string[]>>
   /** Unsigned development pack; the character shows a marker. */
+  readonly loops?: Readonly<Record<PetClip, boolean>>
   readonly dev: boolean
 }
 
@@ -79,7 +80,8 @@ export function petFrameSet(manifest: PetPackManifest, assets: Readonly<Record<s
       return url
     })
   }
-  return { key: `${manifest.id}@${manifest.version}`, name: manifest.name, fps: manifest.fps, frames, dev }
+  const loops = Object.fromEntries(CLIPS.map(clip => [clip, resolvePetClip(manifest, clip).loop])) as Record<PetClip, boolean>
+  return { key: `${manifest.id}@${manifest.version}`, name: manifest.name, fps: manifest.fps, frames, loops, dev }
 }
 
 const BUILTIN_ASSETS: Readonly<Record<string, string>> = {
