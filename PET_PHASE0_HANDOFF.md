@@ -1,4 +1,4 @@
-# DSH Studio 内置桌宠 Phase 0 交接
+# DSH Studio 内置桌宠交接（Phase 0 + MVP 起步）
 
 日期：2026-10-17（Asia/Shanghai）。用途：交给后续 agent 或开发者继续实现内置桌宠。这是临时交接记录，不是发布说明；代码、测试和运行状态是事实来源。设计文档：`/workspace/deliverables/dsh-pet-design.md`（v0.4，§9 路线图）。结论笔记：[`.agents/notes/proposed/feature/2026-10-17-studio-pet-phase0-findings.zh.md`](.agents/notes/proposed/feature/2026-10-17-studio-pet-phase0-findings.zh.md)。
 
@@ -66,14 +66,33 @@ pnpm exec vitest run packages/pet/pet packages/client/ui-pet apps/desktop/tests/
 - 基础分支上 `gen-cordis-catalog`、`gen-cordis-api`、`gen-doc-graphs`、`gen-persistence-catalog` 本就失败（plugin-catalog、studio-cloud 的问题），`gen-module-graph` 也有大量无关漂移；因此只手工保留了生成文件中与 pet 相关的部分，`docs/module-graph*.md` 与文档图未更新。
 - `verify-no-unknown-casts`、`verify-package-dependencies` 在基础分支上已有无关违规；新代码未引入新的违规。
 
+## MVP 进度（分支 `studio/pet-mvp`，基于 `studio/pet-phase0`）
+
+Phase 0 提交完成后，MVP 工作在后续分支 `studio/pet-mvp` 上进行（便于 Phase 0 单独审阅与合并）。
+
+| §9 MVP 项 | 状态 |
+| --- | --- |
+| 提问卡（`user-questions/request`） | **已完成（部分）**：单选选项题可在桌宠中回答（800 ms 防误触；单题一次点击，多题逐题选择后提交）；自由文本与多选题显示"打开主窗口"。实现：`packages/client/ui-pet/src/client/questions.ts`（`collectQuestions`、`petAnswerable`、`PetQuestionBridge`）、`Pet.tsx` 的 `QuestionCard`、控制器 `questions` / `answerQuestion`。单测覆盖率 100%（ui-pet 51 个用例）。与审批相同，未做运行时验证 |
+| 审批卡、拖文件发任务、全局快捷键快问、浏览器页内宠物、"关闭=隐藏"、随 Studio 启停 | Phase 0 已有基础版 |
+| TS Reducer 扩展（`agent/status`、`api-session/*`、questions 等待态） | 未做 |
+| 右键菜单、提示音、系统通知、基础勿扰 | 未做 |
+| `dsh://session/<id>` 跳转（`openMain` 导航到会话） | 未做 |
+| 设置页 zh/en、可见状态与窗口位置持久化、托盘开关、Web 重新显示入口 | 未做 |
+| 内置宠物包 v2 目录结构（`whaletail-maid@1.0.0`）与开发开关加载本地包 | 未做 |
+| 删除原生 Helper 构建链 | 不适用（本仓库没有引入 Helper） |
+
+提问卡的已知限制：只处理每个会话优先级最高的待交互项；有待审批时先显示审批卡；提问卡依赖桌宠窗口中 ui-user-questions 已把请求发布到 `uiSession.sessionStatus`（与审批相同的前提，需真机确认非当前会话是否也会发布）。
+
 ## 下一步（按顺序）
 
 1. 在真机上运行 Desktop 与 Web，逐项完成上表"还需要做"，把结论笔记从 proposed 推进。
-2. MVP（§9）：提问卡（`user-questions/request`）、右键菜单、`dsh://session/<id>` 跳转、完成/错误/等待提醒与系统通知、基础勿扰、设置页 zh/en、内置宠物包 v2 目录结构与加载、托盘/菜单显示开关、可见状态持久化。
+2. MVP（§9，在 `studio/pet-mvp` 上继续）：提问卡补自由文本输入、右键菜单、`dsh://session/<id>` 跳转、完成/错误/等待提醒与系统通知、基础勿扰、设置页 zh/en、内置宠物包 v2 目录结构与加载、托盘/菜单显示开关、可见状态持久化。
 3. 修复基础分支上的生成器失败后，重新运行 `gen-doc-graphs`、`gen-cordis-catalog`、`gen-module-graph` 并提交 pet 相关输出。
 4. 让 THIRD_PARTY_NOTICES 覆盖资源许可证。
 
 ## 推送状态
+
+- MVP 分支 `studio/pet-mvp` 同样无法推送（无凭据）。替代交付：`/workspace/deliverables/pet-mvp.bundle`（`origin/studio/main..studio/pet-mvp`，包含 Phase 0 提交）与 `/workspace/deliverables/pet-mvp-patches/`（仅 `studio/pet-phase0..studio/pet-mvp` 的增量补丁）。
 
 - 2026-10-17 16:0x（Asia/Shanghai）尝试 `git push -u origin studio/pet-phase0`：失败，`fatal: could not read Username for 'https://github.com'`——box 上没有 GitHub 推送凭据。按要求没有绕过认证，也没有用 `--no-verify`。pre-push 钩子（完整类型检查）因此也没有运行。
 - 替代交付：`/workspace/deliverables/pet-phase0.bundle`（`git bundle create ... origin/studio/main..studio/pet-phase0`）与 `/workspace/deliverables/pet-phase0-patches/`（`git format-patch`）。在有凭据的机器上：`git fetch /path/pet-phase0.bundle studio/pet-phase0:studio/pet-phase0 && git push -u origin studio/pet-phase0`，或 `git am pet-phase0-patches/*.patch`。
