@@ -24,17 +24,19 @@ Browser half of the built-in Studio Pet. It mirrors the Host [`pet`](../../pet/p
 <a id="use-this-package"></a>
 ## Use this package
 
-The web-app bundle mounts this plugin with the Host `pet` module. Opening any Web page shows the character in the bottom-right corner. Append `?dsh-pet-window=1` to preview the pet-window surface in a browser. Desktop opens a separate transparent always-on-top window on that URL. The Desktop main window then shows no in-page character. In the pet window, dragging the character more than 4 px moves the window instead of opening the bubble, and the Desktop tray can show or hide the pet through the same Host setting. `CommandOrControl+Shift+Space` opens the quick ask from anywhere and shows the pet again after it was hidden.
+The web-app bundle mounts this plugin with the Host `pet` module. The Web character starts near the bottom-right corner; drag it to reposition it, with the position saved on this device. Append `?dsh-pet-window=1` to preview the pet-window surface in a browser. Desktop opens a separate transparent always-on-top window on that URL. The Desktop main window then shows no in-page character. In the pet window, dragging the character more than 4 px moves the window instead of opening the bubble, and the Desktop tray can show or hide the pet through the same Host setting. `CommandOrControl+Shift+Space` opens the quick ask from anywhere and shows the pet again after it was hidden.
 
 Right-click the character for its menu: Quick ask, Open main window (Desktop only), notifications on or off, do not disturb for one hour, and Hide pet. Escape closes the menu. Open main window brings the Desktop main window forward and opens the Session the pet is showing; the Open main window buttons on approval and question cards open that card's Session. On Web, where there is no separate window, those card buttons open the Session in the current page.
 
 System notifications are off until you turn them on from the menu, which also asks the browser or Desktop for permission. When on, the pet notifies about a new approval request and about a Session that finishes or fails, but only while you are not looking at the pet's document and no do-not-disturb hour is running. Clicking a notification brings the app forward and opens the notified Session. Both settings are stored per device in `localStorage` (`dsh-pet:preferences`) and are not synced; the Desktop pet window and main window follow each other's writes through `storage` events.
 
-The Settings panel has a **Pet** page (`settings.section`, id `pet`) on Web and in the Desktop main window, registered while ui-settings is mounted and the Host serves the `pet` entry. It edits the Host [`pet`](../../pet/pet/README.md) fields through `configForms`: Show desktop pet, the three notification categories (new approval, task finished, task failed), and Restrict which tools can be approved from the pet with its tool list (off by default, so the pet can approve every tool). The page also holds the per-device notification switch and states whether the pet runs in the Desktop window or inside the page.
+The Settings panel has a **Dafeiyu** page (`settings.section`, id `pet`) on Web and in the Desktop main window, registered while ui-settings is mounted and the Host serves the `pet` entry. It edits the Host [`pet`](../../pet/pet/README.md) fields through `configForms`: Show desktop pet, the three notification categories (new approval, task finished, task failed), and Restrict which tools can be approved from the pet with its tool list (off by default, so the pet can approve every tool). The page also holds the per-device notification switch and states whether the pet runs in the Desktop window or inside the page.
 
 Approval cards keep both buttons disabled for 800 ms after they appear, and Enter never approves. An approval whose tool the settings restrict shows no buttons; it explains the restriction and offers Open main window. Deciding in the pet and deciding in the main window answer the same Host request; the first answer wins and the other surface closes its card.
 
 When the agent asks a question (`ask_user_question`) and no approval is waiting, the bubble shows a question card. Questions that only offer single-choice options are answered in the pet, after the same 800 ms delay: one click for a single question, or one choice per question and then Submit. Free-text and multi-select questions show a button that opens the main window.
+
+Built-in motion is fetched on demand from the Host, with the small embedded frame set as a fallback. The idle-only action menu offers original interactions plus bubbles, a nap, nuzzling, and celebration. Optional body-area clicks select head, body, or tail actions; the default single click still opens the panel. Per-device settings control quiet/standard/lively idle intervals, wandering (off by default), effects, and reduced motion. Work, questions, approvals, dragging, and an open panel displace idle play. The four new interactions use eight key poses each, not interpolated 24 fps animation.
 
 -----
 
@@ -69,7 +71,7 @@ None; a quick ask is an ordinary user prompt.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **MVP scope** — no touch reactions, sounds, or talking state; dragging moves only the Desktop pet window, and the Web character stays in its corner. The frame set is a small embedded subset.
+- **Media support** — built-in clips use transparent VP9 videos and four eight-pose interaction sheets. Development packs still use frames. Sounds and talking state are not implemented; Desktop movement needs platform testing.
 - **One approval per Session** — Session status exposes the highest-precedence pending interaction, so a second parallel approval in the same Session is answered in the main window.
 - **Re-show entry points** — hiding leaves a small whale handle in the Web page corner. Desktop offers the global shortcut, the Settings page, and on Windows the tray; macOS has no menu-bar entry yet.
 

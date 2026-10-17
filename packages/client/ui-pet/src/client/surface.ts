@@ -16,6 +16,8 @@ export interface DesktopPetBridge {
    * Let the pet window receive pointer input (`true`) or pass clicks through to the desktop (`false`).
    * @param interactive - whether the window takes pointer input.
    */
+  /** Enable bounded idle wandering; older Desktop bridges simply omit this capability. */
+  readonly wander?: (active: boolean) => void
   readonly setInteractive: (interactive: boolean) => void
   /**
    * Show or hide the pet window to follow the Host "show desktop pet" value.

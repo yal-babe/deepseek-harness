@@ -5,7 +5,7 @@ export interface PetPagePoint {
 }
 
 export const PET_PAGE_POSITION_KEY = 'dsh-pet:page-position'
-export const PET_CHARACTER_SIZE = { width: 112, height: 121 } as const
+export const PET_CHARACTER_SIZE = { width: 112, height: 142 } as const
 const MARGIN = 8
 
 /** Clamp a character origin to the available viewport, including tiny windows. */

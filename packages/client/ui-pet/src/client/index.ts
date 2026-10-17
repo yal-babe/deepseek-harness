@@ -125,6 +125,7 @@ function registerSettings(ctx: ClientContext, deps: {
       setSwitch: (field, value) => editor.setSwitch(field, value),
       setRestrictedTools: tools => editor.setRestrictedTools(tools),
       setDeviceNotify: on => setDeviceNotify(deps.notifications, deps.preferences, on),
+      setPreferences: patch => deps.preferences.update(patch),
     })
     scope.effect(() => scope.configForms.whileServed([PET_SETTINGS_NAMESPACE], () => scope.slots.inject('settings.section', () =>
       scope.slots.register({

@@ -91,6 +91,10 @@ export class DesktopPetWindow {
   private started = false
   private hostVisible: boolean | undefined
   private drag: { readonly cursor: PetPoint; readonly origin: PetPoint } | undefined
+  private wanderTimer: ReturnType<typeof setTimeout> | undefined
+  private wanderMove: ReturnType<typeof setInterval> | undefined
+  private wandering = false
+  private interactive = false
   private readonly relocate = (): void => { this.place() }
 
   /** @param options - main-process collaborators. */
@@ -195,6 +199,8 @@ export class DesktopPetWindow {
   setInteractive(interactive: boolean): void {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
+    this.interactive = interactive
+    if (interactive) this.stopWanderMove()
     if (interactive) window.setIgnoreMouseEvents(false)
     else window.setIgnoreMouseEvents(true, { forward: true })
   }
@@ -208,7 +214,7 @@ export class DesktopPetWindow {
     if (window === undefined || window.isDestroyed()) return
     const changed = this.hostVisible !== visible
     this.hostVisible = visible
-    if (!visible) window.hide()
+    if (!visible) { this.setWandering(false); window.hide() }
     else if (!window.isVisible()) {
       // Displays may have changed while hidden.
       this.place()
@@ -219,6 +225,7 @@ export class DesktopPetWindow {
 
   /** Start moving the window with the cursor. */
   dragStart(): void {
+    this.stopWanderMove()
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
     const [x = 0, y = 0] = window.getPosition()
@@ -244,6 +251,50 @@ export class DesktopPetWindow {
     const fitted = fitPetPosition({ x, y }, displays, PET_WINDOW_SIZE) ?? this.position()
     this.moveTo(fitted)
     void this.options.positions?.set(petDisplayLayout(displays), fitted)
+  }
+
+  /** Schedule short movements only while the renderer reports an unobstructed idle surface. */
+  setWandering(active: boolean): void {
+    if (this.disposed || this.wandering === active) return
+    this.wandering = active
+    if (!active) {
+      if (this.wanderTimer !== undefined) clearTimeout(this.wanderTimer)
+      this.wanderTimer = undefined
+      this.stopWanderMove()
+      return
+    }
+    const step = (): void => {
+      this.wanderTimer = undefined
+      const window = this.window
+      if (!this.wandering || window === undefined || window.isDestroyed()) return
+      const [x = 0, y = 0] = window.getPosition()
+      const cursor = screen.getCursorScreenPoint()
+      const near = Math.hypot(cursor.x - (x + PET_WINDOW_SIZE.width - 64), cursor.y - (y + PET_WINDOW_SIZE.height - 70)) < 180
+      if (!this.interactive && !near && this.drag === undefined && window.isVisible()) {
+        const target = fitPetPosition({ x: x + (Math.random() - 0.5) * 160, y: y + (Math.random() - 0.5) * 100 },
+          screen.getAllDisplays(), PET_WINDOW_SIZE)
+        if (target !== undefined) {
+          let frame = 0
+          this.wanderMove = setInterval(() => {
+            frame += 1
+            const progress = Math.min(1, frame / 30)
+            const eased = progress * progress * (3 - 2 * progress)
+            this.moveTo({ x: x + (target.x - x) * eased, y: y + (target.y - y) * eased })
+            if (progress === 1) {
+              this.stopWanderMove()
+              void this.options.positions?.set(petDisplayLayout(screen.getAllDisplays()), target)
+            }
+          }, 33)
+        }
+      }
+      this.wanderTimer = setTimeout(step, 18000 + Math.random() * 15000)
+    }
+    this.wanderTimer = setTimeout(step, 18000)
+  }
+
+  private stopWanderMove(): void {
+    if (this.wanderMove !== undefined) clearInterval(this.wanderMove)
+    this.wanderMove = undefined
   }
 
   /** Show the pet with keyboard focus and ask the renderer to open the quick ask. */
@@ -291,6 +342,7 @@ export class DesktopPetWindow {
       [PET_IPC.dragStart, guard(() => { this.dragStart() })],
       [PET_IPC.dragMove, guard(() => { this.dragMove() })],
       [PET_IPC.dragEnd, guard(() => { this.dragEnd() })],
+      [PET_IPC.wander, guard((value) => { if (typeof value === 'boolean') this.setWandering(value) })],
     ]
     for (const [channel, listener] of listeners) ipc.on(channel, listener)
     return () => { for (const [channel, listener] of listeners) ipc.removeListener(channel, listener) }
@@ -298,6 +350,7 @@ export class DesktopPetWindow {
 
   /** Release the shortcut and close the window. */
   dispose(): void {
+    this.setWandering(false)
     this.disposed = true
     this.unregisterShortcut()
     screen.removeListener('display-added', this.relocate)

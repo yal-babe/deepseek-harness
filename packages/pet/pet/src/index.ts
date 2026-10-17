@@ -11,6 +11,8 @@ import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { PetReducer } from './reducer.ts'
 import type { PetSessionMeta } from './reducer.ts'
 import { loadPetDevPacks } from './dev-packs.ts'
+import { builtinAssets, PET_MEDIA_PATH } from './builtin-assets.ts'
+import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { PetPackState, PetSettingsView, PetSnapshot } from './types.ts'
 // Type-only: the `settings` service (`settings.update`) and the Loader's `loader/volatile-update` event.
 import type {} from '@deepseek-ai/dsh-settings'
@@ -91,6 +93,8 @@ export class PetService extends TypertRemoteService {
   private readonly debounceMs: number
   private readonly entryId: string | undefined
   private packState: Promise<PetPackState> | undefined
+  private builtin: PetPackState | undefined
+  private builtinReady: Promise<void> | undefined
   /** Visibility set through `setVisible()` in a composition without Settings or a profile entry. */
   private visibleOverride: boolean | undefined
   private pinned: SessionId | undefined
@@ -110,6 +114,18 @@ export class PetService extends TypertRemoteService {
       errorHoldMs: config.errorHoldMs,
       maxSessions: config.maxSessions,
       waitingPreempts: config.waitingPreempts,
+    })
+    ctx.inject(['webServer'], (scope) => {
+      scope.effect(() => {
+        let live = true
+        let remove: (() => void) | undefined
+        this.builtinReady = builtinAssets().then((assets) => {
+          if (!live) return
+          remove = scope.webServer.register({ kind: 'prefix', path: PET_MEDIA_PATH, handler: assets.handler })
+          this.builtin = assets.pack
+        }).catch((error) => { scope.logger.warn('pet: built-in media unavailable: %s', error) })
+        return () => { live = false; remove?.(); this.builtin = undefined }
+      }, 'pet: built-in media route')
     })
     this.debounceMs = config.snapshotDebounceMs
     this.entryId = ctx.fiber.entry?.options.id
@@ -256,15 +272,18 @@ export class PetService extends TypertRemoteService {
   }
 
   /**
-   * Character pack to render instead of the built-in pack. Only the development switch
-   * (`DSH_PET_DEV=1`, `DSH_PET_DEV_PACKS=<dir>`) offers one in this release; the directory
-   * is read once per Host lifetime.
+   * Character pack and optional built-in media. A valid development pack takes precedence;
+   * otherwise the built-in media is offered when the webServer route is ready. Without
+   * webServer the Client keeps its embedded fallback. Development directories are read once.
    * @returns the offered pack, if any, and the skipped candidates with their reasons.
    */
   @Remote
-  pack(): Promise<PetPackState> {
+  async pack(): Promise<PetPackState> {
     this.packState ??= loadPetDevPacks(process.env)
-    return this.packState
+    const offered = await this.packState
+    if (offered.pack !== null) return offered
+    await this.builtinReady
+    return this.builtin === undefined ? offered : { ...this.builtin, problems: offered.problems }
   }
 }
 

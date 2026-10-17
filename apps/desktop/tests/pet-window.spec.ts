@@ -296,6 +296,34 @@ describe('DesktopPetWindow', () => {
     await Promise.resolve()
   })
 
+  it('wanders within the work area and cancels movement and timers when hidden', () => {
+    vi.useFakeTimers()
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { pet, positions } = setup()
+    try {
+      pet.open()
+      pet.setVisible(true)
+      const fake = native.windows[0]!
+      fake.setBounds.mockClear()
+      pet.setWandering(true)
+      vi.advanceTimersByTime(19000)
+      expect(fake.setBounds).toHaveBeenCalled()
+      expect(positions.set).toHaveBeenCalledOnce()
+      const count = fake.setBounds.mock.calls.length
+      pet.setInteractive(true)
+      vi.advanceTimersByTime(40000)
+      expect(fake.setBounds).toHaveBeenCalledTimes(count)
+      pet.setVisible(false)
+      expect(vi.getTimerCount()).toBe(0)
+      pet.dispose()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      pet.dispose()
+      random.mockRestore()
+      vi.useRealTimers()
+    }
+  })
+
   it('reports Host visibility changes and re-places the window when it shows again', () => {
     const saved: Record<string, { x: number; y: number }> = {}
     const { pet, onVisibleChange } = setup(saved)

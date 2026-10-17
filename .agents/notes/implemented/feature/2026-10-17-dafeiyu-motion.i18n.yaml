@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-17-dafeiyu-motion.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-17-dafeiyu-motion.md
+/agent-note-dafeiyu-media-and-device-local-play:
+  en: c1276809136a694b
+  zh: e8aa2e9308155211
+/agent-note-dafeiyu-media-and-device-local-play/problem:
+  en: 598f2cc52c08029d
+  zh: dcb01bfed8e3cbc0
+/agent-note-dafeiyu-media-and-device-local-play/decision:
+  en: b663fb73d9b23ce8
+  zh: be7080c3bef28192
+/agent-note-dafeiyu-media-and-device-local-play/alternatives-considered:
+  en: 10f354b2bfccc340
+  zh: 22fcb122ef420f99
+/agent-note-dafeiyu-media-and-device-local-play/consequences:
+  en: 51846818fb0fc518
+  zh: 37dce913d28d7111
+/agent-note-dafeiyu-media-and-device-local-play/verification:
+  en: 08dde558b68fe73b
+  zh: 930e27eb1759863e

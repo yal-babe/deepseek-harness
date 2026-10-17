@@ -1,0 +1,311 @@
+{
+  "formatVersion": 1,
+  "renderer": "vp9-alpha",
+  "width": 206,
+  "height": 172,
+  "repository": "https://github.com/qcytsn/dsh-dafeiyu",
+  "revision": "43542f8fc9567f45ce98534d407abca2ff4ff74e",
+  "upstream": {
+    "repository": "https://github.com/PC2005-cloud/dsh-pet",
+    "commit": "549fff2ea33c2acfb16612c76912c6137da4a758",
+    "directory": "dsh-pet/assets/webm",
+    "fps": 24,
+    "crop": [
+      100,
+      0,
+      412,
+      344
+    ],
+    "webpQuality": 68
+  },
+  "clips": {
+    "idle": {
+      "file": "assets/motion/idle.webm",
+      "loop": true,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "cf92b5e0bfb14898f2e326ea12bbc59ca7db942a938b86f5785e60bd7d09a91a",
+      "source": {
+        "file": "待机呼吸休闲.webm",
+        "sha256": "deb965d05a85dacf5ff4a20faa757846f0d11679598c3ec578a5571487660395",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "waiting": {
+      "file": "assets/motion/waiting.webm",
+      "loop": true,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "91ab3c938888b6de6f5692d77acdc5276ef3f99ad7c61855894a73b3076438c0",
+      "source": {
+        "file": "工作状态-原地踱步张望.webm",
+        "sha256": "a56c17ef901fa531324a46a04def2381f65922d319ec83dadde34d2a4669e411",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "thinking": {
+      "file": "assets/motion/thinking.webm",
+      "loop": true,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "64b9568c05440b5a4cd6d23d63ec33f8b99e56f03ccfaf3968fd8dbb95048a59",
+      "source": {
+        "file": "工作状态-思考冒泡.webm",
+        "sha256": "b4a36cfa28ea5d7089e362a01972c6e880297c6dcd0d39f1994efd889a3c1be5",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "working": {
+      "file": "assets/motion/working.webm",
+      "loop": true,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "f0f91b3af3859c1968fe7e6a5895077a4a5df9e735d77f2dcfeb4f62832ed3bd",
+      "source": {
+        "file": "工作状态-忙碌点按.webm",
+        "sha256": "b5d702e0c04adb7b255ac702001c24da36c8bf95efc891f693f4976986ab2435",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "working_search": {
+      "file": "assets/motion/working_search.webm",
+      "loop": true,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "fcc28bf143b9a262cdbbc7a5f8e8d0093b5b3369858b2387712ff29d3cbb7f9e",
+      "source": {
+        "file": "工作状态-原地踱步张望.webm",
+        "sha256": "a56c17ef901fa531324a46a04def2381f65922d319ec83dadde34d2a4669e411",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "working_command": {
+      "file": "assets/motion/working_command.webm",
+      "loop": true,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "0acc429d241b2a34eaa55178e748ec50e52e7da5ebace853f3abb1a0e0b8d9c9",
+      "source": {
+        "file": "工作状态-清点归档.webm",
+        "sha256": "8c84f58f3a9e7b912e1cbfd89f77eb3652053fc9b2844295c8440cb636305d3b",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "success": {
+      "file": "assets/motion/success.webm",
+      "loop": false,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "d65e5d76e2d9d7776797e6003f172778d46f8cf7fe916990c2dbf60715f21c29",
+      "source": {
+        "file": "工作状态-雀跃庆祝.webm",
+        "sha256": "3ff681051a0bb4f152d7535d64b7f3194c30298bf56d41e521216a278f135d3e",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "error": {
+      "file": "assets/motion/error.webm",
+      "loop": false,
+      "durationMs": 4956,
+      "frames": 118,
+      "sha256": "9e946f61094a398d95eb2df3b4f4070b0308da14270744b01a5878858d44ae76",
+      "source": {
+        "file": "工作状态-垂头叹气冒汗.webm",
+        "sha256": "ab00c844e62221905574b4c070e0d7b6fa14fb2afa1064c27a160f10e25f7196",
+        "startFrame": 0,
+        "endFrame": 118,
+        "frameCount": 118
+      }
+    },
+    "dragging": {
+      "file": "assets/motion/dragging.webm",
+      "loop": true,
+      "durationMs": 6048,
+      "frames": 144,
+      "sha256": "6e31c9ed8bec439dc4db84288f42ceac91de9774c718ad8033b0924907f536c9",
+      "source": {
+        "file": "被鼠标拖拽悬空反馈.webm",
+        "sha256": "31373a86026636eecc890db763760309360310eb095cf5575b13c9ca2a6cc80e",
+        "startFrame": 48,
+        "endFrame": 192,
+        "frameCount": 241
+      }
+    },
+    "dragging_release": {
+      "file": "assets/motion/dragging_release.webm",
+      "loop": false,
+      "durationMs": 2058,
+      "frames": 49,
+      "sha256": "150e77794f2100ac613410a747fe5e4c4f1f19a11e0909dfdf653833b4971ab7",
+      "source": {
+        "file": "被鼠标拖拽悬空反馈.webm",
+        "sha256": "31373a86026636eecc890db763760309360310eb095cf5575b13c9ca2a6cc80e",
+        "startFrame": 192,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "head_pat": {
+      "file": "assets/motion/head_pat.webm",
+      "loop": false,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "c5387090355970746f9ad54d54bfed80137ce5fb09a2bfead0bd7507ab597a9e",
+      "source": {
+        "file": "点击回应-挠痒咯咯笑.webm",
+        "sha256": "f228279219f4084323ca1bfef1604f7c77bb3f505d45a8d1747b5ac3f9f2393b",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "poke": {
+      "file": "assets/motion/poke.webm",
+      "loop": false,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "7bd582a5f54b70ab89f6ad1dda625e3b0056b32c06606048f40deaea930b4505",
+      "source": {
+        "file": "点击回应-元气挥手.webm",
+        "sha256": "48cd729ccdcf746369942ea954d242e9afdd5643e1dac3827fa5e67450eb8776",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "tail": {
+      "file": "assets/motion/tail.webm",
+      "loop": false,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "9089168846f617a6cb10088a6c5d439322c75367cf70d6ddc21d4ba106d5f596",
+      "source": {
+        "file": "鲸鱼吐泡泡特效.webm",
+        "sha256": "d64d02059dc1602f7de5aa3135d381351363f021b2bceed47655db322cc71db3",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "eat_token": {
+      "file": "assets/motion/eat_token.webm",
+      "loop": false,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "e7c778b49d6ded971f830d972dfc3a37d14152093f045cf2b39c9485da07ca58",
+      "source": {
+        "file": "吃Token.webm",
+        "sha256": "d46ef798fb189cd7652f63d03a35e6f314e5a598b4a65f76202ec95852eb719c",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "idle_stretch": {
+      "file": "assets/motion/idle_stretch.webm",
+      "loop": false,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "64048cdd495a0fdded6eca3b09122bd8aad7f10ee1e34f3078400754405d69bd",
+      "source": {
+        "file": "超大伸懒腰.webm",
+        "sha256": "0ac66d918cc5efd49be1273c3830de73eae5f9bdcd5fcb968d1b2f9b487705ad",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "idle_yawn": {
+      "file": "assets/motion/idle_yawn.webm",
+      "loop": false,
+      "durationMs": 10122,
+      "frames": 241,
+      "sha256": "41013d59de8a570012cbe583a931a17b2749c894df064fa96570a489f41e400b",
+      "source": {
+        "file": "哈欠连天.webm",
+        "sha256": "2b23372e1ff2bc2f9078c09740708c960d4ea021f9fc3cca294d9df11e393ec8",
+        "startFrame": 0,
+        "endFrame": 241,
+        "frameCount": 241
+      }
+    },
+    "bubbles": {
+      "file": "assets/motion/bubbles.png",
+      "loop": false,
+      "durationMs": 3200,
+      "frames": 8,
+      "sheet": {
+        "columns": 4,
+        "rows": 2,
+        "frames": 8
+      },
+      "source": {
+        "kind": "generated",
+        "date": "2026-10-17",
+        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+      }
+    },
+    "sleep": {
+      "file": "assets/motion/sleep.png",
+      "loop": false,
+      "durationMs": 3200,
+      "frames": 8,
+      "sheet": {
+        "columns": 4,
+        "rows": 2,
+        "frames": 8
+      },
+      "source": {
+        "kind": "generated",
+        "date": "2026-10-17",
+        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+      }
+    },
+    "nuzzle": {
+      "file": "assets/motion/nuzzle.png",
+      "loop": false,
+      "durationMs": 3200,
+      "frames": 8,
+      "sheet": {
+        "columns": 4,
+        "rows": 2,
+        "frames": 8
+      },
+      "source": {
+        "kind": "generated",
+        "date": "2026-10-17",
+        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+      }
+    },
+    "celebrate": {
+      "file": "assets/motion/celebrate.png",
+      "loop": false,
+      "durationMs": 3200,
+      "frames": 8,
+      "sheet": {
+        "columns": 4,
+        "rows": 2,
+        "frames": 8
+      },
+      "source": {
+        "kind": "generated",
+        "date": "2026-10-17",
+        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@
  * other pack, and its frames are bundled as data URLs. A development pack the
  * Host offers replaces it at runtime.
  */
-import type { PetAgentState, PetPackState } from '@deepseek-ai/dsh-pet/types'
+import type { PetAgentState, PetPackState, PetMotionView } from '@deepseek-ai/dsh-pet/types'
 import { parsePetPack, resolvePetClip, type PetPackManifest, type PetPackText } from '@deepseek-ai/dsh-pet/pack'
 import builtinManifest from '@deepseek-ai/dsh-pet/packs/whaletail-maid/pet.json'
 import idle1 from '@deepseek-ai/dsh-pet/packs/whaletail-maid/assets/frames/idle-1.webp'
@@ -59,6 +59,7 @@ export interface PetFrameSet {
   /** Image URL lists per clip. */
   readonly frames: Readonly<Record<PetClip, readonly string[]>>
   /** Unsigned development pack; the character shows a marker. */
+  readonly motion?: PetMotionView
   readonly loops?: Readonly<Record<PetClip, boolean>>
   readonly dev: boolean
 }
@@ -167,7 +168,10 @@ export function offeredFrameSet(state: PetPackState): PetFrameSet | undefined {
   const offered = state.pack
   if (offered === null) return undefined
   try {
-    return petFrameSet(requirePetPack(offered.manifest), offered.assets, true)
+    return {
+      ...petFrameSet(requirePetPack(offered.manifest), offered.assets, offered.dev),
+      ...offered.motion === undefined ? {} : { motion: offered.motion },
+    }
   } catch (_unusable) {
     // An invalid manifest or a frame without an asset makes the whole pack unusable.
     return undefined

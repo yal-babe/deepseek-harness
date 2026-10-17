@@ -3,6 +3,7 @@
  * do-not-disturb. They never leave the browser profile; documents of the same
  * profile (the Desktop pet window and main window) follow each other's writes.
  */
+import type { PetActivityLevel } from './motion.ts'
 import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 
 /** Storage key of the preference record. */
@@ -14,6 +15,11 @@ export const PET_SNOOZE_MS = 60 * 60 * 1000
 /** Device-local pet preferences. */
 export interface PetPreferences {
   /** Whether system notifications are on (opt-in). */
+  readonly activity?: PetActivityLevel
+  readonly effects?: boolean
+  readonly interactive?: boolean
+  readonly roam?: boolean
+  readonly reducedMotion?: boolean
   readonly notify: boolean
   /** Epoch milliseconds until which notifications are snoozed. */
   readonly snoozeUntil: number | undefined
@@ -43,7 +49,14 @@ export function parsePreferences(raw: string | null): PetPreferences {
   if (typeof value !== 'object' || value === null) return DEFAULTS
   const notify = 'notify' in value && typeof value.notify === 'boolean' ? value.notify : DEFAULTS.notify
   const snoozeUntil = 'snoozeUntil' in value && typeof value.snoozeUntil === 'number' ? value.snoozeUntil : undefined
-  return { notify, snoozeUntil }
+  return {
+    notify, snoozeUntil,
+    ...'activity' in value && (value.activity === 'quiet' || value.activity === 'normal' || value.activity === 'lively') ? { activity: value.activity } : {},
+    ...'effects' in value && typeof value.effects === 'boolean' ? { effects: value.effects } : {},
+    ...'interactive' in value && typeof value.interactive === 'boolean' ? { interactive: value.interactive } : {},
+    ...'roam' in value && typeof value.roam === 'boolean' ? { roam: value.roam } : {},
+    ...'reducedMotion' in value && typeof value.reducedMotion === 'boolean' ? { reducedMotion: value.reducedMotion } : {},
+  }
 }
 
 /** `storage` event fields read by {@link PetPreferenceStore.follow}. */

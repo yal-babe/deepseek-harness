@@ -48,6 +48,7 @@ function mount(snapshot: Partial<ConfigFormSnapshot<PetSettingsFields>> = {}, op
     setSwitch: (field, value) => editor.setSwitch(field, value),
     setRestrictedTools: tools => editor.setRestrictedTools(tools),
     setDeviceNotify,
+    setPreferences: patch => preferences.update(patch),
   } as PetSettingsProps & PropsRuntime<'settings.section'>
   render(<PetSettingsSection {...props} />)
   return { store, set, setDeviceNotify }
@@ -86,6 +87,19 @@ describe('PetSettingsSection', () => {
     await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'settings.notifySuccess' })) })
     expect(set.mock.calls).toEqual([['visible', false], ['notifySuccess', false]])
     expect(screen.queryByRole('textbox', { name: 'settings.toolName' })).toBeNull()
+  })
+
+  it('changes local animation options without writing Host configuration', () => {
+    const { set } = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'settings.lively' }))
+    expect(screen.getByRole('button', { name: 'settings.lively' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('switch', { name: 'settings.roam' }))
+    expect(screen.getByRole('switch', { name: 'settings.roam' }).getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(screen.getByRole('switch', { name: 'settings.effects' }))
+    expect(screen.getByRole('switch', { name: 'settings.effects' }).getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(screen.getByRole('switch', { name: 'settings.interactive' }))
+    fireEvent.click(screen.getByRole('switch', { name: 'settings.reducedMotion' }))
+    expect(set).not.toHaveBeenCalled()
   })
 
   it('edits the restricted tool list while the restriction is on', async () => {

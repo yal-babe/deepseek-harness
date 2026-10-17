@@ -38,6 +38,8 @@ export interface PetSettingsInjected {
    * @param on - requested value.
    */
   setDeviceNotify(on: boolean): Promise<boolean>
+  /** Device-local animation and interaction controls. */
+  setPreferences(patch: Partial<PetPreferences>): void
 }
 
 /** Props of the settings page. */
@@ -110,7 +112,8 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
   const { t, desktop, canNotify } = props
   const form = props.useForm(value => value)
   const write = props.useWrite(value => value)
-  const deviceNotify = props.usePreferences(value => value.notify)
+  const preferences = props.usePreferences(value => value)
+  const deviceNotify = preferences.notify
   if (form.status === 'unavailable') return <div className={css.section}><div className={css.description}>{t('settings.unavailable')}</div></div>
   const value = form.value
   const locked = value === undefined || !form.writable || write.busy
@@ -124,6 +127,31 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
       <h3 className={css.group}>{t('settings.general')}</h3>
       <Row title={t('settings.visible')} hint={t('settings.visibleHint')}>{toggle('visible', t('settings.visible'))}</Row>
       <div className={css.note}>{desktop ? t('settings.modeDesktop') : t('settings.modeBrowser')}</div>
+      <h3 className={css.group}>{t('settings.behavior')}</h3>
+      <Row title={t('settings.activity')}>
+        <div className={css.activity} role="group" aria-label={t('settings.activity')}>
+          {(['quiet', 'normal', 'lively'] as const).map(level => <Button key={level} size="sm"
+            variant={(preferences.activity ?? 'normal') === level ? 'outline' : 'ghost'}
+            aria-pressed={(preferences.activity ?? 'normal') === level}
+            onClick={() => { props.setPreferences({ activity: level }) }}>{t(`settings.${level}`)}</Button>)}
+        </div>
+      </Row>
+      <Row title={t('settings.interactive')} hint={t('settings.interactiveHint')}>
+        <Switch checked={preferences.interactive === true} label={t('settings.interactive')}
+          onChange={(interactive) => { props.setPreferences({ interactive }) }} />
+      </Row>
+      <Row title={t('settings.roam')} hint={t('settings.roamHint')}>
+        <Switch checked={preferences.roam === true} label={t('settings.roam')}
+          onChange={(roam) => { props.setPreferences({ roam }) }} />
+      </Row>
+      <Row title={t('settings.effects')}>
+        <Switch checked={preferences.effects !== false} label={t('settings.effects')}
+          onChange={(effects) => { props.setPreferences({ effects }) }} />
+      </Row>
+      <Row title={t('settings.reducedMotion')}>
+        <Switch checked={preferences.reducedMotion === true} label={t('settings.reducedMotion')}
+          onChange={(reducedMotion) => { props.setPreferences({ reducedMotion }) }} />
+      </Row>
       <h3 className={css.group}>{t('settings.notifications')}</h3>
       <Row title={t('settings.deviceNotify')} hint={canNotify ? t('settings.deviceNotifyHint') : t('settings.notifyUnsupported')}>
         <Switch checked={deviceNotify} label={t('settings.deviceNotify')} disabled={!canNotify}

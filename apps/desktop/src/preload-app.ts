@@ -91,6 +91,7 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
     contextBridge.exposeInMainWorld('dshDesktopPet', {
       protocolVersion: 1,
       role: new URLSearchParams(location.search).get(PET_WINDOW_QUERY) === '1' ? 'pet' : 'main',
+      wander: (active: boolean) => { ipcRenderer.send(PET_IPC.wander, active) },
       setInteractive: (interactive: boolean) => { ipcRenderer.send(PET_IPC.setInteractive, interactive) },
       setVisible: (visible: boolean) => { ipcRenderer.send(PET_IPC.setVisible, visible) },
       openMain: (sessionId?: string) => { ipcRenderer.send(PET_IPC.openMain, sessionId) },

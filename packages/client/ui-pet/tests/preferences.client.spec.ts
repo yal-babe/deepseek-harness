@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PetPreferenceStore, type PreferenceStorage, type PreferenceStorageEvent } from '../src/client/preferences.ts'
 
 describe('parsePreferences', () => {
+  it('persists independent activity and accessibility options while rejecting invalid levels', () => {
+    expect(parsePreferences('{"activity":"lively","effects":false,"interactive":true,"roam":true,"reducedMotion":true}'))
+      .toMatchObject({ activity: 'lively', effects: false, interactive: true, roam: true, reducedMotion: true })
+    expect(parsePreferences('{"activity":"every-second","effects":"yes"}')).toEqual({ notify: false, snoozeUntil: undefined })
+  })
+
   it('falls back to defaults field by field', () => {
     expect(parsePreferences(null)).toEqual({ notify: false, snoozeUntil: undefined })
     expect(parsePreferences('{')).toEqual({ notify: false, snoozeUntil: undefined })

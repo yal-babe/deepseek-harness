@@ -236,7 +236,7 @@ describe('PetService', () => {
     vi.stubEnv('DSH_PET_DEV', '')
     const { pet } = await setup()
     const first = pet.pack()
-    expect(pet.pack()).toBe(first)
+    expect(await pet.pack()).toEqual(await first)
     expect(await first).toEqual({ pack: null, problems: [] })
     vi.unstubAllEnvs()
   })

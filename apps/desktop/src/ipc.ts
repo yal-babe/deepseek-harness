@@ -47,6 +47,7 @@ export const PET_IPC = {
   dragStart: 'dsh-pet:drag-start',
   dragMove: 'dsh-pet:drag-move',
   dragEnd: 'dsh-pet:drag-end',
+  wander: 'dsh-pet:wander',
 } as const
 
 /** Query parameter the ui-pet Client reads to render only the pet. */

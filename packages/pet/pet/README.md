@@ -42,7 +42,7 @@ The volatile Config fields are the shared pet settings. The ui-pet settings page
 
 A pet pack is a directory, not an npm plugin: `pet.json` (format version 2), `lines.json` (zh/en lines by trigger), `assets/`, and `LICENSE`. The built-in pack `whaletail-maid@1.0.0` lives in `packs/whaletail-maid` and is exported as `@deepseek-ai/dsh-pet/packs/*`; ui-pet bundles its frames. `@deepseek-ai/dsh-pet/pack` is the pure, browser-safe parser both sides use: `parsePetPack` checks the format version, id and version, `engines` (caret ranges against pet runtime 1.0.0 and pet API 1), the renderer, the canvas, the frame rate, known animation slots, the required slots (`idle`, `thinking`, `working`, `waiting`, `success`, `error`, `dragging`, each with frames or a `ref`), pack-relative `.webp` / `.png` paths without `..`, reference targets and cycles, and the persona block. It returns every problem at once. `resolvePetClip` follows `ref` and the slot fallback chain down to `idle`. This runtime renders the `frames` renderer only; `spritesheet`, Spine, and Live2D packs are rejected.
 
-For pack development, `DSH_PET_DEV=1` with `DSH_PET_DEV_PACKS=<dir>` makes `pet.pack()` offer the first valid pack among the subdirectories of `<dir>` (sorted by name), unsigned and marked `dev: true`, with its frames as data URLs (at most 4 MiB per image and 30 MiB per pack). Skipped directories come back in `problems` with their reasons. The directory is read once per Host lifetime. Without the switch `pet.pack()` returns `{ pack: null, problems: [] }` and Clients keep the built-in pack. Signed packs from studio-cloud are not loaded yet.
+For pack development, `DSH_PET_DEV=1` with `DSH_PET_DEV_PACKS=<dir>` makes `pet.pack()` offer the first valid pack among the subdirectories of `<dir>` (sorted by name), unsigned and marked `dev: true`, with its frames as data URLs (at most 4 MiB per image and 30 MiB per pack). Skipped directories come back in `problems` with their reasons. The directory is read once per Host lifetime. Without the switch, `pet.pack()` offers built-in media when `webServer` is available; otherwise it returns `{ pack: null, problems: [] }` and Clients keep the embedded fallback. Signed packs from studio-cloud are not loaded yet.
 
 -----
 
@@ -88,8 +88,10 @@ None; this package neither assembles nor sends a provider request.
 <a id="known-limitations-and-deferred-work"></a>
 
 - **MVP scope** — `TALKING`, compaction and retry states are not implemented. Settings beyond visibility, tool restriction, and notification categories (bubble, persona, hotkeys, updates) are not implemented.
-- **Packs** — only the `frames` renderer and development packs; no signed studio-cloud packs, content packs, outfits, scripts, or sounds. `lines.json` is shipped and checked by tests but not yet spoken.
+- **Packs** — development packs use the `frames` renderer; built-in media also supports video and sprite clips; no signed studio-cloud packs, content packs, outfits, scripts, or sounds. `lines.json` is shipped and checked by tests but not yet spoken.
 - **No Host-side approval decision** — deciding from the Host would need user-approval to cancel forwarded Client requests; Clients answer instead.
+
+When `webServer` is available, `pet.pack()` offers the built-in media alongside its fallback frame manifest. `/pet-motion` serves only allowlisted shipped media, supports GET, HEAD, and a single byte range, and removes its route with the owning plugin. The 16 transparent VP9 clips preserve all 3,444 imported frames; four generated interaction sheets contain eight poses each. Their source and encoding records live in `packs/whaletail-maid/motion.json`; the upstream MIT license is included in `MOTION_LICENSE.txt`. A valid development pack takes precedence.
 
 <a id="dev-note"></a>
 ### Dev Note

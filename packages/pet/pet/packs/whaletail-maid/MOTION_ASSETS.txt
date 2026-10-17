@@ -1,0 +1,16 @@
+Built-in Dafeiyu motion assets
+
+The 16 .webm files are re-encoded from qcytsn/dsh-dafeiyu's MIT-licensed
+whale-tail maid frames, originally by PC2005-cloud. motion.json records the
+pinned repository revision, source video hashes, frame counts, durations and
+output hashes. MOTION_LICENSE.txt preserves the upstream MIT license.
+
+bubbles.png, sleep.png, nuzzle.png and celebrate.png were generated for DSH
+Studio on 2026-10-17 from the same character reference, following an animation
+concept approved by the project owner. They contain eight key poses per action
+in a 4-column, 2-row grid; playback does not synthesize intermediate frames.
+They are shipped under the project's MIT terms with the upstream character
+notice retained. No legacy restricted BigFish assets are included.
+
+The 32-pose draft with an incorrect layout is not shipped. The approved concept
+and generated source images remain in the task's generated_images artifacts.

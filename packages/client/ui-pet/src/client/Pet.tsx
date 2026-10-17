@@ -10,7 +10,9 @@ import { BUILTIN_FRAME_SET, clipFor, type PetFrameSet } from './frames.ts'
 import { isSnoozed, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
-import { MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
+import { PetMotion } from './PetMotion.tsx'
+import { PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest } from './motion.ts'
+import { Button, Menu, MenuItemButton, MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
 import { usePagePosition } from './usePagePosition.ts'
 import css from './Pet.module.css'
 
@@ -93,14 +95,21 @@ function useCharacterDrag(onDrag: ((phase: PetDragPhase) => void) | undefined, o
  * Animated character for one state; reduced motion shows the first frame only.
  * @param props - state, accessible label, and the click, menu, and drag actions.
  */
-export function PetCharacter({ state, label, onClick, onMenu, onDrag, pack = BUILTIN_FRAME_SET, badge }: {
+export function PetCharacter({
+  state, label, onClick, onMenu, onDrag, pack = BUILTIN_FRAME_SET, badge, action, preferences, paused = false, activity, onInteract,
+}: {
   readonly state: PetAgentState
   readonly label: string
   /** Pack to render; defaults to the built-in pack. */
   readonly pack?: PetFrameSet
   /** Visible marker under the character, e.g. for a development pack. */
   readonly badge?: string | undefined
+  readonly action?: PetActionRequest | undefined
+  readonly preferences?: PetPreferences | undefined
+  readonly paused?: boolean | undefined
+  readonly activity?: import('@deepseek-ai/dsh-pet/types').PetWorkActivity | undefined
   readonly onClick?: () => void
+  readonly onInteract?: ((action: PetAction) => void) | undefined
   readonly onMenu?: () => void
   /** Desktop pet window only: dragging the character moves the window. */
   readonly onDrag?: (phase: PetDragPhase) => void
@@ -108,10 +117,25 @@ export function PetCharacter({ state, label, onClick, onMenu, onDrag, pack = BUI
   const clip = clipFor(state)
   const frames = pack.frames[clip]
   const loop = pack.loops?.[clip] ?? true
-  const pointer = useCharacterDrag(onDrag, onClick)
+  const [dragging, setDragging] = useState(false)
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const area = useRef<PetAction>('poke')
+  useEffect(() => () => { if (clickTimer.current !== undefined) clearTimeout(clickTimer.current) }, [])
+  const click = (): void => {
+    if (preferences?.interactive !== true || onInteract === undefined || !playingMotion) { onClick?.(); return }
+    if (clickTimer.current !== undefined) clearTimeout(clickTimer.current)
+    clickTimer.current = setTimeout(() => { clickTimer.current = undefined; onInteract(area.current) }, 240)
+  }
+  const [failedMotion, setFailedMotion] = useState<string | undefined>(undefined)
+  const pointer = useCharacterDrag(onDrag === undefined ? undefined : (phase) => {
+    setDragging(phase !== 'end')
+    onDrag(phase)
+  }, click)
   const [index, setIndex] = useState(0)
+  const playingMotion = pack.motion !== undefined && failedMotion !== pack.key
   useEffect(() => {
     setIndex(0)
+    if (playingMotion) return
     let timer: ReturnType<typeof setInterval> | undefined
     const started = Date.now()
     const stop = (): void => {
@@ -140,12 +164,27 @@ export function PetCharacter({ state, label, onClick, onMenu, onDrag, pack = BUI
       document.removeEventListener('visibilitychange', resume)
       motion?.removeEventListener?.('change', resume)
     }
-  }, [frames, pack.fps, loop])
+  }, [frames, pack.fps, loop, playingMotion])
   return (
     <button type="button" className={css.character} data-state={state} aria-label={label} title={label} {...pointer}
+      onPointerUpCapture={(event) => {
+        const visual = event.currentTarget.querySelector<HTMLElement>('video, [data-pet-sprite], img')
+        const bounds = (visual ?? event.currentTarget).getBoundingClientRect()
+        const y = (event.clientY - bounds.top) / Math.max(1, bounds.height)
+        area.current = y < 0.35 ? 'headPat' : y > 0.72 ? 'tail' : 'poke'
+      }}
+      onDoubleClick={() => {
+        if (preferences?.interactive !== true || !playingMotion) return
+        if (clickTimer.current !== undefined) clearTimeout(clickTimer.current)
+        onInteract?.('headPat')
+      }}
       aria-haspopup={onMenu === undefined ? undefined : 'menu'}
       onContextMenu={onMenu === undefined ? undefined : (event) => { event.preventDefault(); onMenu() }}>
-      <img src={frames[index % frames.length]} alt="" draggable={false} />
+      {pack.motion !== undefined && playingMotion
+        ? <PetMotion motion={pack.motion} state={state} activity={activity} action={action} dragging={dragging}
+          preferences={preferences ?? { notify: false, snoozeUntil: undefined }} paused={paused}
+          onFailure={() => { setFailedMotion(pack.key) }} />
+        : <img src={frames[index % frames.length]} alt="" draggable={false} /> }
       {badge !== undefined && <span className={css.badge}>{badge}</span>}
     </button>
   )
@@ -191,15 +230,15 @@ export function ApprovalCard({ t, pending, local, more, decide, openMain }: {
         ? (
           <div className={css.actions}>
             <span className={css.note}>{t('approvalRestricted')}</span>
-            <button type="button" onClick={openMain}>{t('openMain')}</button>
+            <Button size="sm" type="button" onClick={openMain}>{t('openMain')}</Button>
           </div>
         )
         : local === undefined
           ? <div className={css.note}>{t('approvalElsewhere')}</div>
           : (
             <div className={css.actions}>
-              <button type="button" disabled={!armed} onClick={() => { answer(local, 'rejected') }} onKeyDown={swallowEnter}>{t('reject')}</button>
-              <button type="button" className={css.primary} disabled={!armed} onClick={() => { answer(local, 'allowed-once') }} onKeyDown={swallowEnter}>{t('allowOnce')}</button>
+              <Button size="sm" type="button" disabled={!armed} onClick={() => { answer(local, 'rejected') }} onKeyDown={swallowEnter}>{t('reject')}</Button>
+              <Button size="sm" type="button" className={css.primary} disabled={!armed} onClick={() => { answer(local, 'allowed-once') }} onKeyDown={swallowEnter}>{t('allowOnce')}</Button>
             </div>
           )}
       {result === 'already-settled' && <div className={css.note}>{t('alreadySettled')}</div>}
@@ -250,9 +289,9 @@ export function QuestionCard({ t, question, answer, openMain }: {
           {quick && (
             <div className={css.options}>
               {item.options?.map(option => (
-                <button key={option.label} type="button" title={option.description} disabled={!armed || result === 'answered'}
+                <Button size="sm" key={option.label} type="button" title={option.description} disabled={!armed || result === 'answered'}
                   aria-pressed={selections[item.id] === option.label}
-                  onClick={() => { choose(item.id, option.label) }}>{option.label}</button>
+                  onClick={() => { choose(item.id, option.label) }}>{option.label}</Button>
               ))}
             </div>
           )}
@@ -261,13 +300,13 @@ export function QuestionCard({ t, question, answer, openMain }: {
       {!quick && (
         <div className={css.actions}>
           <span className={css.note}>{t('questionInMain')}</span>
-          <button type="button" onClick={openMain}>{t('openMain')}</button>
+          <Button size="sm" type="button" onClick={openMain}>{t('openMain')}</Button>
         </div>
       )}
       {quick && question.questions.length > 1 && (
         <div className={css.actions}>
-          <button type="button" className={css.primary} disabled={!armed || !complete || result === 'answered'}
-            onClick={() => { submit(selections) }}>{t('questionSubmit')}</button>
+          <Button size="sm" type="button" className={css.primary} disabled={!armed || !complete || result === 'answered'}
+            onClick={() => { submit(selections) }}>{t('questionSubmit')}</Button>
         </div>
       )}
       {result === 'answered' && <div className={css.note}>{t('questionAnswered')}</div>}
@@ -290,6 +329,7 @@ export function QuickAsk({ t, controller, focusRequest }: {
   const [text, setText] = useState('')
   const [files, setFiles] = useState<readonly File[]>([])
   const [choice, setChoice] = useState<QuickAskChoice>('last')
+  const [targetMenu, setTargetMenu] = useState(false)
   const [status, setStatus] = useState<SendStatus>('idle')
   const [dragging, setDragging] = useState(false)
   const input = useRef<HTMLTextAreaElement>(null)
@@ -342,21 +382,23 @@ export function QuickAsk({ t, controller, focusRequest }: {
           {files.map((file, index) => (
             <li key={`${file.name}-${String(index)}`}>
               <span>{file.name}</span>
-              <button type="button" aria-label={t('removeFile', { name: file.name })}
-                onClick={() => { setFiles(current => current.filter((_, at) => at !== index)) }}>×</button>
+              <Button size="sm" type="button" aria-label={t('removeFile', { name: file.name })}
+                onClick={() => { setFiles(current => current.filter((_, at) => at !== index)) }}>×</Button>
             </li>
           ))}
         </ul>
       )}
       <div className={css.askRow}>
-        <select value={choice} aria-label={t('quickAskLabel')} onChange={(event) => { setChoice(event.target.value === 'new' ? 'new' : 'last') }}>
-          <option value="last">{t('targetLast')}</option>
-          <option value="new">{t('targetNew')}</option>
-        </select>
+        <Menu open={targetMenu} side="top" compact autoFocus selectedId={choice}
+          anchor={<Button size="sm" aria-haspopup="menu" aria-expanded={targetMenu}
+            onClick={() => { setTargetMenu(current => !current) }}>{t(choice === 'new' ? 'targetNew' : 'targetLast')}</Button>}
+          items={[{ id: 'last', label: t('targetLast') }, { id: 'new', label: t('targetNew') }]}
+          onSelect={(id) => { setChoice(id === 'new' ? 'new' : 'last'); setTargetMenu(false) }}
+          onClose={() => { setTargetMenu(false) }} />
         <span className={css.status} role="status">
           {status === 'sending' ? t('sending') : status === 'sent' ? t('sent') : status === 'failed' ? t('sendFailed') : dragging ? t('dropHint') : ''}
         </span>
-        <button type="submit" className={css.primary} disabled={status === 'sending'}>{t('send')}</button>
+        <Button size="sm" type="submit" className={css.primary} disabled={status === 'sending'}>{t('send')}</Button>
       </div>
     </form>
   )
@@ -399,15 +441,15 @@ export function PetPanel(
       )}
       <QuickAsk t={t} controller={controller} focusRequest={focusRequest} />
       <div className={css.controls}>
-        <button type="button" onClick={() => { controller.openMain() }}>{t('openMain')}</button>
-        <button type="button" onClick={() => { void controller.hide() }}>{t('hide')}</button>
+        <Button size="sm" type="button" onClick={() => { controller.openMain() }}>{t('openMain')}</Button>
+        <Button size="sm" type="button" onClick={() => { void controller.hide() }}>{t('hide')}</Button>
       </div>
     </div>
   )
 }
 
 /** One right-click menu action. */
-export type PetMenuAction = 'quickAsk' | 'openMain' | 'notifyOn' | 'notifyOff' | 'snooze' | 'resume' | 'hide'
+export type PetMenuAction = PetAction | 'quickAsk' | 'openMain' | 'notifyOn' | 'notifyOff' | 'snooze' | 'resume' | 'hide'
 
 /**
  * Right-click menu of the character. Escape or a click on an item closes it.
@@ -419,9 +461,8 @@ export function PetMenu({ t, actions, onAction, onClose }: {
   readonly onAction: (action: PetMenuAction) => void
   readonly onClose: () => void
 }): ReactNode {
-  const first = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { first.current?.focus() }, [])
+  useEffect(() => { menuRef.current?.querySelector<HTMLButtonElement>('[role=menuitem]')?.focus() }, [])
   useEffect(() => {
     const outside = (event: globalThis.PointerEvent): void => {
       if (event.target instanceof Node && !menuRef.current?.contains(event.target)) onClose()
@@ -440,9 +481,8 @@ export function PetMenu({ t, actions, onAction, onClose }: {
             : event.key === 'ArrowUp' ? (index + buttons.length - 1) % buttons.length : undefined
         if (next !== undefined) { event.preventDefault(); buttons[next]?.focus() }
       }}>
-      {actions.map((action, index) => (
-        <button key={action} ref={index === 0 ? first : undefined} type="button" role="menuitem"
-          onClick={() => { onClose(); onAction(action) }}>{t(`menu.${action}`)}</button>
+      {actions.map(action => (
+        <MenuItemButton key={action} onSelect={() => { onClose(); onAction(action) }}>{t(`menu.${action}`)}</MenuItemButton>
       ))}
     </MenuSurface>
   )
@@ -459,14 +499,17 @@ interface PanelState {
   readonly setMenu: (open: boolean) => void
   readonly act: (action: PetMenuAction) => void
   readonly actions: (desktop: boolean) => readonly PetMenuAction[]
+  readonly action: PetActionRequest | undefined
 }
 
 function usePanel(props: PetProps): PanelState {
   const preferences = props.usePreferences(value => value)
+  const hasMotion = props.usePack(pack => pack.motion !== undefined)
   const view = props.useView(value => value)
   const [open, setOpen] = useState(false)
   const [focusRequest, setFocusRequest] = useState(0)
   const [menu, setMenu] = useState(false)
+  const [action, setAction] = useState<PetActionRequest | undefined>(undefined)
   const state = displayedState(view)
   const asking = props.useQuestions(value => value.length > 0)
   const waiting = (view.snapshot?.pending.length ?? 0) > 0 || asking
@@ -478,7 +521,9 @@ function usePanel(props: PetProps): PanelState {
     }
   }
   const act = (action: PetMenuAction): void => {
-    if (action === 'quickAsk') {
+    if (PET_ACTIONS.includes(action as PetAction)) {
+      setAction(previous => ({ action: action as PetAction, serial: (previous?.serial ?? 0) + 1 }))
+    } else if (action === 'quickAsk') {
       setOpen(true)
       setFocusRequest(current => current + 1)
     } else if (action === 'openMain') {
@@ -495,6 +540,7 @@ function usePanel(props: PetProps): PanelState {
   }
   const actions = (desktop: boolean): readonly PetMenuAction[] => {
     const list: PetMenuAction[] = ['quickAsk']
+    if (hasMotion && petIsIdle(state) && !open && !waiting) list.push(...PET_ACTIONS)
     if (desktop) list.push('openMain')
     if (props.controller.canNotify) {
       list.push(preferences.notify ? 'notifyOff' : 'notifyOn')
@@ -503,7 +549,7 @@ function usePanel(props: PetProps): PanelState {
     list.push('hide')
     return list
   }
-  return { open: open || waiting, toggle, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions }
+  return { open: open || waiting, toggle, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions, action }
 }
 
 /**
@@ -511,9 +557,13 @@ function usePanel(props: PetProps): PanelState {
  * @param props - pet props.
  */
 export function PetOverlay(props: PetProps): ReactNode {
-  const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions, action } = usePanel(props)
   const pack = props.usePack(current => current)
-  const position = usePagePosition()
+  const preferences = props.usePreferences(current => current)
+  const activity = props.useView(view =>
+    view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId)?.activity)
+  const roaming = visible && preferences.roam === true && preferences.reducedMotion !== true && petIsIdle(state) && !open && !menu
+  const position = usePagePosition(roaming)
   if (!visible) {
     // Only a Host snapshot can hide the pet. Web has no tray or global shortcut, so leave a small handle to bring it back.
     return (
@@ -525,14 +575,14 @@ export function PetOverlay(props: PetProps): ReactNode {
   }
   return (
     <div className={`${css.overlay} ${css.positioned}`} data-surface="page" data-below={position.below} style={position.style}
-      onPointerDownCapture={(event) => { position.begin(event.clientX, event.clientY) }}
+      onPointerDownCapture={(event) => { position.begin(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect()) }}
       onPointerMoveCapture={(event) => { position.track(event.clientX, event.clientY) }}>
       <div className={css.pagePanels}>
         {open && <PetPanel {...props} focusRequest={focusRequest} />}
         {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
       </div>
       <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })} onClick={toggle}
-        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} onInteract={(name) => { act(name) }} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
     </div>
   )
 }
@@ -543,13 +593,32 @@ export function PetOverlay(props: PetProps): ReactNode {
  * @param props - pet props plus the Desktop quick-ask subscription.
  */
 export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
-  const { open, toggle, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, action } = usePanel(props)
   const [focusRequest, setFocusRequest] = useState(0)
   const [forced, setForced] = useState(false)
   const { controller, onQuickAsk } = props
   const pack = props.usePack(current => current)
+  const preferences = props.usePreferences(current => current)
+  const activity = props.useView(view =>
+    view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId)?.activity)
   const visibleNow = useRef(visible)
   visibleNow.current = visible
+  useEffect(() => {
+    const query = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    const update = (): void => {
+      const allowed = visible && preferences.roam === true && preferences.reducedMotion !== true
+        && petIsIdle(state) && !open && !forced && !menu && !document.hidden && query?.matches !== true
+      controller.wander(allowed)
+    }
+    update()
+    query?.addEventListener?.('change', update)
+    document.addEventListener('visibilitychange', update)
+    return () => {
+      query?.removeEventListener?.('change', update)
+      document.removeEventListener('visibilitychange', update)
+      controller.wander(false)
+    }
+  }, [controller, visible, preferences.roam, preferences.reducedMotion, state, open, forced, menu])
   useEffect(() => onQuickAsk(() => {
     // The shortcut is also the way back after "hide": it re-shows the pet through the Host setting.
     if (!visibleNow.current) void controller.show()
@@ -568,7 +637,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         </div>
         <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })}
           onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }}
-          onDrag={(phase) => { controller.drag(phase) }} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+          onDrag={(phase) => { controller.drag(phase) }} onInteract={(name) => { act(name) }} action={action} preferences={preferences} paused={open || forced || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
       </div>
     </div>
   )

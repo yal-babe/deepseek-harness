@@ -137,18 +137,35 @@ export interface PetSnapshot {
   readonly settings: PetSettingsView
 }
 
-/** Character pack the Host offers in place of the built-in pack (development packs only in this release). */
+/** Character pack and optional media offered by the Host. */
 export interface PetPackView {
   /** Validated `pet.json`. */
   readonly manifest: PetPackManifest
-  /** Frame images as data URLs, keyed by pack-relative path. */
+  /** Frame image URLs or data URLs, keyed by pack-relative path. */
   readonly assets: Readonly<Record<string, string>>
   /** Loaded through `DSH_PET_DEV`, unsigned; the Client marks it. */
-  readonly dev: true
+  readonly dev: boolean
+  /** Built-in transparent video clips, loaded on demand by Chromium. */
+  readonly motion?: PetMotionView
 }
 
 /** Result of `pet.pack()`: the offered pack, if any, and why other candidate packs were skipped. */
 export interface PetPackState {
   readonly pack: PetPackView | null
   readonly problems: readonly string[]
+}
+
+/** One built-in transparent video and its playback semantics. */
+export interface PetMotionClip {
+  readonly url: string
+  readonly loop: boolean
+  readonly durationMs: number
+  readonly sheet?: { readonly columns: number; readonly rows: number; readonly frames: number }
+}
+
+/** Browser-decodable media, separate from the initial client bundle. */
+export interface PetMotionView {
+  readonly width: number
+  readonly height: number
+  readonly clips: Readonly<Record<string, PetMotionClip>>
 }
