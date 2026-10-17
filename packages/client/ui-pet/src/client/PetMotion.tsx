@@ -50,6 +50,7 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   const previousIdle = useRef<string | undefined>(undefined)
   const wasDragging = useRef(false)
   const cooldown = useRef(0)
+  const handledAction = useRef<PetActionRequest | undefined>(undefined)
   const reduced = systemReduced || preferences.reducedMotion === true
   const idle = petIsIdle(state)
   const canDecorate = idle && !heldResult && !paused && visible && !reduced && !dragging
@@ -74,7 +75,12 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
     }
   }, [dragging])
   useEffect(() => {
-    if (action === undefined || !canDecorate || decoration !== undefined || Date.now() < cooldown.current) return
+    if (action === undefined || handledAction.current === action) return
+    if (!canDecorate) { handledAction.current = action; return }
+    // A deliberate menu selection waits for landing; refused work-time requests never queue.
+    if (decoration?.name === 'dragging_release') return
+    handledAction.current = action
+    if (action.interrupt !== true && (decoration !== undefined || Date.now() < cooldown.current)) return
     cooldown.current = Date.now() + 1200
     setDecoration({ name: ACTION_CLIP[action.action], serial: action.serial,
       ...action.action === 'celebrate' ? { effect: 'stars' as const }
@@ -83,7 +89,7 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
             : action.action === 'sleep' ? { effect: 'sleep' as const }
               : action.action === 'headPat' ? { effect: 'hearts' as const } : {},
     })
-  }, [action])
+  }, [action, canDecorate, decoration?.name])
   useEffect(() => {
     if (!canDecorate || decoration !== undefined) return
     const timer = setTimeout(() => {

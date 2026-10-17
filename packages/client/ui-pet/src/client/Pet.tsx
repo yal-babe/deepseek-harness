@@ -500,6 +500,7 @@ interface PanelState {
   readonly act: (action: PetMenuAction) => void
   readonly actions: (desktop: boolean) => readonly PetMenuAction[]
   readonly action: PetActionRequest | undefined
+  readonly interact: (action: PetAction) => void
 }
 
 function usePanel(props: PetProps): PanelState {
@@ -520,9 +521,12 @@ function usePanel(props: PetProps): PanelState {
       void props.controller.acknowledge(focus)
     }
   }
+  const interact = (action: PetAction): void => {
+    setAction(previous => ({ action, serial: (previous?.serial ?? 0) + 1 }))
+  }
   const act = (action: PetMenuAction): void => {
     if (PET_ACTIONS.includes(action as PetAction)) {
-      setAction(previous => ({ action: action as PetAction, serial: (previous?.serial ?? 0) + 1 }))
+      setAction(previous => ({ action: action as PetAction, serial: (previous?.serial ?? 0) + 1, interrupt: true }))
     } else if (action === 'quickAsk') {
       setOpen(true)
       setFocusRequest(current => current + 1)
@@ -549,7 +553,9 @@ function usePanel(props: PetProps): PanelState {
     list.push('hide')
     return list
   }
-  return { open: open || waiting, toggle, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions, action }
+  return {
+    open: open || waiting, toggle, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions, action, interact,
+  }
 }
 
 /**
@@ -557,7 +563,7 @@ function usePanel(props: PetProps): PanelState {
  * @param props - pet props.
  */
 export function PetOverlay(props: PetProps): ReactNode {
-  const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions, action } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions, action, interact } = usePanel(props)
   const pack = props.usePack(current => current)
   const preferences = props.usePreferences(current => current)
   const activity = props.useView(view =>
@@ -582,7 +588,7 @@ export function PetOverlay(props: PetProps): ReactNode {
         {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
       </div>
       <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })} onClick={toggle}
-        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} onInteract={(name) => { act(name) }} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
     </div>
   )
 }
@@ -593,7 +599,7 @@ export function PetOverlay(props: PetProps): ReactNode {
  * @param props - pet props plus the Desktop quick-ask subscription.
  */
 export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
-  const { open, toggle, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, action } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, action, interact } = usePanel(props)
   const [focusRequest, setFocusRequest] = useState(0)
   const [forced, setForced] = useState(false)
   const { controller, onQuickAsk } = props
@@ -637,7 +643,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         </div>
         <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })}
           onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }}
-          onDrag={(phase) => { controller.drag(phase) }} onInteract={(name) => { act(name) }} action={action} preferences={preferences} paused={open || forced || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+          onDrag={(phase) => { controller.drag(phase) }} onInteract={interact} action={action} preferences={preferences} paused={open || forced || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
       </div>
     </div>
   )

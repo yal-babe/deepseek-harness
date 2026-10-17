@@ -29,7 +29,7 @@
 
 ## 验证
 
-- 相关测试：23 个文件、202 项通过，涵盖 Host、Client、Desktop、托盘与 preload。
+- 相关测试：23 个文件、203 项通过，涵盖 Host、Client、Desktop、托盘与 preload。
 - 真实 Loader YAML 组合测试覆盖媒体获取、HEAD、Range、非法请求、图集 MIME 与插件卸载后的路由消失。
 - Chromium 实际解码：视频为 206×172，待机时长 10.122 秒，画布采样验证透明背景和不透明角色。
 - Chromium 实际组件冒烟：Web 拖动成功，右键触发图集动作；检查明暗主题菜单和面板，无运行时错误。
@@ -56,3 +56,6 @@
 - 文案检查通过，三个双语文档配对检查通过，修改文件的定向 lint 通过。
 - 广域 `doc-sync` 未通过：文档站构建触及 JavaScript 堆上限，文档图生成报告已有 `plugin-catalog/install-progress` 的 `CatalogInstallProgress` 类型链接未分类；后续检查未全部跑完。
 - 完整 Web 回放检查未通过：`document-preview.e2e.ts` 的五个文档预览用例超时；其余广域运行已停止，没有宣称整个 Web 测试通道通过。桌宠自己的 Loader、Client 与 Chromium 组件冒烟结果独立记录在上文。
+
+- 新增落地后立即选择动作的时序回归：明确的菜单选择在落地完成后执行，工作期间的旧装饰请求不补播；Chromium 实际组件回归已重跑通过。
+- 此前全量 GUI 检查出现账号设置用例失败；本轮以桌宠及相邻 Desktop 的定向回归为依据，没有宣称全量 GUI 检查通过。

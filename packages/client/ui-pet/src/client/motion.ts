@@ -3,7 +3,7 @@ import type { PetAgentState, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
 
 export type PetAction = 'headPat' | 'poke' | 'tail' | 'eatToken' | 'stretch' | 'yawn' | 'bubbles' | 'sleep' | 'nuzzle' | 'celebrate'
 export type PetActivityLevel = 'quiet' | 'normal' | 'lively'
-export interface PetActionRequest { readonly action: PetAction; readonly serial: number }
+export interface PetActionRequest { readonly action: PetAction; readonly serial: number; readonly interrupt?: boolean }
 export const PET_ACTIONS: readonly PetAction[] = ['headPat', 'poke', 'tail', 'eatToken', 'stretch', 'yawn', 'bubbles', 'sleep', 'nuzzle', 'celebrate']
 export const ACTION_CLIP: Readonly<Record<PetAction, string>> = {
   headPat: 'head_pat', poke: 'poke', tail: 'tail', eatToken: 'eat_token', stretch: 'idle_stretch', yawn: 'idle_yawn',

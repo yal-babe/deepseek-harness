@@ -58,6 +58,17 @@ describe('motion scheduling', () => {
     expect(view.container.querySelector('video')!.getAttribute('src')).toBe('/waiting.webm')
   })
 
+  it('keeps a deliberate menu choice until landing completes', () => {
+    const props = { motion, state: 'IDLE' as const, dragging: true, preferences, paused: false, onFailure: vi.fn() }
+    const view = render(<PetMotion {...props} />)
+    view.rerender(<PetMotion {...props} dragging={false} />)
+    const action = { action: 'headPat' as const, serial: 1, interrupt: true }
+    view.rerender(<PetMotion {...props} dragging={false} action={action} />)
+    expect(view.container.querySelector('video')!.getAttribute('src')).toBe('/dragging_release.webm')
+    fireEvent.ended(view.container.querySelector('video')!)
+    expect(view.container.querySelector('video')!.getAttribute('src')).toBe('/head_pat.webm')
+  })
+
   it('ignores decorations during work, pauses for reduced motion and contains media failures', () => {
     const failure = vi.fn()
     const props = { motion, state: 'WORKING' as const, dragging: false, preferences, paused: false, onFailure: failure }
