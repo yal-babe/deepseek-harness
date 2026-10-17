@@ -75,4 +75,6 @@ pnpm exec vitest run packages/pet/pet packages/client/ui-pet apps/desktop/tests/
 
 ## 推送状态
 
-见下方，由每次检查点更新。
+- 2026-10-17 16:0x（Asia/Shanghai）尝试 `git push -u origin studio/pet-phase0`：失败，`fatal: could not read Username for 'https://github.com'`——box 上没有 GitHub 推送凭据。按要求没有绕过认证，也没有用 `--no-verify`。pre-push 钩子（完整类型检查）因此也没有运行。
+- 替代交付：`/workspace/deliverables/pet-phase0.bundle`（`git bundle create ... origin/studio/main..studio/pet-phase0`）与 `/workspace/deliverables/pet-phase0-patches/`（`git format-patch`）。在有凭据的机器上：`git fetch /path/pet-phase0.bundle studio/pet-phase0:studio/pet-phase0 && git push -u origin studio/pet-phase0`，或 `git am pet-phase0-patches/*.patch`。
+- 提交作者是仓库本地配置的 `Grok Bot <grok-bot@users.noreply.github.com>`；如需改成本人身份，推送前用 `git rebase -r origin/studio/main --exec 'git commit --amend --no-edit --reset-author'` 修改。
