@@ -103,7 +103,7 @@ Phase 0 提交完成后，MVP 工作在后续分支 `studio/pet-mvp` 上进行�
 
 ## 推送状态
 
-- MVP 分支 `studio/pet-mvp` 同样无法推送（无凭据）。替代交付：`/workspace/deliverables/pet-mvp.bundle`（`origin/studio/main..studio/pet-mvp`，包含 Phase 0 提交）与 `/workspace/deliverables/pet-mvp-patches/`（同一范围的完整补丁序列，可直接在 `origin/studio/main` 上 `git am`）。每个检查点都会重新生成。
+- 2026-10-17 16:56（Asia/Shanghai）尝试 `git push -u origin studio/pet-mvp`：失败，`fatal: could not read Username for 'https://github.com'`（无凭据）；未绕过认证、未用 `--no-verify`。MVP 分支 `studio/pet-mvp` 同样无法推送。替代交付：`/workspace/deliverables/pet-mvp.bundle`（`origin/studio/main..studio/pet-mvp`，包含 Phase 0 提交）与 `/workspace/deliverables/pet-mvp-patches/`（同一范围的完整补丁序列，可直接在 `origin/studio/main` 上 `git am`）。每个检查点都会重新生成。
 
 - 2026-10-17 16:0x（Asia/Shanghai）尝试 `git push -u origin studio/pet-phase0`：失败，`fatal: could not read Username for 'https://github.com'`——box 上没有 GitHub 推送凭据。按要求没有绕过认证，也没有用 `--no-verify`。pre-push 钩子（完整类型检查）因此也没有运行。
 - 替代交付：`/workspace/deliverables/pet-phase0.bundle`（`git bundle create ... origin/studio/main..studio/pet-phase0`）与 `/workspace/deliverables/pet-phase0-patches/`（`git format-patch`）。在有凭据的机器上：`git fetch /path/pet-phase0.bundle studio/pet-phase0:studio/pet-phase0 && git push -u origin studio/pet-phase0`，或 `git am pet-phase0-patches/*.patch`。
