@@ -24,7 +24,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 页面，右下角即显示角色。在 URL 后加 `?dsh-pet-window=1` 可在浏览器中预览桌宠窗口界面。Desktop 在该 URL 上打开一个独立的透明置顶窗口，此时 Desktop 主窗口不再显示页内角色。在桌宠窗口中，拖动角色超过 4 px 会移动窗口而不是打开气泡；Desktop 托盘也可以通过同一个 Host 设置显示或隐藏桌宠。`CommandOrControl+Shift+Space` 可在任何地方打开快速提问，并在桌宠被隐藏后重新显示它。
+web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 页面，右下角即显示角色。在 URL 后加 `?dsh-pet-window=1` 可在浏览器中预览桌宠窗口界面。Desktop 在该 URL 上打开一个独立的透明置顶窗口，此时 Desktop 主窗口不再显示页内角色。在桌宠窗口中，拖动角色超过 4 px 会移动窗口而不是打开气泡；Desktop 托盘也可以通过同一个 Host 设置显示或隐藏桌宠。`CommandOrControl+Shift+Space` 可在任何地方展开或收起快速提问，并在桌宠被隐藏后重新显示它。
 
 右键点击角色打开菜单：快速提问、打开主窗口（仅 Desktop）、开关系统通知、勿扰 1 小时、隐藏桌宠。按 Escape 关闭菜单。"打开主窗口"会把 Desktop 主窗口切到前台，并打开桌宠当前展示的会话；审批卡片与提问卡片上的"打开主窗口"按钮打开该卡片所属的会话。Web 上没有独立窗口，这些卡片按钮直接在当前页面打开该会话。
 
@@ -36,7 +36,7 @@ web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 
 
 当 Agent 提问（`ask_user_question`）且没有待审批项时，气泡显示提问卡片。只提供单选选项的问题可以在桌宠中回答，同样有 800 ms 延迟：单个问题点一次即提交，多个问题则每题选一项后点"提交回答"。自由文本与多选问题显示一个打开主窗口的按钮。
 
-内置动作从 Host 按需加载，内嵌的小帧集用于失败回退。仅空闲时显示的动作菜单提供原有互动以及吐泡泡、打盹、蹭手和庆祝。可选的部位点击分别触发头部、身体和尾巴动作，默认单击仍打开面板。设备级设置控制安静／标准／活泼待机间隔、自主移动（默认关闭）、特效和减少动态；工作、提问、审批、拖动及展开面板优先于空闲玩耍。四组新增互动各使用八个关键姿态，并非经过插帧的 24 fps 动画。
+内置动作从 Host 按需加载，内嵌的小帧集用于失败回退。仅空闲时显示的动作菜单提供原有互动以及吐泡泡、打盹、蹭手和庆祝。可选的部位点击分别触发头部、身体和尾巴动作，默认单击仍打开面板。设备级设置控制安静／标准／活泼待机间隔、自主移动（默认关闭）、特效和减少动态；工作、提问、审批、拖动及展开面板优先于空闲玩耍。设备偏好支持名称（默认“大肥鱼”）、50%～200% 大小、空闲／休息／娱乐状态，以及允许自主播放的动作。任务状态自动覆盖生活状态，结束后恢复；休息保持睡姿和呼吸。移动时同步方向与摆动，Web 和桌面端分别更新页面坐标与原生窗口。现有四套八帧互动暂用原有连续动画配合特效替代低帧播放，专属连续素材重制和额外十套动作仍待制作。
 
 -----
 
@@ -50,6 +50,8 @@ web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 
 - 审批不经 Host 决定。每个 Client 本来就用 ui-approval 的 `PendingApproval` 回答转发来的 `approval/request` waterfall。桌宠从 `uiSession.sessionStatus` 读取这些对象，按会话与工具调用与 Host 待审批项匹配，并通过 `PetApprovalBridge` 回答；它会拒绝同一界面的第二次提交。Gateway 以第一个结果结束 waterfall 并取消其他 Client，因此主窗口与桌宠窗口不可能都做出决定。
 - 提问走同一路径：ui-user-questions 把每个请求作为 `PendingQuestion` 发布到 `uiSession.sessionStatus`，`PetQuestionBridge` 对该对象只回答一次。已结束的回顾卡片与计划评审会被跳过。
 - 通知比较 Host 的相邻两帧（`diffNotices`）；连接后的第一帧从不通知，子 Agent 会话会被跳过。Desktop 中只有桌宠窗口运行 ui-pet，所以每次变化只通知一次；多个 Web 标签页会各自通知。
+- 快问可通过关闭按钮、Esc、外部点击和重复触发收起，挂载期间保留草稿与附件。待办仍保留在 Host，不同的新请求可以再次打开面板。桌宠声明根作用域列表插槽 `pet.panel.metrics`，传递面板可见性、焦点会话和任务状态，由个人中心提供用量与余额；桌宠不直接导入个人中心运行时代码。
+
 - 快速提问依次执行 `session.create`（新会话时）、对每个拖入的文件执行 `fileUpload.upload`，再以 queue 模式执行 `session.prompt`。
 - Desktop bridge（`window.dshDesktopPet`）在指针进入或离开角色与气泡时切换点击穿透，跟随 Host 可见性，并转发全局快捷键。
 - 帧：来自 [`@deepseek-ai/dsh-pet/packs/whaletail-maid`](../../pet/pet/README.zh.md#pet-packs) 的内置包 `whaletail-maid@1.0.0`，idle、thinking、working、waiting、success、error 片段各取六帧，裁剪并缩放到 160 px。bundle 加载时用 `parsePetPack` 校验其 `pet.json`，帧以 data URL 形式内嵌。这些帧以 MIT 许可发布，Copyright (c) 2026 PC2005-cloud；许可证是包内的 `LICENSE`。Host 通过 `pet.pack()`（`DSH_PET_DEV`）提供开发包时，Client 会再次校验并渲染它，角色下方显示"开发包"标记；无效或不完整的包会保留内置包。

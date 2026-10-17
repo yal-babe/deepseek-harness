@@ -94,6 +94,8 @@ export class DesktopPetWindow {
   private wanderTimer: ReturnType<typeof setTimeout> | undefined
   private wanderMove: ReturnType<typeof setInterval> | undefined
   private wandering = false
+  private activity: 'quiet' | 'normal' | 'lively' = 'normal'
+  private direction: 'left' | 'right' = 'right'
   private interactive = false
   private readonly relocate = (): void => { this.place() }
 
@@ -254,8 +256,11 @@ export class DesktopPetWindow {
   }
 
   /** Schedule short movements only while the renderer reports an unobstructed idle surface. */
-  setWandering(active: boolean): void {
-    if (this.disposed || this.wandering === active) return
+  setWandering(active: boolean, activity: 'quiet' | 'normal' | 'lively' = 'normal'): void {
+    if (this.disposed || this.wandering === active && this.activity === activity) return
+    if (this.wanderTimer !== undefined) clearTimeout(this.wanderTimer)
+    this.stopWanderMove()
+    this.activity = activity
     this.wandering = active
     if (!active) {
       if (this.wanderTimer !== undefined) clearTimeout(this.wanderTimer)
@@ -270,10 +275,14 @@ export class DesktopPetWindow {
       const [x = 0, y = 0] = window.getPosition()
       const cursor = screen.getCursorScreenPoint()
       const near = Math.hypot(cursor.x - (x + PET_WINDOW_SIZE.width - 64), cursor.y - (y + PET_WINDOW_SIZE.height - 70)) < 180
+      let movementDuration = 0
       if (!this.interactive && !near && this.drag === undefined && window.isVisible()) {
         const target = fitPetPosition({ x: x + (Math.random() - 0.5) * 160, y: y + (Math.random() - 0.5) * 100 },
           screen.getAllDisplays(), PET_WINDOW_SIZE)
         if (target !== undefined) {
+          this.direction = target.x < x ? 'left' : 'right'
+          window.webContents.send(PET_IPC.movement, { moving: true, direction: this.direction })
+          movementDuration = 30 * 33
           let frame = 0
           this.wanderMove = setInterval(() => {
             frame += 1
@@ -287,13 +296,23 @@ export class DesktopPetWindow {
           }, 33)
         }
       }
-      this.wanderTimer = setTimeout(step, 18000 + Math.random() * 15000)
+      this.wanderTimer = setTimeout(step, this.wanderDelay() + movementDuration)
     }
-    this.wanderTimer = setTimeout(step, 18000)
+    this.wanderTimer = setTimeout(step, this.wanderDelay())
+  }
+
+  private wanderDelay(): number {
+    const [min, max]: readonly [number, number] = this.activity === 'lively' ? [8000, 16000] : this.activity === 'quiet' ? [45000, 90000] : [20000, 40000]
+    return min + Math.round(Math.random() * (max - min))
   }
 
   private stopWanderMove(): void {
-    if (this.wanderMove !== undefined) clearInterval(this.wanderMove)
+    if (this.wanderMove !== undefined) {
+      clearInterval(this.wanderMove)
+      if (this.window !== undefined && !this.window.isDestroyed()) {
+        this.window.webContents.send(PET_IPC.movement, { moving: false, direction: this.direction })
+      }
+    }
     this.wanderMove = undefined
   }
 
@@ -342,7 +361,13 @@ export class DesktopPetWindow {
       [PET_IPC.dragStart, guard(() => { this.dragStart() })],
       [PET_IPC.dragMove, guard(() => { this.dragMove() })],
       [PET_IPC.dragEnd, guard(() => { this.dragEnd() })],
-      [PET_IPC.wander, guard((value) => { if (typeof value === 'boolean') this.setWandering(value) })],
+      [PET_IPC.wander, guard((value) => {
+        if (typeof value === 'boolean') this.setWandering(value)
+        else if (typeof value === 'object' && value !== null && 'active' in value && typeof value.active === 'boolean'
+          && 'activity' in value && (value.activity === 'quiet' || value.activity === 'normal' || value.activity === 'lively')) {
+          this.setWandering(value.active, value.activity)
+        }
+      })],
     ]
     for (const [channel, listener] of listeners) ipc.on(channel, listener)
     return () => { for (const [channel, listener] of listeners) ipc.removeListener(channel, listener) }

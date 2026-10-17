@@ -15,6 +15,7 @@ import type {
   StudioContinuationResult,
 } from '@deepseek-ai/dsh-studio-cloud/types'
 import type { AccountKey } from './locales.ts'
+import { StudioServerForm } from './StudioServerForm.tsx'
 import { StudioLoginDialog } from './StudioLoginDialog.tsx'
 import { StudioSignIn } from './StudioSignIn.tsx'
 import css from './StudioAccount.module.css'
@@ -614,25 +615,9 @@ export function StudioIntroduction({ complete, useStudio, t, ...operations }:
  */
 export function StudioServerSection({ useStudio, studioConfigureServer, t }: StudioSectionProps) {
   const snapshot = useStudio(value => value)
-  const [origin, setOrigin] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [outcome, setOutcome] = useState<'ok' | 'failed' | null>(null)
-  useEffect(() => { setOrigin(snapshot.state?.origin ?? '') }, [snapshot.state?.origin])
   return <section className={css.section}>
     <h2>{t('studioServerConfig')}</h2>
-    <form className={css.form} onSubmit={(event) => {
-      event.preventDefault(); setBusy(true); setOutcome(null)
-      void studioConfigureServer(origin.trim()).then(() => { setOutcome('ok') }, () => { setOutcome('failed') })
-        .finally(() => { setBusy(false) })
-    }}>
-      <p className={css.description}>{t('studioServerDescription')}</p>
-      <label>{t('studioOrigin')}<Input type="url" required value={origin}
-        onChange={(event) => { setOrigin(event.target.value) }} /></label>
-      {snapshot.state?.identity && <p className={css.description}>{t('studioServerSignOut')}</p>}
-      {outcome && <p role={outcome === 'failed' ? 'alert' : 'status'}>
-        {t(outcome === 'failed' ? 'studioFailure' : 'studioDone')}
-      </p>}
-      <Button type="submit" variant="primary" disabled={busy || !origin.trim()}>{t('studioSaveServer')}</Button>
-    </form>
+    <StudioServerForm origin={snapshot.state?.origin ?? ''} signedIn={!!snapshot.state?.identity}
+      studioConfigureServer={studioConfigureServer} t={t} />
   </section>
 }

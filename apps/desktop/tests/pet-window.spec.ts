@@ -306,7 +306,7 @@ describe('DesktopPetWindow', () => {
       const fake = native.windows[0]!
       fake.setBounds.mockClear()
       pet.setWandering(true)
-      vi.advanceTimersByTime(19000)
+      vi.advanceTimersByTime(21000)
       expect(fake.setBounds).toHaveBeenCalled()
       expect(positions.set).toHaveBeenCalledOnce()
       const count = fake.setBounds.mock.calls.length
@@ -322,6 +322,27 @@ describe('DesktopPetWindow', () => {
       random.mockRestore()
       vi.useRealTimers()
     }
+  })
+
+  it('uses lively movement cadence and reports locomotion to the renderer', () => {
+    vi.useFakeTimers()
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { pet } = setup()
+    try {
+      pet.open(); pet.setVisible(true)
+      const fake = native.windows[0]!
+      fake.setBounds.mockClear()
+      pet.setWandering(true, 'lively')
+      vi.advanceTimersByTime(7999)
+      expect(fake.setBounds).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(fake.webContents.send).toHaveBeenCalledWith(PET_IPC.movement, { moving: true, direction: 'left' })
+      vi.advanceTimersByTime(1000)
+      expect(fake.setBounds).toHaveBeenCalled()
+      expect(fake.webContents.send).toHaveBeenCalledWith(PET_IPC.movement, { moving: false, direction: 'left' })
+      pet.setWandering(false)
+      expect(vi.getTimerCount()).toBe(0)
+    } finally { pet.dispose(); random.mockRestore(); vi.useRealTimers() }
   })
 
   it('reports Host visibility changes and re-places the window when it shows again', () => {

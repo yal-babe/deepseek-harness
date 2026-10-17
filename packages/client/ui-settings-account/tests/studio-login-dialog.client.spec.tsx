@@ -62,3 +62,31 @@ for (const [language,copy] of [['en',en],['zh',zh]] as const) it(`records the St
     snapshot={{ state:null,visible:true,error:false }} {...mockOperations()} />)
   await expect(`${view.baseElement.textContent}\n`).toMatchFileSnapshot(`./expected/studio-login-${language}.txt`)
 })
+
+it('offers server configuration when signing in is blocked by a missing address', async () => {
+  const studioConfigureServer = vi.fn(async () => {})
+  const operations = mockOperations({ studioConfigureServer })
+  const props = { t: (key: keyof typeof en) => en[key], onClose: vi.fn(), ...operations }
+  const view = render(<StudioLoginDialog {...props} snapshot={{ state: null, visible: true, error: false }} />)
+  expect((screen.getByRole('button', { name: en.signIn }) as HTMLButtonElement).disabled).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: en.studioServerConfig }))
+  fireEvent.change(screen.getByLabelText(en.studioOrigin), { target: { value: 'http://192.168.1.2:8080' } })
+  fireEvent.click(screen.getByRole('button', { name: en.studioSaveServer }))
+  expect(studioConfigureServer).toHaveBeenCalledWith('http://192.168.1.2:8080')
+  await screen.findByRole('button', { name: en.signIn })
+  view.rerender(<StudioLoginDialog {...props} snapshot={{ visible: true, error: false, state: {
+    origin: 'http://192.168.1.2:8080', identity: null, phase: 'signed-out', usedBytes: null, quotaBytes: null, pending: 0,
+  } }} />)
+  expect((screen.getByRole('button', { name: en.signIn }) as HTMLButtonElement).disabled).toBe(false)
+  expect(screen.queryByLabelText(en.studioOrigin)).toBeNull()
+})
+
+it('keeps failed server configuration editable instead of returning to a disabled login', async () => {
+  render(<StudioLoginDialog t={key => en[key]} onClose={vi.fn()} snapshot={{ state: null, visible: true, error: false }}
+    {...mockOperations({ studioConfigureServer: vi.fn().mockRejectedValue(new Error('unavailable')) })} />)
+  fireEvent.click(screen.getByRole('button', { name: en.studioServerConfig }))
+  fireEvent.change(screen.getByLabelText(en.studioOrigin), { target: { value: 'https://cloud.example.test' } })
+  fireEvent.click(screen.getByRole('button', { name: en.studioSaveServer }))
+  expect(await screen.findByRole('alert')).toHaveProperty('textContent', en.studioFailure)
+  expect((screen.getByRole('button', { name: en.studioSaveServer }) as HTMLButtonElement).disabled).toBe(false)
+})

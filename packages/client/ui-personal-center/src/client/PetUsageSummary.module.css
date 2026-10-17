@@ -1,0 +1,11 @@
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-block: 8px;
+  border-block: 1px solid var(--dsw-alias-border-l1);
+  font-size: 12px;
+}
+.summary > div { display: flex; justify-content: space-between; gap: 12px; }
+.summary small { color: var(--dsw-alias-label-secondary); }
+.summary strong { font-variant-numeric: tabular-nums; }

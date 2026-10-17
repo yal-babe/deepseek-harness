@@ -84,3 +84,5 @@ Desktop 侧栏点击上报 `sidebar_menu_click`，`menu_name` 为 `personal`。
 全年活动网格随容器缩放；Antigravity 额度保留命名分组。
 
 DeepSeek 卡片分别展示充值与赠金钱包，平台提供赠金有效期时显示到期时间，并区分余额不可用与赠金钱包为空。供应商额度窗口以 Asia/Shanghai 时区显示刷新时间。
+
+可选的 `pet.panel.metrics` 插槽复用个人中心数据，显示已记录 Token 累计、当前会话和 DeepSeek 钱包。面板打开、可见任务完成或出错及手动刷新时更新，不轮询、不新增累计计数器。统计不含归档／删除会话及模型未返回的用量，不代表账号终身账单。

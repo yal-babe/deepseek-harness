@@ -43,7 +43,7 @@
 
 .character img {
   display: block;
-  width: 112px;
+  width: calc(112px * var(--pet-scale, 1));
   height: auto;
   user-select: none;
 }
@@ -240,8 +240,8 @@
 .positioned {
   right: auto;
   bottom: auto;
-  width: 112px;
-  height: 142px;
+  width: calc(112px * var(--pet-scale, 1));
+  height: calc(142px * var(--pet-scale, 1));
   display: block;
 }
 
@@ -281,7 +281,7 @@
 
 .motion {
   display: block;
-  width: 168px;
+  width: calc(168px * var(--pet-scale, 1));
   flex-shrink: 0;
   height: auto;
   pointer-events: none;
@@ -351,14 +351,14 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: 112px;
-  height: 142px;
+  width: calc(112px * var(--pet-scale, 1));
+  height: calc(142px * var(--pet-scale, 1));
 }
 
 .sprite {
   display: block;
-  width: 112px;
-  height: 112px;
+  width: calc(112px * var(--pet-scale, 1));
+  height: calc(112px * var(--pet-scale, 1));
   background-repeat: no-repeat;
   pointer-events: none;
 }
@@ -375,3 +375,50 @@
   outline: none;
   border-color: var(--dsw-alias-state-business-primary);
 }
+
+.panelMount[hidden] { display: none; }
+
+.character[data-life='rest'] .sprite { animation: pet-breathe 3s ease-in-out infinite; }
+
+@keyframes pet-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.97); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .character[data-life='rest'] .sprite { animation: none; }
+}
+
+.character[data-reduced='true'] .sprite { animation: none; }
+
+.characterVisual {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.characterVisual[data-moving='true'] {
+  animation: pet-swim 0.7s ease-in-out infinite;
+}
+.characterVisual[data-direction='left'][data-moving='true'] { --pet-facing: -1; }
+@keyframes pet-swim {
+  0%, 100% { transform: scaleX(var(--pet-facing, 1)) translateY(0) rotate(-3deg); }
+  50% { transform: scaleX(var(--pet-facing, 1)) translateY(-5px) rotate(3deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .characterVisual[data-moving='true'] { animation: none; }
+}
+
+.statusBubble {
+  max-width: 240px;
+  padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  box-shadow: var(--dsw-elevation-prominent);
+  font-size: 12px;
+  pointer-events: none;
+}
+.window .panel { max-height: calc(100vh - var(--pet-character-height, 142px) - 32px); }

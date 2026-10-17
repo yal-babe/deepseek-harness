@@ -84,3 +84,5 @@ Dashboard sections share one border-box width. Usage lists separate names and nu
 The full-year activity grid shrinks with its container; Antigravity quotas retain their named groups.
 
 The DeepSeek card separates recharge and gift wallets, shows gift expiry when supplied, and keeps unavailable balances distinct from empty gift wallets. Provider windows show their reset instant in Asia/Shanghai.
+
+The optional `pet.panel.metrics` contribution reuses this page’s store for recorded Token totals, the focused Session, and DeepSeek wallets. It refreshes when the pet panel opens, when a visible task finishes or fails, and on manual refresh, without polling or a separate cumulative counter. The displayed scope excludes archived/deleted sessions and usage absent from provider responses; it is not lifetime account billing.

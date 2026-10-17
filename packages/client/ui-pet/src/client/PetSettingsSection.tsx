@@ -4,6 +4,7 @@ import { Button, Input, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { PET_ACTIONS } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { addRestrictedTool, removeRestrictedTool, type PetSettingsFields, type PetSettingsSwitch, type PetSettingsWriteState } from './settings.ts'
 import css from './PetSettingsSection.module.css'
@@ -127,7 +128,23 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
       <h3 className={css.group}>{t('settings.general')}</h3>
       <Row title={t('settings.visible')} hint={t('settings.visibleHint')}>{toggle('visible', t('settings.visible'))}</Row>
       <div className={css.note}>{desktop ? t('settings.modeDesktop') : t('settings.modeBrowser')}</div>
+      <Row title={t('settings.name')}>
+        <Input aria-label={t('settings.name')} value={preferences.name ?? ''} placeholder={t('defaultName')} maxLength={48}
+          onChange={(event) => { props.setPreferences({ name: Array.from(event.target.value).slice(0, 24).join('') }) }} />
+      </Row>
+      <Row title={t('settings.size')}>
+        <label><input type="range" aria-label={t('settings.size')} min={50} max={200} step={5} value={preferences.size ?? 100}
+          onChange={(event) => { props.setPreferences({ size: Number(event.target.value) }) }} /> {preferences.size ?? 100}%</label>
+        <Button size="sm" variant="ghost" onClick={() => { props.setPreferences({ size: 100 }) }}>{t('settings.resetSize')}</Button>
+      </Row>
       <h3 className={css.group}>{t('settings.behavior')}</h3>
+      <Row title={t('settings.life')}>
+        <div className={css.activity} role="group" aria-label={t('settings.life')}>
+          {(['idle', 'rest', 'play'] as const).map(life => <Button key={life} size="sm"
+            variant={(preferences.life ?? 'idle') === life ? 'outline' : 'ghost'} aria-pressed={(preferences.life ?? 'idle') === life}
+            onClick={() => { props.setPreferences({ life }) }}>{t(`life.${life}`)}</Button>)}
+        </div>
+      </Row>
       <Row title={t('settings.activity')}>
         <div className={css.activity} role="group" aria-label={t('settings.activity')}>
           {(['quiet', 'normal', 'lively'] as const).map(level => <Button key={level} size="sm"
@@ -136,6 +153,13 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
             onClick={() => { props.setPreferences({ activity: level }) }}>{t(`settings.${level}`)}</Button>)}
         </div>
       </Row>
+      <details><summary>{t('settings.randomActions')}</summary>
+        {PET_ACTIONS.map(action => <Row key={action} title={t(`menu.${action}`)}>
+          <Switch checked={(preferences.actions ?? PET_ACTIONS).includes(action)} label={t(`menu.${action}`)}
+            onChange={(checked) => { const selected = preferences.actions ?? PET_ACTIONS
+              props.setPreferences({ actions: checked ? [...selected, action] : selected.filter(item => item !== action) }) }} />
+        </Row>)}
+      </details>
       <Row title={t('settings.interactive')} hint={t('settings.interactiveHint')}>
         <Switch checked={preferences.interactive === true} label={t('settings.interactive')}
           onChange={(interactive) => { props.setPreferences({ interactive }) }} />

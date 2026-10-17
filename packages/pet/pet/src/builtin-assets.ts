@@ -4,11 +4,17 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { parsePetPack } from './pack.ts'
 import type { PetMotionClip, PetPackState } from './types.ts'
 
+/** Host route serving only shipped character media. */
 export const PET_MEDIA_PATH = '/pet-motion'
 const root = new URL('../packs/whaletail-maid/', import.meta.url)
 
-/** Read only the shipped manifest; request paths are never filesystem inputs. */
-export async function builtinAssets() {
+/** Read only the shipped manifest; request paths are never filesystem inputs.
+ * @returns the pack description and allowlisted HTTP handler.
+ */
+export async function builtinAssets(): Promise<{
+  pack: PetPackState
+  handler: (req: IncomingMessage, res: ServerResponse) => Promise<void>
+}> {
   const parsed = parsePetPack(JSON.parse(await readFile(new URL('pet.json', root), 'utf8')))
   if (!parsed.ok) throw new Error(`pet: invalid built-in pack: ${parsed.errors.join('; ')}`)
   const motion: {

@@ -71,7 +71,7 @@ function setup(
   const controller = controllerStub(viewStore, preferences, notifications)
   const packStore = createSnapshotStore<PetFrameSet>(BUILTIN_FRAME_SET, { flush: 'sync' })
   const props: PetProps = {
-    t, controller, useView: hook(viewStore), useApprovals: hook(approvalStore), useQuestions: hook(questionStore),
+    t, controller, renderSlot: () => null, useView: hook(viewStore), useApprovals: hook(approvalStore), useQuestions: hook(questionStore),
     usePreferences: hook(preferences.snapshot), usePack: hook(packStore),
   }
   return { props, controller, viewStore, approvalStore, questionStore, preferences, packStore }
@@ -196,7 +196,7 @@ describe('PetOverlay', () => {
     expect(controller.openMain).toHaveBeenCalled()
     expect(controller.hide).toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: /characterLabel/u }))
-    expect(screen.queryByText('openMain')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'openMain' })).toBeNull()
   })
 
   it('arms approval buttons after the delay, ignores Enter, and reports the decision', async () => {
@@ -506,4 +506,78 @@ describe('PetWindowRoot', () => {
     act(() => { fire?.() })
     expect(controller.show).toHaveBeenCalledOnce()
   })
+})
+
+describe('pet panel and personalisation regressions', () => {
+  it('closes without losing the quick-ask draft and focuses the character', () => {
+    const { props } = setup({ connected: true, snapshot: snapshot() })
+    render(<PetOverlay {...props} />)
+    const character = screen.getByRole('button', { name: /characterLabel/u })
+    fireEvent.click(character)
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'keep this draft' } })
+    fireEvent.click(screen.getByRole('button', { name: 'closePanel' }))
+    expect(screen.queryByRole('form')).toBeNull()
+    expect(document.activeElement).toBe(character)
+    fireEvent.click(character)
+    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('keep this draft')
+    fireEvent.keyDown(input, { key: 'Escape', isComposing: true })
+    expect(screen.getByRole('form')).toBeTruthy()
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(screen.queryByRole('form')).toBeNull()
+    fireEvent.click(character)
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('form')).toBeNull()
+  })
+
+  it('can collapse a pending approval and reopens for a different request', () => {
+    const { props, viewStore } = setup({ connected: true, snapshot: snapshot({
+      primary: 'WAITING', pending: [hostPending('first', S1, 'bash')],
+    }) })
+    render(<PetOverlay {...props} />)
+    expect(screen.getByRole('form')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'closePanel' }))
+    expect(screen.queryByRole('form')).toBeNull()
+    act(() => viewStore.set({ connected: true, snapshot: snapshot({
+      primary: 'WAITING', pending: [hostPending('second', S1, 'bash')],
+    }) }))
+    expect(screen.getByRole('form')).toBeTruthy()
+  })
+
+  it('shows the custom name and shares life state changes with settings', () => {
+    const { props, preferences } = setup({ connected: true, snapshot: snapshot() })
+    preferences.update({ name: '小鱼', size: 150 })
+    render(<PetOverlay {...props} />)
+    const character = screen.getByRole('button', { name: /characterLabel/u })
+    expect(character.title).toBe('小鱼')
+    expect(character.style.getPropertyValue('--pet-scale')).toBe('1.5')
+    fireEvent.contextMenu(character)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.lifeRest' }))
+    expect(preferences.snapshot.getSnapshot().life).toBe('rest')
+    expect(character.getAttribute('data-life')).toBe('rest')
+  })
+
+  it('toggles the native shortcut without a second forced-open state', () => {
+    const { props } = setup({ connected: true, snapshot: snapshot() })
+    let shortcut: (() => void) | undefined
+    render(<PetWindowRoot {...props} onQuickAsk={(listener) => { shortcut = listener; return () => { shortcut = undefined } }} />)
+    act(() => shortcut?.())
+    expect(screen.getByRole('form')).toBeTruthy()
+    act(() => shortcut?.())
+    expect(screen.queryByRole('form')).toBeNull()
+  })
+})
+
+it('follows native movement direction and releases the movement subscription', () => {
+  const { props } = setup({ connected: true, snapshot: snapshot() })
+  let movement: ((value: { moving: boolean; direction: 'left' | 'right' }) => void) | undefined
+  const stop = vi.fn(() => { movement = undefined })
+  const view = render(<PetWindowRoot {...props} onQuickAsk={() => () => {}}
+    onMovement={(listener) => { movement = listener; return stop }} />)
+  act(() => { movement?.({ moving: true, direction: 'left' }) })
+  expect(view.container.querySelector('[data-moving="true"][data-direction="left"]')).toBeTruthy()
+  act(() => { movement?.({ moving: false, direction: 'left' }) })
+  expect(view.container.querySelector('[data-moving="true"]')).toBeNull()
+  view.unmount()
+  expect(stop).toHaveBeenCalledOnce()
 })

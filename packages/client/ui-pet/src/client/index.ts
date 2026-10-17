@@ -8,6 +8,7 @@
  * `remote.pet` and `remote.session` Remotes as optional services, so a Host
  * without the pet entry still boots and only lacks the character.
  */
+import type {} from './metrics-slot.ts'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -48,6 +49,7 @@ export type { PetSettingsFields, PetSettingsSwitch, PetSettingsWriteState } from
 export { addRestrictedTool, PET_SETTINGS_NAMESPACE, PetSettingsEditor, removeRestrictedTool } from './settings.ts'
 export { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PET_SNOOZE_MS, PetPreferenceStore } from './preferences.ts'
 export { PetController } from './controller.ts'
+export type { PetMetricsOwnerProps } from './metrics-slot.ts'
 export type { PetLocaleKey } from './locales.ts'
 export type { PetInjected, PetMenuAction, PetProps } from './Pet.tsx'
 export type { QuickAskDeps, QuickAskOutcome, QuickAskRequest, QuickAskTarget } from './quick-ask.ts'
@@ -232,13 +234,14 @@ function mountSurface(ctx: ClientContext, deps: {
       }), 'ui-pet: Desktop tray visibility requests')
     }
     const onQuickAsk = (listener: () => void): (() => void) => bridge?.onQuickAsk(listener) ?? (() => {})
+    const onMovement = (listener: (value: { moving: boolean; direction: 'left' | 'right' }) => void): (() => void) => bridge?.onMovement?.(listener) ?? (() => {})
     // Lower priority than ui-layout's AppFrame (0): this document renders only the pet.
     ctx.slots.inject('root', () => ctx.slots.register({
-      name: 'root', priority: -1, locale: NS, inject: () => ({ ...injected(), onQuickAsk }),
+      name: 'root', priority: -1, children: { 'pet.panel.metrics': { kind: 'list', scope: 'root' } }, locale: NS, inject: () => ({ ...injected(), onQuickAsk, onMovement }),
     }, PetWindowRoot))
     return
   }
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay', id: 'pet.character', locale: NS, inject: injected,
+    name: 'shell.overlay', id: 'pet.character', children: { 'pet.panel.metrics': { kind: 'list', scope: 'root' } }, locale: NS, inject: injected,
   }, PetOverlay))
 }

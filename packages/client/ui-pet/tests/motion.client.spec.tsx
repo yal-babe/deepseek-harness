@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetMotion } from '../src/client/PetMotion.tsx'
 import { PetSprite } from '../src/client/PetSprite.tsx'
-import { idleDelay, nextIdleClip, taskClip } from '../src/client/motion.ts'
+import { idleDelay, nextIdleClip, roamDelay, taskClip } from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
 const clip = (name: string, loop = false) => ({ url: `/${name}.webm`, durationMs: 1000, loop })
@@ -21,8 +21,8 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers() })
 
 describe('motion scheduling', () => {
   it('uses distinct rest intervals and does not repeat the last idle action', () => {
-    expect(idleDelay('quiet', 0)).toBe(45000)
-    expect(idleDelay('lively', 1)).toBe(22000)
+    expect(idleDelay('quiet', 0)).toBe(20000)
+    expect(idleDelay('lively', 1)).toBe(7000)
     expect(nextIdleClip('idle_stretch', 0)).not.toBe('idle_stretch')
     expect(taskClip('WORKING', 'search')).toBe('working_search')
     expect(taskClip('WORKING', 'test')).toBe('working_command')
@@ -30,7 +30,7 @@ describe('motion scheduling', () => {
 
   it('rests after the idle clip ends and immediately returns to a new task', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0)
-    const props = { motion, state: 'IDLE' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
+    const props = { motion, state: 'IDLE' as const, dragging: false, preferences: { ...preferences, actions: ['stretch', 'headPat'] as const }, paused: false, onFailure: vi.fn() }
     const view = render(<PetMotion {...props} />)
     const source = () => view.container.querySelector('video')!.getAttribute('src')
     expect(source()).toBe('/idle.webm')
@@ -93,4 +93,45 @@ describe('motion scheduling', () => {
     view.unmount()
     expect(vi.getTimerCount()).toBe(0)
   })
+})
+
+it('uses only available actions and permits an empty autonomous list', () => {
+  expect(nextIdleClip('bubbles', 0, ['bubbles'])).toBe('bubbles')
+  expect(nextIdleClip(undefined, 0, [])).toBeUndefined()
+  expect(roamDelay('lively', 0)).toBe(8000)
+  expect(roamDelay('quiet', 1)).toBe(90000)
+  const view = render(<PetMotion motion={motion} state="IDLE" dragging={false}
+    preferences={{ ...preferences, actions: [] }} paused={false} onFailure={vi.fn()} />)
+  act(() => { vi.advanceTimersByTime(120000) })
+  expect(view.container.querySelector('video')?.getAttribute('src')).toBe('/idle.webm')
+  view.unmount()
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('holds a resting pose until work starts and resumes rest after work', () => {
+  const sleeping = { ...motion, clips: { ...motion.clips, sleep: { url: '/sleep.png', durationMs: 3200,
+    loop: false, sheet: { columns: 4, rows: 2, frames: 8 } } } }
+  const props = { motion: sleeping, state: 'IDLE' as const, dragging: false,
+    preferences: { ...preferences, life: 'rest' as const }, paused: false, onFailure: vi.fn() }
+  const view = render(<PetMotion {...props} />)
+  const pose = view.container.querySelector<HTMLElement>('[data-pet-sprite]')!
+  const position = pose.style.backgroundPosition
+  act(() => { vi.advanceTimersByTime(120000) })
+  expect(pose.style.backgroundPosition).toBe(position)
+  expect(vi.getTimerCount()).toBe(0)
+  view.rerender(<PetMotion {...props} state="WORKING" />)
+  expect(view.container.querySelector('video')?.getAttribute('src')).toBe('/working.webm')
+  view.rerender(<PetMotion {...props} />)
+  expect(view.container.querySelector('[data-pet-sprite]')).toBeTruthy()
+})
+
+it('uses a continuous animation with bubbles instead of playing the eight-pose sheet', () => {
+  const lowFrame = { ...motion, clips: { ...motion.clips,
+    bubbles: { url: '/bubbles.png', durationMs: 3200, loop: false, sheet: { columns: 4, rows: 2, frames: 8 } },
+  } }
+  const view = render(<PetMotion motion={lowFrame} state="IDLE" dragging={false} preferences={preferences}
+    paused={false} action={{ action: 'bubbles', serial: 1 }} onFailure={vi.fn()} />)
+  expect(view.container.querySelector('video')?.getAttribute('src')).toBe('/idle.webm')
+  expect(view.container.querySelector('[data-pet-sprite]')).toBeNull()
+  expect(view.container.querySelector('[data-effect="bubbles"]')).toBeTruthy()
 })

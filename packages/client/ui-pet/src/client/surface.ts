@@ -17,7 +17,9 @@ export interface DesktopPetBridge {
    * @param interactive - whether the window takes pointer input.
    */
   /** Enable bounded idle wandering; older Desktop bridges simply omit this capability. */
-  readonly wander?: (active: boolean) => void
+  readonly wander?: (active: boolean, activity?: 'quiet' | 'normal' | 'lively') => void
+  /** Observe native autonomous movement; absent in older bridges. */
+  readonly onMovement?: (listener: (value: { moving: boolean; direction: 'left' | 'right' }) => void) => () => void
   readonly setInteractive: (interactive: boolean) => void
   /**
    * Show or hide the pet window to follow the Host "show desktop pet" value.

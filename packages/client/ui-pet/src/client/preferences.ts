@@ -3,7 +3,7 @@
  * do-not-disturb. They never leave the browser profile; documents of the same
  * profile (the Desktop pet window and main window) follow each other's writes.
  */
-import type { PetActivityLevel } from './motion.ts'
+import { PET_ACTIONS, type PetLifeState, type PetAction, type PetActivityLevel } from './motion.ts'
 import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 
 /** Storage key of the preference record. */
@@ -14,12 +14,20 @@ export const PET_SNOOZE_MS = 60 * 60 * 1000
 
 /** Device-local pet preferences. */
 export interface PetPreferences {
-  /** Whether system notifications are on (opt-in). */
+  /** Device-local character name, at most 24 Unicode code points. */
+  readonly name?: string
+  /** Requested character size in percent, between 50 and 200. */
+  readonly size?: number
+  /** Life state restored after task activity ends. */
+  readonly life?: PetLifeState
+  /** Enabled autonomous actions; an empty list keeps only the base loop. */
+  readonly actions?: readonly PetAction[]
   readonly activity?: PetActivityLevel
   readonly effects?: boolean
   readonly interactive?: boolean
   readonly roam?: boolean
   readonly reducedMotion?: boolean
+  /** Whether system notifications are on (opt-in). */
   readonly notify: boolean
   /** Epoch milliseconds until which notifications are snoozed. */
   readonly snoozeUntil: number | undefined
@@ -47,10 +55,15 @@ export function parsePreferences(raw: string | null): PetPreferences {
     return DEFAULTS
   }
   if (typeof value !== 'object' || value === null) return DEFAULTS
+  const actions = 'actions' in value && Array.isArray(value.actions) ? value.actions : undefined
   const notify = 'notify' in value && typeof value.notify === 'boolean' ? value.notify : DEFAULTS.notify
   const snoozeUntil = 'snoozeUntil' in value && typeof value.snoozeUntil === 'number' ? value.snoozeUntil : undefined
   return {
     notify, snoozeUntil,
+    ...'name' in value && typeof value.name === 'string' && value.name.trim() ? { name: Array.from(value.name.trim()).slice(0, 24).join('') } : {},
+    ...'size' in value && typeof value.size === 'number' && Number.isFinite(value.size) ? { size: Math.max(50, Math.min(200, value.size)) } : {},
+    ...'life' in value && (value.life === 'idle' || value.life === 'rest' || value.life === 'play') ? { life: value.life } : {},
+    ...actions !== undefined ? { actions: PET_ACTIONS.filter(action => actions.includes(action)) } : {},
     ...'activity' in value && (value.activity === 'quiet' || value.activity === 'normal' || value.activity === 'lively') ? { activity: value.activity } : {},
     ...'effects' in value && typeof value.effects === 'boolean' ? { effects: value.effects } : {},
     ...'interactive' in value && typeof value.interactive === 'boolean' ? { interactive: value.interactive } : {},
@@ -117,7 +130,7 @@ export class PetPreferenceStore {
    * @param patch - fields to change.
    */
   update(patch: Partial<PetPreferences>): void {
-    const next = { ...this.store.getSnapshot(), ...patch }
+    const next = parsePreferences(JSON.stringify({ ...this.store.getSnapshot(), ...patch }))
     this.store.set(next)
     try {
       this.storage?.setItem(PET_PREFERENCES_KEY, JSON.stringify(next))

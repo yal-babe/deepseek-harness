@@ -8,6 +8,8 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-pet/client'
+import { PetUsageSummary } from './PetUsageSummary.tsx'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
@@ -89,6 +91,10 @@ export function apply(ctx: ClientContext): void {
       ctx.get('uiWorkspace')?.openSession(sessionId)
     },
   })
+
+  ctx.slots.inject('pet.panel.metrics', () => ctx.slots.register({
+    name: 'pet.panel.metrics', id: 'personal-center', locale: NS, inject: injected,
+  }, PetUsageSummary))
 
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main',

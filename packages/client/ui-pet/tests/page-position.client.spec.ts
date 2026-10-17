@@ -18,3 +18,8 @@ describe('Web character placement', () => {
     expect(clampPetPoint({ x: 800, y: 600 }, 800, 600)).toEqual({ x: 680, y: 450 })
   })
 })
+
+it('clamps the actual scaled character instead of the original hitbox', () => {
+  expect(clampPetPoint({ x: 700, y: 500 }, 800, 600, 200)).toEqual({ x: 568, y: 308 })
+  expect(readPetPoint('{"x":700,"y":500}', 800, 600, 50)).toEqual({ x: 700, y: 500 })
+})

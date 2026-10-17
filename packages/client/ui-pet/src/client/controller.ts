@@ -173,7 +173,9 @@ export class PetController {
     this.deps.preferences.update({ snoozeUntil: this.deps.now() + PET_SNOOZE_MS })
   }
 
-  /** Change device-local movement and visual preferences without changing Host configuration. */
+  /** Change device-local movement and visual preferences without changing Host configuration.
+   * @param patch - requested preference fields.
+   */
   setPreferences(patch: Partial<PetPreferences>): void {
     this.deps.preferences.update(patch)
   }
@@ -202,8 +204,11 @@ export class PetController {
     this.deps.bridge?.setInteractive(interactive)
   }
 
-  /** Enable Desktop wandering only while the current surface is idle and unobstructed. */
-  wander(active: boolean): void { this.deps.bridge?.wander?.(active) }
+  /** Enable Desktop wandering only while the current surface is idle and unobstructed.
+   * @param active - whether autonomous movement is allowed.
+   * @param activity - movement frequency preset.
+   */
+  wander(active: boolean, activity: 'quiet' | 'normal' | 'lively' = 'normal'): void { this.deps.bridge?.wander?.(active, activity) }
 
   /**
    * Move the Desktop pet window with a character drag; no-op elsewhere.

@@ -69,3 +69,12 @@ describe('isSnoozed', () => {
     expect(isSnoozed({ notify: true, snoozeUntil: 10 }, 10)).toBe(false)
   })
 })
+
+it('validates new preferences on load, local writes and cross-window reads', () => {
+  const parsed = parsePreferences(JSON.stringify({ name: '  小鱼  ', size: 500, life: 'rest', actions: ['bubbles', 'unknown', 'bubbles'] }))
+  expect(parsed).toMatchObject({ name: '小鱼', size: 200, life: 'rest', actions: ['bubbles'] })
+  expect(parsePreferences('{"size":null,"life":"working","actions":"all"}')).toEqual({ notify: false, snoozeUntil: undefined })
+  const store = new PetPreferenceStore(undefined)
+  store.update({ name: ' ', size: 0, life: 'play', actions: [] })
+  expect(store.snapshot.getSnapshot()).toEqual({ notify: false, snoozeUntil: undefined, size: 50, life: 'play', actions: [] })
+})

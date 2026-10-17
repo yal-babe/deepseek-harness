@@ -1,36 +1,82 @@
 /** Motion arbitration shared by the Web and Desktop character. */
-import type { PetAgentState, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
+import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
 
+/** Available explicit character interactions. */
 export type PetAction = 'headPat' | 'poke' | 'tail' | 'eatToken' | 'stretch' | 'yawn' | 'bubbles' | 'sleep' | 'nuzzle' | 'celebrate'
+/** Device-local life state; task work temporarily takes precedence. */
+export type PetLifeState = 'idle' | 'rest' | 'play'
+/** Frequency preset for autonomous actions and movement. */
 export type PetActivityLevel = 'quiet' | 'normal' | 'lively'
+/** One explicit action request; serial distinguishes repeated choices. */
 export interface PetActionRequest { readonly action: PetAction; readonly serial: number; readonly interrupt?: boolean }
+/** Complete selectable interaction list. */
 export const PET_ACTIONS: readonly PetAction[] = ['headPat', 'poke', 'tail', 'eatToken', 'stretch', 'yawn', 'bubbles', 'sleep', 'nuzzle', 'celebrate']
+/** Built-in animation names for each explicit interaction. */
 export const ACTION_CLIP: Readonly<Record<PetAction, string>> = {
   headPat: 'head_pat', poke: 'poke', tail: 'tail', eatToken: 'eat_token', stretch: 'idle_stretch', yawn: 'idle_yawn',
   bubbles: 'bubbles', sleep: 'sleep', nuzzle: 'nuzzle', celebrate: 'celebrate',
 }
-const IDLE = ['idle_stretch', 'idle_yawn', 'eat_token', 'bubbles', 'sleep', 'nuzzle'] as const
+const IDLE = PET_ACTIONS.map(action => ACTION_CLIP[action])
 const INTERVAL: Readonly<Record<PetActivityLevel, readonly [number, number]>> = {
-  quiet: [45000, 90000], normal: [25000, 45000], lively: [12000, 22000],
+  quiet: [20000, 40000], normal: [8000, 16000], lively: [3000, 7000],
 }
 
-/** Work and waiting always displace decorative actions. */
+/** Work and waiting always displace decorative actions.
+ * @param state - current task state.
+ * @returns whether decorative idle activity is permitted.
+ */
 export function petIsIdle(state: PetAgentState): boolean { return state === 'IDLE' || state === 'DISCONNECTED' }
 
-/** Choose without repeating the previous idle action. */
-export function nextIdleClip(previous: string | undefined, random: number): string {
-  const candidates = IDLE.filter(name => name !== previous)
-  return candidates[Math.min(candidates.length - 1, Math.floor(Math.max(0, random) * candidates.length))] ?? IDLE[0]
+/** Choose without repeating the previous idle action.
+ * @param previous - last selected clip.
+ * @param random - random sample in the unit interval.
+ * @param available - eligible clip names.
+ * @returns a candidate, or undefined when none is eligible.
+ */
+export function nextIdleClip(previous: string | undefined, random: number, available: readonly string[] = IDLE): string | undefined {
+  const distinct = available.filter(name => name !== previous)
+  const candidates = distinct.length ? distinct : available
+  return candidates[Math.min(candidates.length - 1, Math.floor(Math.max(0, random) * candidates.length))]
 }
 
-/** Start the rest interval after a clip ends, rather than during its playback. */
+/** Delay between completed autonomous movements, in milliseconds.
+ * @param level - selected activity preset.
+ * @param random - random sample in the unit interval.
+ * @returns milliseconds to wait after a movement.
+ */
+export function roamDelay(level: PetActivityLevel, random: number): number {
+  const [min, max] = { quiet: [45000, 90000], normal: [20000, 40000], lively: [8000, 16000] }[level] as [number, number]
+  return min + Math.round((max - min) * Math.max(0, Math.min(1, random)))
+}
+
+/** Start the rest interval after a clip ends, rather than during its playback.
+ * @param level - selected activity preset.
+ * @param random - random sample in the unit interval.
+ * @returns milliseconds to wait after an action.
+ */
 export function idleDelay(level: PetActivityLevel, random: number): number {
   const [min, max] = INTERVAL[level]
   return min + Math.round((max - min) * Math.max(0, Math.min(1, random)))
 }
 
-/** Map the Host state and tool activity to the original full-length clips. */
+/** Map the Host state and tool activity to the original full-length clips.
+ * @param state - current task state.
+ * @param activity - current tool activity.
+ * @returns the matching built-in animation name.
+ */
 export function taskClip(state: PetAgentState, activity?: PetWorkActivity): string {
   if (state === 'WORKING') return activity === 'search' ? 'working_search' : activity === 'command' || activity === 'test' ? 'working_command' : 'working'
   return { IDLE: 'idle', DISCONNECTED: 'idle', THINKING: 'thinking', WAITING: 'waiting', SUCCESS: 'success', ERROR: 'error' }[state]
+}
+
+/** Use an existing continuous clip for low-frame interactions until their replacement assets are available.
+ * @param name - requested animation.
+ * @param motion - available character media.
+ * @returns the original clip when sufficiently sampled, otherwise an available continuous substitute.
+ */
+export function smoothClip(name: string, motion: PetMotionView): string {
+  const clip = motion.clips[name]
+  if (clip?.sheet === undefined || clip.sheet.frames * 1000 / clip.durationMs >= 12) return name
+  const substitute = ({ bubbles: 'idle', sleep: 'idle_yawn', nuzzle: 'head_pat', celebrate: 'success' } as Readonly<Record<string, string>>)[name]
+  return substitute !== undefined && motion.clips[substitute] !== undefined ? substitute : name
 }
