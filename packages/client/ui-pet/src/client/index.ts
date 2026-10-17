@@ -4,7 +4,9 @@
  * whole document is the pet. Both surfaces read the Host `pet` Remote and
  * answer approvals through ui-approval's pending interactions. Every document
  * except the pet window also registers the pet settings page while ui-settings
- * and the Host `pet` entry are present.
+ * and the Host `pet` entry are present. The character waits for the
+ * `remote.pet` and `remote.session` Remotes as optional services, so a Host
+ * without the pet entry still boots and only lacks the character.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
@@ -30,7 +32,7 @@ import { en, zh, type PetLocaleKey } from './locales.ts'
 import { PetOverlay, PetWindowRoot, type PetInjected } from './Pet.tsx'
 import type { QuickAskDeps } from './quick-ask.ts'
 import { isPetVisible, PetStore } from './store.ts'
-import { desktopPetBridge, detectPetSurface, type DesktopPetBridge } from './surface.ts'
+import { desktopPetBridge, detectPetSurface, type DesktopPetBridge, type PetSurface } from './surface.ts'
 
 export type { AnswerableApproval, PetDecisionResult } from './approvals.ts'
 export { collectApprovals, matchApproval, PetApprovalBridge } from './approvals.ts'
@@ -64,6 +66,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Required services: Remote, Session status, file upload, Slots, and copy. */
 export const inject = ['remote', 'uiSession', 'fileUpload', 'slots', 'locale']
+
+/**
+ * Remote sub-services the character reads. Cordis refuses `ctx.remote.<name>`
+ * unless `remote.<name>` is injected; they are optional so a Host without the
+ * pet entry cannot hold back or fail web boot.
+ */
+export const SURFACE_INJECT = ['remote.pet', 'remote.session'] as const
 
 const NS = 'pet'
 
@@ -141,6 +150,24 @@ export function apply(ctx: ClientContext): void {
     ctx.effect(() => bridge.onOpenSession((sessionId) => { openSessionIn(ctx, SessionId(sessionId)) }), 'ui-pet: open Session requests')
   }
   if (surface === 'none') return
+  ctx.inject([...SURFACE_INJECT], (scope: ClientContext) => {
+    mountSurface(scope, { surface, bridge, preferences, notifications })
+  })
+}
+
+/**
+ * Mount the character once the pet and Session Remotes are served: the snapshot
+ * stream, the character pack, notifications, and the overlay or pet-window root.
+ * @param ctx - scope that injects {@link SURFACE_INJECT}; every Remote read goes through it.
+ * @param deps - detected surface, Desktop bridge, preferences, and notification sink.
+ */
+function mountSurface(ctx: ClientContext, deps: {
+  readonly surface: Exclude<PetSurface, 'none'>
+  readonly bridge: DesktopPetBridge | undefined
+  readonly preferences: PetPreferenceStore
+  readonly notifications: NotificationSink | undefined
+}): void {
+  const { surface, bridge, preferences, notifications } = deps
   const pet = new PetStore(ctx.remote, signal => ctx.remote.pet.watch(signal))
   ctx.effect(() => {
     void pet.run()

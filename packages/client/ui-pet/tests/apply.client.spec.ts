@@ -39,7 +39,7 @@ function fakeConfigForms(served: boolean) {
 
 async function bench(
   search: string, bridge?: DesktopPetBridge, extraFrames?: PetSnapshot[], configForms?: ReturnType<typeof fakeConfigForms>,
-  uiWorkspace?: { openSession: (sessionId: string) => void },
+  uiWorkspace?: { openSession: (sessionId: string) => void }, servePet = true,
 ) {
   window.history.replaceState(null, '', `/${search}`)
   if (bridge === undefined) Reflect.deleteProperty(globalThis, 'dshDesktopPet')
@@ -71,6 +71,10 @@ async function bench(
   }
   const locale = { register: vi.fn(() => () => {}), bind: vi.fn(() => (key: string, params?: Record<string, string>) => `${key}${params?.toolName ?? ''}`) }
   ctx.provide('remote', remote as never)
+  if (servePet) {
+    ctx.provide('remote.pet', remote.pet as never)
+    ctx.provide('remote.session', remote.session as never)
+  }
   ctx.provide('uiSession', { sessionStatus: createSnapshotStore(new Map(), { flush: 'sync' }) } as never)
   ctx.provide('fileUpload', fileUpload as never)
   ctx.provide('locale', locale as never)
@@ -187,6 +191,18 @@ describe('ui-pet apply', () => {
     const unsubscribe = injected.onQuickAsk?.(() => {})
     expect(unsubscribe).toBeTypeOf('function')
     unsubscribe?.()
+  })
+
+  it('still activates without the Host pet Remote and adds the character once it is served', async () => {
+    const { ctx, fiber, registrations, remote } = await bench('', undefined, undefined, undefined, undefined, false)
+    // FiberState.ACTIVE: a const enum with no runtime object to import.
+    expect(fiber.state).toBe(2)
+    expect(registrations).toEqual([])
+    expect(remote.$stream).not.toHaveBeenCalled()
+    ctx.provide('remote.pet', remote.pet as never)
+    ctx.provide('remote.session', remote.session as never)
+    await vi.waitFor(() => { expect(registrations.map(entry => entry.options.name)).toEqual(['shell.overlay']) })
+    await fiber.dispose()
   })
 
   it('stays out of the Desktop main window', async () => {
