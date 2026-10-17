@@ -70,7 +70,6 @@ export function matchApproval(
       : candidate.toolName === pending.toolName))
 }
 
-/** Result of one pet decision attempt. */
 /**
  * Read `answerable` without the narrowing of an earlier check.
  * @param approval - request to read.
@@ -80,6 +79,7 @@ function stillAnswerable(approval: AnswerableApproval): boolean {
   return approval.answerable
 }
 
+/** Result of one pet decision attempt. */
 export type PetDecisionResult = 'decided' | 'already-settled' | 'in-flight' | 'failed'
 
 /** Guards against double submission from the pet surface. */

@@ -24,6 +24,8 @@ import { desktopPetBridge, detectPetSurface, type DesktopPetBridge } from './sur
 
 export type { AnswerableApproval, PetDecisionResult } from './approvals.ts'
 export { collectApprovals, matchApproval, PetApprovalBridge } from './approvals.ts'
+export type { AnswerableQuestion, PetAnswerResult, PetQuestionAnswer, PetQuestionItem, PetQuestionOption } from './questions.ts'
+export { collectQuestions, petAnswerable, PetQuestionBridge } from './questions.ts'
 export type { PetControllerDeps, QuickAskChoice } from './controller.ts'
 export { PetController } from './controller.ts'
 export type { PetLocaleKey } from './locales.ts'
@@ -87,7 +89,10 @@ export function apply(ctx: ClientContext): void {
     acknowledge: async (sessionId: SessionId) => { await ctx.remote.pet.acknowledge(sessionId) },
     bridge,
   })
-  const injected = (): PetInjected => ({ controller, hooks: { view: pet.store, approvals: controller.approvals } })
+  const injected = (): PetInjected => ({
+    controller,
+    hooks: { view: pet.store, approvals: controller.approvals, questions: controller.questions },
+  })
   if (surface === 'window') {
     ctx.effect(makeTransparent, 'ui-pet: transparent pet window')
     if (bridge !== undefined) {

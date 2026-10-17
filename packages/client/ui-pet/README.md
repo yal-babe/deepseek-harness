@@ -28,6 +28,8 @@ The web-app bundle mounts this plugin with the Host `pet` module. Opening any We
 
 Approval cards keep both buttons disabled for 800 ms after they appear, and Enter never approves. Deciding in the pet and deciding in the main window answer the same Host request; the first answer wins and the other surface closes its card.
 
+When the agent asks a question (`ask_user_question`) and no approval is waiting, the bubble shows a question card. Questions that only offer single-choice options are answered in the pet, after the same 800 ms delay: one click for a single question, or one choice per question and then Submit. Free-text and multi-select questions show a button that opens the main window.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -38,6 +40,7 @@ Approval cards keep both buttons disabled for 800 ms after they appear, and Ente
 
 - `PetStore` consumes `pet.watch()` through `ctx.remote.$stream`; a carrier loss or terminal failure makes the character `DISCONNECTED` until the next frame.
 - Approvals are not decided through the Host. Each Client already answers the forwarded `approval/request` waterfall with ui-approval's `PendingApproval`. The pet reads those objects from `uiSession.sessionStatus`, matches them to Host pending entries by Session and tool call, and answers them through `PetApprovalBridge`, which rejects a second submission from the same surface. The Gateway settles the waterfall with the first result and cancels the other Clients, so the main window and pet window cannot both decide.
+- Questions follow the same path: ui-user-questions publishes each request as a `PendingQuestion` in `uiSession.sessionStatus`, and `PetQuestionBridge` answers that object once. Settled review cards and plan reviews are skipped.
 - Quick ask runs `session.create` (for a new Session), `fileUpload.upload` for each dropped file, then `session.prompt` in queue mode.
 - The Desktop bridge (`window.dshDesktopPet`) toggles click-through when the pointer enters or leaves the character and bubble, follows Host visibility, and forwards the global shortcut.
 - Frames: six frames each of the idle, thinking, working, waiting, success, and error clips of the whale-tail maid character, cropped and scaled to 160 px. The frames are MIT licensed, Copyright (c) 2026 PC2005-cloud; the license is in `src/client/assets/whaletail-maid/LICENSE.txt`.

@@ -3,6 +3,7 @@ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { ApprovalDecision } from '@deepseek-ai/dsh-client-ui-approval/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { collectApprovals, PetApprovalBridge, type AnswerableApproval, type PendingInteractionLike, type PetDecisionResult } from './approvals.ts'
+import { collectQuestions, PetQuestionBridge, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
 import { sendQuickAsk, type QuickAskDeps, type QuickAskOutcome, type QuickAskTarget } from './quick-ask.ts'
 import type { PetViewState } from './store.ts'
 import type { DesktopPetBridge } from './surface.ts'
@@ -41,9 +42,13 @@ export type QuickAskChoice = 'last' | 'new'
 export class PetController {
   /** Answerable approvals of this Client, derived from Session status. */
   readonly approvals: ObservableSnapshot<readonly AnswerableApproval[]>
+  /** Unanswered questions of this Client, derived from Session status. */
+  readonly questions: ObservableSnapshot<readonly AnswerableQuestion[]>
   private readonly decisions = new PetApprovalBridge()
+  private readonly replies = new PetQuestionBridge()
   private lastStatus: unknown
   private lastApprovals: readonly AnswerableApproval[] = []
+  private lastQuestions: readonly AnswerableQuestion[] = []
 
   /** @param deps - collaborators bound by the plugin. */
   constructor(private readonly deps: PetControllerDeps) {
@@ -53,11 +58,29 @@ export class PetController {
         if (status !== this.lastStatus) {
           this.lastStatus = status
           this.lastApprovals = collectApprovals(status.values())
+          this.lastQuestions = collectQuestions(status.values())
         }
         return this.lastApprovals
       },
       subscribe: listener => deps.sessionStatus.subscribe(listener),
     }
+    this.questions = {
+      getSnapshot: () => {
+        this.approvals.getSnapshot()
+        return this.lastQuestions
+      },
+      subscribe: listener => deps.sessionStatus.subscribe(listener),
+    }
+  }
+
+  /**
+   * Answer one question request at most once from this surface.
+   * @param question - local presentation to settle.
+   * @param selections - chosen option label per question id.
+   * @returns the answer result.
+   */
+  answerQuestion(question: AnswerableQuestion, selections: Readonly<Record<string, string>>): Promise<PetAnswerResult> {
+    return this.replies.answer(question, selections)
   }
 
   /**

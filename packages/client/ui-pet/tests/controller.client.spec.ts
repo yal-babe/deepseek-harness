@@ -6,6 +6,7 @@ import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/t
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { AnswerableApproval, PendingInteractionLike } from '../src/client/approvals.ts'
 import { PetController, type PetControllerDeps } from '../src/client/controller.ts'
+import type { AnswerableQuestion } from '../src/client/questions.ts'
 import type { PetViewState } from '../src/client/store.ts'
 import type { DesktopPetBridge } from '../src/client/surface.ts'
 import { S1, S2, sessionView, snapshot } from './fixtures.ts'
@@ -37,6 +38,23 @@ function bench(bridge?: DesktopPetBridge) {
 }
 
 describe('PetController', () => {
+  it('derives questions from the same status snapshot and answers them once', async () => {
+    const { status, controller } = bench()
+    expect(controller.questions.getSnapshot()).toEqual([])
+    const listener = vi.fn()
+    const off = controller.questions.subscribe(listener)
+    const asked: AnswerableQuestion & PendingInteractionLike = {
+      kind: 'question', key: 'q', sessionId: S1, review: undefined, answer: vi.fn(async () => {}),
+      questions: [{ id: 'q1', question: 'Which?', options: [{ label: 'a' }] }],
+    }
+    status.set(new Map([[S1, { pendingInteraction: asked }]]))
+    expect(listener).toHaveBeenCalled()
+    expect(controller.questions.getSnapshot()).toEqual([asked])
+    expect(controller.approvals.getSnapshot()).toEqual([])
+    expect(await controller.answerQuestion(asked, { q1: 'a' })).toBe('answered')
+    off()
+  })
+
   it('derives approvals once per status snapshot and forwards subscriptions', async () => {
     const { status, controller } = bench()
     expect(controller.approvals.getSnapshot()).toEqual([])

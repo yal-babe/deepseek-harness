@@ -5,6 +5,7 @@ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { PetAgentState, PetPendingApproval, PetSessionView } from '@deepseek-ai/dsh-pet/types'
 import { matchApproval, type AnswerableApproval, type PetDecisionResult } from './approvals.ts'
 import type { PetController, QuickAskChoice } from './controller.ts'
+import { petAnswerable, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
 import { clipFor, PET_FPS, PET_FRAMES } from './frames.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import css from './Pet.module.css'
@@ -21,6 +22,8 @@ export interface PetInjected {
     view: ObservableSnapshot<PetViewState>
     /** Answerable approvals of this Client. */
     approvals: ObservableSnapshot<readonly AnswerableApproval[]>
+    /** Unanswered questions of this Client. */
+    questions: ObservableSnapshot<readonly AnswerableQuestion[]>
   }
 }
 
@@ -102,6 +105,73 @@ export function ApprovalCard({ t, pending, local, more, decide }: {
       {result === 'already-settled' && <div className={css.note}>{t('alreadySettled')}</div>}
       {result === 'failed' && <div className={css.note}>{t('decisionFailed')}</div>}
       {more > 0 && <div className={css.note}>{t('pendingMore', { count: String(more) })}</div>}
+    </div>
+  )
+}
+
+/**
+ * One `ask_user_question` request. Single-choice option questions are answered
+ * here after the same arm delay as approvals; anything else points to the main window.
+ * @param props - copy, request, answer callback, and main-window action.
+ */
+export function QuestionCard({ t, question, answer, openMain }: {
+  readonly t: T
+  readonly question: AnswerableQuestion
+  readonly answer: (question: AnswerableQuestion, selections: Readonly<Record<string, string>>) => Promise<PetAnswerResult>
+  readonly openMain: () => void
+}): ReactNode {
+  const [armed, setArmed] = useState(false)
+  const [selections, setSelections] = useState<Readonly<Record<string, string>>>({})
+  const [result, setResult] = useState<PetAnswerResult | undefined>(undefined)
+  useEffect(() => {
+    setArmed(false)
+    setSelections({})
+    setResult(undefined)
+    const timer = setTimeout(() => { setArmed(true) }, APPROVAL_ARM_DELAY_MS)
+    return () => { clearTimeout(timer) }
+  }, [question.key])
+  const quick = petAnswerable(question)
+  const complete = question.questions.every(item => selections[item.id] !== undefined)
+  const submit = (next: Readonly<Record<string, string>>): void => {
+    void answer(question, next).then(setResult)
+  }
+  const choose = (id: string, label: string): void => {
+    const next = { ...selections, [id]: label }
+    setSelections(next)
+    // A single question submits on its one click; several questions wait for the submit button.
+    if (question.questions.length === 1) submit(next)
+  }
+  return (
+    <div className={css.approval} role="alertdialog" aria-label={t('questionTitle')}>
+      <div className={css.approvalTitle}>{t('questionTitle')}</div>
+      {question.questions.map(item => (
+        <div key={item.id} className={css.question}>
+          <div className={css.approvalReason}>{item.header !== undefined ? `${item.header}: ${item.question}` : item.question}</div>
+          {quick && (
+            <div className={css.options}>
+              {item.options?.map(option => (
+                <button key={option.label} type="button" title={option.description} disabled={!armed || result === 'answered'}
+                  aria-pressed={selections[item.id] === option.label}
+                  onClick={() => { choose(item.id, option.label) }}>{option.label}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      {!quick && (
+        <div className={css.actions}>
+          <span className={css.note}>{t('questionInMain')}</span>
+          <button type="button" onClick={openMain}>{t('openMain')}</button>
+        </div>
+      )}
+      {quick && question.questions.length > 1 && (
+        <div className={css.actions}>
+          <button type="button" className={css.primary} disabled={!armed || !complete || result === 'answered'}
+            onClick={() => { submit(selections) }}>{t('questionSubmit')}</button>
+        </div>
+      )}
+      {result === 'answered' && <div className={css.note}>{t('questionAnswered')}</div>}
+      {result === 'failed' && <div className={css.note}>{t('questionFailed')}</div>}
     </div>
   )
 }
@@ -196,9 +266,12 @@ export function QuickAsk({ t, controller, focusRequest }: {
  * Bubble content: focused Session line, approval card, quick ask, and controls.
  * @param props - pet props plus the quick-ask focus counter.
  */
-export function PetPanel({ t, controller, useView, useApprovals, focusRequest }: PetProps & { readonly focusRequest: number }): ReactNode {
+export function PetPanel(
+  { t, controller, useView, useApprovals, useQuestions, focusRequest }: PetProps & { readonly focusRequest: number },
+): ReactNode {
   const view = useView(value => value)
   const approvals = useApprovals(value => value)
+  const question = useQuestions(value => value[0])
   const state = displayedState(view)
   const snapshot = view.snapshot
   const focus = snapshot?.sessions.find(entry => entry.sessionId === snapshot.focusSessionId)
@@ -220,6 +293,10 @@ export function PetPanel({ t, controller, useView, useApprovals, focusRequest }:
         <ApprovalCard t={t} pending={first} local={matchApproval(first, approvals)} more={pending.length - 1}
           decide={(approval, outcome) => controller.decide(approval, outcome)} />
       )}
+      {first === undefined && question !== undefined && (
+        <QuestionCard t={t} question={question} openMain={() => { controller.openMain() }}
+          answer={(target, selections) => controller.answerQuestion(target, selections)} />
+      )}
       <QuickAsk t={t} controller={controller} focusRequest={focusRequest} />
       <div className={css.controls}>
         <button type="button" onClick={() => { controller.openMain() }}>{t('openMain')}</button>
@@ -233,7 +310,8 @@ function usePanel(props: PetProps): { open: boolean; toggle: () => void; state: 
   const view = props.useView(value => value)
   const [open, setOpen] = useState(false)
   const state = displayedState(view)
-  const waiting = (view.snapshot?.pending.length ?? 0) > 0
+  const asking = props.useQuestions(value => value.length > 0)
+  const waiting = (view.snapshot?.pending.length ?? 0) > 0 || asking
   const focus = view.snapshot?.focusSessionId
   const toggle = (): void => {
     setOpen(current => !current)

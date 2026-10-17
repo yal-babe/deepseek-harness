@@ -6,6 +6,7 @@ import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-c
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { AnswerableApproval } from '../src/client/approvals.ts'
 import { PetController } from '../src/client/controller.ts'
+import type { AnswerableQuestion } from '../src/client/questions.ts'
 import { APPROVAL_ARM_DELAY_MS, PetCharacter, PetOverlay, PetWindowRoot, type PetProps } from '../src/client/Pet.tsx'
 import type { PetViewState } from '../src/client/store.ts'
 import { hostPending, S1, sessionView, snapshot } from './fixtures.ts'
@@ -36,6 +37,7 @@ function controllerStub(view: ObservableSnapshot<PetViewState>) {
   })
   return Object.assign(controller, {
     decide: vi.spyOn(controller, 'decide').mockResolvedValue('decided'),
+    answerQuestion: vi.spyOn(controller, 'answerQuestion').mockResolvedValue('answered'),
     ask: vi.spyOn(controller, 'ask').mockResolvedValue({ ok: true, sessionId: S1 }),
     hide: vi.spyOn(controller, 'hide').mockResolvedValue(undefined),
     acknowledge: vi.spyOn(controller, 'acknowledge').mockResolvedValue(undefined),
@@ -45,12 +47,17 @@ function controllerStub(view: ObservableSnapshot<PetViewState>) {
   })
 }
 
-function setup(view: PetViewState, approvals: readonly AnswerableApproval[] = []) {
+function setup(view: PetViewState, approvals: readonly AnswerableApproval[] = [], questions: readonly AnswerableQuestion[] = []) {
   const viewStore = createSnapshotStore<PetViewState>(view, { flush: 'sync' })
   const approvalStore = createSnapshotStore<readonly AnswerableApproval[]>(approvals, { flush: 'sync' })
+  const questionStore = createSnapshotStore<readonly AnswerableQuestion[]>(questions, { flush: 'sync' })
   const controller = controllerStub(viewStore)
-  const props: PetProps = { t, controller, useView: hook(viewStore), useApprovals: hook(approvalStore) }
-  return { props, controller, viewStore, approvalStore }
+  const props: PetProps = { t, controller, useView: hook(viewStore), useApprovals: hook(approvalStore), useQuestions: hook(questionStore) }
+  return { props, controller, viewStore, approvalStore, questionStore }
+}
+
+function asked(questions: AnswerableQuestion['questions'], key = 'q'): AnswerableQuestion {
+  return { kind: 'question', key, sessionId: S1, questions, review: undefined, answer: async () => {} }
 }
 
 const local: AnswerableApproval = { key: 'k', sessionId: S1, toolName: 'bash', callId: 'c1', answerable: true, answer: async () => {} }
@@ -149,6 +156,54 @@ describe('PetOverlay', () => {
     const { props } = setup({ connected: true, snapshot: snapshot({ pending: [hostPending('r', S1, 'bash', 'zz')] }) }, [local])
     render(<PetOverlay {...props} />)
     expect(screen.getByText('approvalElsewhere')).toBeTruthy()
+  })
+})
+
+describe('QuestionCard', () => {
+  const branch = { id: 'q1', question: 'Which branch?', options: [{ label: 'main' }, { label: 'dev', description: 'unstable' }] }
+
+  it('opens the bubble and answers a single question with one armed click', async () => {
+    const question = asked([branch])
+    const { props, controller } = setup({ connected: true, snapshot: snapshot() }, [], [question])
+    render(<PetOverlay {...props} />)
+    expect(screen.getByText('questionTitle', { selector: 'div' })).toBeTruthy()
+    const main = screen.getByText('main') as HTMLButtonElement
+    expect(main.disabled).toBe(true)
+    act(() => { vi.advanceTimersByTime(APPROVAL_ARM_DELAY_MS) })
+    await act(async () => { fireEvent.click(main) })
+    expect(controller.answerQuestion).toHaveBeenCalledWith(question, { q1: 'main' })
+    expect(screen.getByText('questionAnswered')).toBeTruthy()
+    expect(main.disabled).toBe(true)
+  })
+
+  it('collects several choices before submitting and reports a lost answer', async () => {
+    const question = asked([{ ...branch, header: 'Git' }, { id: 'q2', question: 'Run tests?', options: [{ label: 'yes' }] }])
+    const { props, controller } = setup({ connected: true, snapshot: snapshot() }, [], [question])
+    controller.answerQuestion.mockResolvedValueOnce('failed')
+    render(<PetOverlay {...props} />)
+    expect(screen.getByText('Git: Which branch?')).toBeTruthy()
+    act(() => { vi.advanceTimersByTime(APPROVAL_ARM_DELAY_MS) })
+    const submit = screen.getByText('questionSubmit') as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    fireEvent.click(screen.getByText('dev'))
+    expect(screen.getByText('dev').getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByText('yes'))
+    expect(controller.answerQuestion).not.toHaveBeenCalled()
+    await act(async () => { fireEvent.click(submit) })
+    expect(controller.answerQuestion).toHaveBeenCalledWith(question, { q1: 'dev', q2: 'yes' })
+    expect(screen.getByText('questionFailed')).toBeTruthy()
+  })
+
+  it('sends free-text questions to the main window and yields to approvals', () => {
+    const { props, controller } = setup({ connected: true, snapshot: snapshot() }, [], [asked([{ id: 'q', question: 'Why?' }])])
+    render(<PetOverlay {...props} />)
+    expect(screen.getByText('questionInMain')).toBeTruthy()
+    fireEvent.click(screen.getAllByText('openMain')[0]!)
+    expect(controller.openMain).toHaveBeenCalled()
+    cleanup()
+    const busy = setup({ connected: true, snapshot: snapshot({ pending: [hostPending('r', S1, 'bash', 'c1')] }) }, [local], [asked([branch])])
+    render(<PetOverlay {...busy.props} />)
+    expect(screen.queryByText('Which branch?')).toBeNull()
   })
 })
 
