@@ -22,6 +22,11 @@
       "types": "./lib/types/types.d.ts",
       "default": "./lib/types/types.js"
     },
+    "./pack": {
+      "types": "./lib/types/pack.d.ts",
+      "default": "./lib/types/pack.js"
+    },
+    "./packs/*": "./packs/*",
     "./src/*": "./src/*",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json",
@@ -42,7 +47,8 @@
     "lib/typert.host.js",
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",
-    "lib/typert.remote-client.d.ts"
+    "lib/typert.remote-client.d.ts",
+    "packs/**"
   ],
   "license": "MIT",
   "peerDependencies": {

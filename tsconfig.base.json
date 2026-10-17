@@ -374,6 +374,8 @@
       "@deepseek-ai/dsh-studio-cloud/types": ["./packages/sync/studio-cloud/src/types.ts"],
       "@deepseek-ai/dsh-pet": ["./packages/pet/pet/src/index.ts"],
       "@deepseek-ai/dsh-pet/types": ["./packages/pet/pet/src/types.ts"],
+      "@deepseek-ai/dsh-pet/pack": ["./packages/pet/pet/src/pack.ts"],
+      "@deepseek-ai/dsh-pet/packs/*": ["./packages/pet/pet/packs/*"],
       "@deepseek-ai/dsh-api-provider-quota": ["./packages/api/provider-quota/src/index.ts"],
       "@deepseek-ai/dsh-api-provider-quota/types": ["./packages/api/provider-quota/src/types.ts"],
       "@deepseek-ai/dsh-usage-stats/types": ["./packages/session/usage-stats/src/types.ts"],

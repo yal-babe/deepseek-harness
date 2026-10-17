@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 [ui-pet](../../client/ui-pet/README.zh.md) Client 插件。Client 调用 `pet.watch()` 获取完整 `PetSnapshot` 帧流，调用 `pet.getSnapshot()` 读取一次。`pet.setVisible(boolean)` 切换所有桌宠界面，但不停止汇总；它通过 [settings](../../settings/settings/README.zh.md) 服务写入本条目的 `visible` 字段，因此 Host 重启后仍保留；没有 Settings 或 profile 条目时只在本次 Host 运行期间有效。`pet.pin(sessionId | null)` 选择气泡跟随的会话。`pet.acknowledge(sessionId)` 在用户看过结果后结束 `SUCCESS` 或 `ERROR` 停留。默认 remote-access 策略下所有方法仅限 owner。
+web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 [ui-pet](../../client/ui-pet/README.zh.md) Client 插件。Client 调用 `pet.watch()` 获取完整 `PetSnapshot` 帧流，调用 `pet.getSnapshot()` 读取一次。`pet.setVisible(boolean)` 切换所有桌宠界面，但不停止汇总；它通过 [settings](../../settings/settings/README.zh.md) 服务写入本条目的 `visible` 字段，因此 Host 重启后仍保留；没有 Settings 或 profile 条目时只在本次 Host 运行期间有效。`pet.pin(sessionId | null)` 选择气泡跟随的会话。`pet.acknowledge(sessionId)` 在用户看过结果后结束 `SUCCESS` 或 `ERROR` 停留。`pet.pack()` 返回代替内置包渲染的宠物包（见[宠物包](#pet-packs)）。默认 remote-access 策略下所有方法仅限 owner。
 
 可变（volatile）Config 字段就是共享的桌宠设置。ui-pet 设置页通过 `pet` 条目的通用设置表单编辑它们，本模块在 `loader/volatile-update` 时应用，无需重新挂载：
 
@@ -35,6 +35,14 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 | `restrictTools` | `false` | 开启后，`restrictedTools` 中工具的审批带 `restrictedInPet: true`，桌宠改为引导到主窗口 |
 | `restrictedTools` | `[]` | 需要在主窗口审批的工具名 |
 | `notifyWaiting` / `notifySuccess` / `notifyError` | `true` | 系统通知类别，以 `snapshot.settings.notify` 发布；每台设备仍需自行开启 |
+
+<a id="pet-packs"></a>
+
+### 宠物包
+
+宠物包是一个目录，不是 npm 插件：`pet.json`（格式版本 2）、`lines.json`（按触发器组织的 zh/en 台词）、`assets/` 与 `LICENSE`。内置包 `whaletail-maid@1.0.0` 位于 `packs/whaletail-maid`，以 `@deepseek-ai/dsh-pet/packs/*` 导出；ui-pet 打包其中的帧。`@deepseek-ai/dsh-pet/pack` 是两端共用的纯解析器，可在浏览器中运行：`parsePetPack` 检查格式版本、id 与版本、`engines`（以 caret 范围匹配宠物运行时 1.0.0 与宠物 API 1）、渲染器、画布、帧率、已知动画槽、必需槽（`idle`、`thinking`、`working`、`waiting`、`success`、`error`、`dragging`，每个提供帧或 `ref`）、不含 `..` 的包内相对 `.webp` / `.png` 路径、引用目标与循环，以及 persona 块，并一次返回全部问题。`resolvePetClip` 沿 `ref` 与槽位回落链解析，最终落到 `idle`。当前运行时只渲染 `frames` 渲染器；`spritesheet`、Spine 与 Live2D 包会被拒绝。
+
+开发宠物包时，设置 `DSH_PET_DEV=1` 与 `DSH_PET_DEV_PACKS=<dir>` 后，`pet.pack()` 会从 `<dir>` 的子目录（按名称排序）中提供第一个有效包，不校验签名，标记为 `dev: true`，帧以 data URL 形式提供（单张图最多 4 MiB，每个包最多 30 MiB）。被跳过的目录及原因放在 `problems` 中返回。该目录每次 Host 运行只读取一次。未开启时 `pet.pack()` 返回 `{ pack: null, problems: [] }`，Client 继续使用内置包。尚未加载来自 studio-cloud 的签名包。
 
 -----
 
@@ -80,6 +88,7 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 <a id="known-limitations-and-deferred-work"></a>
 
 - **MVP 范围** — 未实现 `TALKING`、压缩与重试状态。除可见性、工具限制与通知类别以外的设置（气泡、性格、快捷键、更新）未实现。
+- **宠物包** — 只支持 `frames` 渲染器与开发包；不支持 studio-cloud 签名包、内容包、换装、脚本与声音。`lines.json` 随包提供并有测试检查，但尚未用于台词。
 - **Host 侧不做审批决定** — 从 Host 决定需要 user-approval 能取消已转发给 Client 的请求；因此改由 Client 回答。
 
 <a id="dev-note"></a>

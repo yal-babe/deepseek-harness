@@ -232,6 +232,15 @@ describe('PetService', () => {
     expect(pet.getSnapshot().sessions[0]).toMatchObject({ state: 'IDLE', unseenResult: false })
   })
 
+  it('offers no pack without the development switch and reads the switch once', async () => {
+    vi.stubEnv('DSH_PET_DEV', '')
+    const { pet } = await setup()
+    const first = pet.pack()
+    expect(pet.pack()).toBe(first)
+    expect(await first).toEqual({ pack: null, problems: [] })
+    vi.unstubAllEnvs()
+  })
+
   it('logs and survives a fold failure', async () => {
     const { ctx, pet } = await setup()
     const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})

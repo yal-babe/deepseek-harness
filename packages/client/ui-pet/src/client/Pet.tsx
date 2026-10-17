@@ -6,7 +6,7 @@ import type { PetAgentState, PetPendingApproval, PetSessionView } from '@deepsee
 import { matchApproval, type AnswerableApproval, type PetDecisionResult } from './approvals.ts'
 import type { PetController, QuickAskChoice } from './controller.ts'
 import { petAnswerable, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
-import { clipFor, PET_FPS, PET_FRAMES } from './frames.ts'
+import { BUILTIN_FRAME_SET, clipFor, type PetFrameSet } from './frames.ts'
 import { isSnoozed, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
@@ -31,6 +31,8 @@ export interface PetInjected {
     questions: ObservableSnapshot<readonly AnswerableQuestion[]>
     /** Device-local preferences. */
     preferences: ObservableSnapshot<PetPreferences>
+    /** Character pack being rendered: the built-in pack or a Host-offered development pack. */
+    pack: ObservableSnapshot<PetFrameSet>
   }
 }
 
@@ -92,28 +94,33 @@ function useCharacterDrag(onDrag: ((phase: PetDragPhase) => void) | undefined, o
  * Animated character for one state; reduced motion shows the first frame only.
  * @param props - state, accessible label, and the click, menu, and drag actions.
  */
-export function PetCharacter({ state, label, onClick, onMenu, onDrag }: {
+export function PetCharacter({ state, label, onClick, onMenu, onDrag, pack = BUILTIN_FRAME_SET, badge }: {
   readonly state: PetAgentState
   readonly label: string
+  /** Pack to render; defaults to the built-in pack. */
+  readonly pack?: PetFrameSet
+  /** Visible marker under the character, e.g. for a development pack. */
+  readonly badge?: string | undefined
   readonly onClick?: () => void
   readonly onMenu?: () => void
   /** Desktop pet window only: dragging the character moves the window. */
   readonly onDrag?: (phase: PetDragPhase) => void
 }): ReactNode {
-  const frames = PET_FRAMES[clipFor(state)]
+  const frames = pack.frames[clipFor(state)]
   const pointer = useCharacterDrag(onDrag, onClick)
   const [index, setIndex] = useState(0)
   useEffect(() => {
     setIndex(0)
     if (prefersReducedMotion()) return undefined
-    const timer = setInterval(() => { setIndex(current => (current + 1) % frames.length) }, 1000 / PET_FPS)
+    const timer = setInterval(() => { setIndex(current => (current + 1) % frames.length) }, 1000 / pack.fps)
     return () => { clearInterval(timer) }
-  }, [frames])
+  }, [frames, pack.fps])
   return (
     <button type="button" className={css.character} data-state={state} aria-label={label} title={label} {...pointer}
       aria-haspopup={onMenu === undefined ? undefined : 'menu'}
       onContextMenu={onMenu === undefined ? undefined : (event) => { event.preventDefault(); onMenu() }}>
       <img src={frames[index % frames.length]} alt="" draggable={false} />
+      {badge !== undefined && <span className={css.badge}>{badge}</span>}
     </button>
   )
 }
@@ -463,6 +470,7 @@ function usePanel(props: PetProps): PanelState {
  */
 export function PetOverlay(props: PetProps): ReactNode {
   const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions } = usePanel(props)
+  const pack = props.usePack(current => current)
   if (!visible) {
     // Only a Host snapshot can hide the pet. Web has no tray or global shortcut, so leave a small handle to bring it back.
     return (
@@ -477,7 +485,7 @@ export function PetOverlay(props: PetProps): ReactNode {
       {open && <PetPanel {...props} focusRequest={focusRequest} />}
       {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
       <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })} onClick={toggle}
-        onMenu={() => { setMenu(!menu) }} />
+        onMenu={() => { setMenu(!menu) }} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
     </div>
   )
 }
@@ -492,6 +500,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
   const [focusRequest, setFocusRequest] = useState(0)
   const [forced, setForced] = useState(false)
   const { controller, onQuickAsk } = props
+  const pack = props.usePack(current => current)
   const visibleNow = useRef(visible)
   visibleNow.current = visible
   useEffect(() => onQuickAsk(() => {
@@ -510,7 +519,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} onClose={() => { setMenu(false) }} />}
         <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })}
           onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }}
-          onDrag={(phase) => { controller.drag(phase) }} />
+          onDrag={(phase) => { controller.drag(phase) }} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
       </div>
     </div>
   )

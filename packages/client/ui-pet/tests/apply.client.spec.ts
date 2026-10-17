@@ -9,6 +9,10 @@ import type { PetInjected } from '../src/client/Pet.tsx'
 import type { PetSettingsInjected } from '../src/client/PetSettingsSection.tsx'
 import type { DesktopPetBridge } from '../src/client/surface.ts'
 import { hostPending, S1, sessionView, snapshot } from './fixtures.ts'
+import { BUILTIN_FRAME_SET } from '../src/client/frames.ts'
+
+const offerNone = { ok: true, value: { pack: null, problems: [] } }
+const pack = { answer: (): Promise<unknown> => Promise.resolve(offerNone) }
 
 interface Registration {
   readonly options: {
@@ -55,6 +59,7 @@ async function bench(
       watch: vi.fn(() => (async function* () {})()),
       setVisible: vi.fn(async () => ({ ok: true, value: undefined })),
       acknowledge: vi.fn(async () => ({ ok: true, value: undefined })),
+      pack: vi.fn(() => pack.answer()),
     },
     session: {
       create: vi.fn(async () => ({ ok: true, value: { sessionId: S1 } })),
@@ -82,6 +87,7 @@ async function bench(
 }
 
 afterEach(() => {
+  pack.answer = () => Promise.resolve(offerNone)
   Reflect.deleteProperty(globalThis, 'dshDesktopPet')
   document.documentElement.style.removeProperty('background')
 })
@@ -89,6 +95,37 @@ afterEach(() => {
 describe('ui-pet apply', () => {
   it('has a no-op Node half', () => {
     expect(() => { nodeApply() }).not.toThrow()
+  })
+
+  it('renders a development pack the Host offers and keeps the built-in pack otherwise', async () => {
+    const manifest = JSON.parse(JSON.stringify(await import('@deepseek-ai/dsh-pet/packs/whaletail-maid/pet.json').then(module => module.default))) as {
+      clips: Record<string, { frames?: string[] }>
+    }
+    const assets = Object.fromEntries(Object.values(manifest.clips).flatMap(clip => clip.frames ?? []).map(path => [path, `data:${path}`]))
+    pack.answer = async () => ({ ok: true, value: { pack: { manifest, assets, dev: true }, problems: [] } })
+    const offered = await bench('')
+    const hooks = () => offered.registrations[0]!.options.inject().hooks
+    await vi.waitFor(() => { expect(hooks().pack.getSnapshot().dev).toBe(true) })
+    expect(hooks().pack.getSnapshot().frames.idle[0]).toBe('data:assets/frames/idle-1.webp')
+    for (const answer of [
+      async () => ({ ok: true, value: { pack: { manifest: { formatVersion: 1 }, assets, dev: true }, problems: [] } }),
+      async () => ({ ok: true, value: { pack: { manifest, assets: {}, dev: true }, problems: [] } }),
+      async () => ({ ok: false, error: { code: 'gateway/unavailable' } }),
+      async () => { throw new Error('offline') },
+    ]) {
+      pack.answer = answer
+      const kept = await bench('')
+      await Promise.resolve()
+      expect(kept.registrations[0]!.options.inject().hooks.pack.getSnapshot()).toBe(BUILTIN_FRAME_SET)
+    }
+    let late: (value: unknown) => void = () => {}
+    pack.answer = () => new Promise((resolve) => { late = resolve })
+    const disposed = await bench('')
+    const store = disposed.registrations[0]!.options.inject().hooks.pack
+    await disposed.fiber.dispose()
+    late({ ok: true, value: { pack: { manifest, assets, dev: true }, problems: [] } })
+    await Promise.resolve()
+    expect(store.getSnapshot()).toBe(BUILTIN_FRAME_SET)
   })
 
   it('adds the in-page character on Web and binds Remote actions', async () => {

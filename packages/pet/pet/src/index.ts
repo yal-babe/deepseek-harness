@@ -10,7 +10,8 @@ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typer
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { PetReducer } from './reducer.ts'
 import type { PetSessionMeta } from './reducer.ts'
-import type { PetSettingsView, PetSnapshot } from './types.ts'
+import { loadPetDevPacks } from './dev-packs.ts'
+import type { PetPackState, PetSettingsView, PetSnapshot } from './types.ts'
 // Type-only: the `settings` service (`settings.update`) and the Loader's `loader/volatile-update` event.
 import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
@@ -89,6 +90,7 @@ export class PetService extends TypertRemoteService {
   private readonly listeners = new Set<() => void>()
   private readonly debounceMs: number
   private readonly entryId: string | undefined
+  private packState: Promise<PetPackState> | undefined
   /** Visibility set through `setVisible()` in a composition without Settings or a profile entry. */
   private visibleOverride: boolean | undefined
   private pinned: SessionId | undefined
@@ -251,6 +253,18 @@ export class PetService extends TypertRemoteService {
   @Remote
   acknowledge(sessionId: SessionId): void {
     if (this.reducer.acknowledge(sessionId)) this.changed()
+  }
+
+  /**
+   * Character pack to render instead of the built-in pack. Only the development switch
+   * (`DSH_PET_DEV=1`, `DSH_PET_DEV_PACKS=<dir>`) offers one in this release; the directory
+   * is read once per Host lifetime.
+   * @returns the offered pack, if any, and the skipped candidates with their reasons.
+   */
+  @Remote
+  pack(): Promise<PetPackState> {
+    this.packState ??= loadPetDevPacks(process.env)
+    return this.packState
   }
 }
 

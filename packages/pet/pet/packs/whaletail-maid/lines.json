@@ -1,0 +1,33 @@
+{
+  "formatVersion": 2,
+  "lines": {
+    "turn.success": [
+      {
+        "zh": "搞定啦！",
+        "en": "All done!"
+      },
+      {
+        "zh": "任务完成～",
+        "en": "Task complete~"
+      }
+    ],
+    "turn.error": [
+      {
+        "zh": "呜，出错了……",
+        "en": "Oops, something went wrong..."
+      }
+    ],
+    "approval.waiting": [
+      {
+        "zh": "主人，有个操作要你确认一下。",
+        "en": "I need your OK on something."
+      }
+    ],
+    "idle.long": [
+      {
+        "zh": "要来点新任务吗？",
+        "en": "Anything else I can do?"
+      }
+    ]
+  }
+}

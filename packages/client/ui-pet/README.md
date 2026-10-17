@@ -50,7 +50,7 @@ When the agent asks a question (`ask_user_question`) and no approval is waiting,
 - Notifications compare two consecutive Host frames (`diffNotices`); the first frame after connecting never notifies, and subagent Sessions are skipped. In Desktop only the pet window runs ui-pet, so each change notifies once; several Web tabs each notify.
 - Quick ask runs `session.create` (for a new Session), `fileUpload.upload` for each dropped file, then `session.prompt` in queue mode.
 - The Desktop bridge (`window.dshDesktopPet`) toggles click-through when the pointer enters or leaves the character and bubble, follows Host visibility, and forwards the global shortcut.
-- Frames: six frames each of the idle, thinking, working, waiting, success, and error clips of the whale-tail maid character, cropped and scaled to 160 px. The frames are MIT licensed, Copyright (c) 2026 PC2005-cloud; the license is in `src/client/assets/whaletail-maid/LICENSE.txt`.
+- Frames: the built-in pack `whaletail-maid@1.0.0` from [`@deepseek-ai/dsh-pet/packs/whaletail-maid`](../../pet/pet/README.md#pet-packs), six frames each of the idle, thinking, working, waiting, success, and error clips, cropped and scaled to 160 px. Its `pet.json` is validated with `parsePetPack` when the bundle loads, and the frames are embedded as data URLs. The frames are MIT licensed, Copyright (c) 2026 PC2005-cloud; the license is the pack's `LICENSE`. When the Host offers a development pack through `pet.pack()` (`DSH_PET_DEV`), the Client validates it again and renders it with a Dev pack marker under the character; an invalid or incomplete pack keeps the built-in one.
 
 </details>
 

@@ -19,7 +19,9 @@ import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { PetController } from './controller.ts'
+import { BUILTIN_FRAME_SET, offeredFrameSet, type PetFrameSet } from './frames.ts'
 import { browserNotifications, setDeviceNotify, watchNotices, type NotificationSink } from './notifier.ts'
 import { PetSettingsSection, type PetSettingsInjected } from './PetSettingsSection.tsx'
 import { PET_SETTINGS_NAMESPACE, PetSettingsEditor, type PetSettingsFields } from './settings.ts'
@@ -144,6 +146,15 @@ export function apply(ctx: ClientContext): void {
     void pet.run()
     return () => pet.dispose()
   }, 'ui-pet: snapshot stream')
+  const pack = createSnapshotStore<PetFrameSet>(BUILTIN_FRAME_SET, { flush: 'sync' })
+  ctx.effect(() => {
+    let live = true
+    void ctx.remote.pet.pack().then((result) => {
+      const offered = result.ok ? offeredFrameSet(result.value) : undefined
+      if (live && offered !== undefined) pack.set(offered)
+    }, () => {})
+    return () => { live = false }
+  }, 'ui-pet: character pack')
   const now = (): number => Date.now()
   const controller = new PetController({
     view: pet.store,
@@ -178,7 +189,7 @@ export function apply(ctx: ClientContext): void {
   const injected = (): PetInjected => ({
     controller,
     hooks: {
-      view: pet.store, approvals: controller.approvals, questions: controller.questions, preferences: preferences.snapshot,
+      view: pet.store, approvals: controller.approvals, questions: controller.questions, preferences: preferences.snapshot, pack,
     },
   })
   if (surface === 'window') {

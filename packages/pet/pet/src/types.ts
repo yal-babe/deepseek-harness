@@ -9,6 +9,7 @@ import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 import type { JobId } from '@deepseek-ai/dsh-jobs/brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { PetPackManifest } from './pack.ts'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
@@ -134,4 +135,20 @@ export interface PetSnapshot {
   readonly visible: boolean
   /** Shared pet settings. */
   readonly settings: PetSettingsView
+}
+
+/** Character pack the Host offers in place of the built-in pack (development packs only in this release). */
+export interface PetPackView {
+  /** Validated `pet.json`. */
+  readonly manifest: PetPackManifest
+  /** Frame images as data URLs, keyed by pack-relative path. */
+  readonly assets: Readonly<Record<string, string>>
+  /** Loaded through `DSH_PET_DEV`, unsigned; the Client marks it. */
+  readonly dev: true
+}
+
+/** Result of `pet.pack()`: the offered pack, if any, and why other candidate packs were skipped. */
+export interface PetPackState {
+  readonly pack: PetPackView | null
+  readonly problems: readonly string[]
 }

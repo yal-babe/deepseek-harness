@@ -1,0 +1,108 @@
+{
+  "$schema": "https://dsh.studio/schemas/pet-pack-v2.json",
+  "formatVersion": 2,
+  "id": "whaletail-maid",
+  "version": "1.0.0",
+  "name": {
+    "zh": "鲸尾女仆",
+    "en": "Whaletail Maid"
+  },
+  "author": "PC2005-cloud / QCYTSN (port: dsh studio)",
+  "license": {
+    "code": "MIT",
+    "assets": "MIT",
+    "source": "https://github.com/PC2005-cloud/dsh-pet"
+  },
+  "engines": {
+    "petRuntime": "^1.0.0",
+    "petApi": "^1"
+  },
+  "renderer": "frames",
+  "canvas": {
+    "width": 149,
+    "height": 160,
+    "anchor": [
+      74,
+      156
+    ]
+  },
+  "fps": 6,
+  "clips": {
+    "idle": {
+      "frames": [
+        "assets/frames/idle-1.webp",
+        "assets/frames/idle-2.webp",
+        "assets/frames/idle-3.webp",
+        "assets/frames/idle-4.webp",
+        "assets/frames/idle-5.webp",
+        "assets/frames/idle-6.webp"
+      ],
+      "loop": true
+    },
+    "thinking": {
+      "frames": [
+        "assets/frames/thinking-1.webp",
+        "assets/frames/thinking-2.webp",
+        "assets/frames/thinking-3.webp",
+        "assets/frames/thinking-4.webp",
+        "assets/frames/thinking-5.webp",
+        "assets/frames/thinking-6.webp"
+      ],
+      "loop": true
+    },
+    "working": {
+      "frames": [
+        "assets/frames/working-1.webp",
+        "assets/frames/working-2.webp",
+        "assets/frames/working-3.webp",
+        "assets/frames/working-4.webp",
+        "assets/frames/working-5.webp",
+        "assets/frames/working-6.webp"
+      ],
+      "loop": true
+    },
+    "waiting": {
+      "frames": [
+        "assets/frames/waiting-1.webp",
+        "assets/frames/waiting-2.webp",
+        "assets/frames/waiting-3.webp",
+        "assets/frames/waiting-4.webp",
+        "assets/frames/waiting-5.webp",
+        "assets/frames/waiting-6.webp"
+      ],
+      "loop": true
+    },
+    "success": {
+      "frames": [
+        "assets/frames/success-1.webp",
+        "assets/frames/success-2.webp",
+        "assets/frames/success-3.webp",
+        "assets/frames/success-4.webp",
+        "assets/frames/success-5.webp",
+        "assets/frames/success-6.webp"
+      ],
+      "loop": false
+    },
+    "error": {
+      "frames": [
+        "assets/frames/error-1.webp",
+        "assets/frames/error-2.webp",
+        "assets/frames/error-3.webp",
+        "assets/frames/error-4.webp",
+        "assets/frames/error-5.webp",
+        "assets/frames/error-6.webp"
+      ],
+      "loop": false
+    },
+    "dragging": {
+      "ref": "idle"
+    }
+  },
+  "persona": {
+    "presets": [
+      "genki"
+    ],
+    "default": "genki",
+    "lines": "lines.json"
+  }
+}

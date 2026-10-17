@@ -9,6 +9,7 @@ import { PetController } from '../src/client/controller.ts'
 import type { AnswerableQuestion } from '../src/client/questions.ts'
 import { APPROVAL_ARM_DELAY_MS, PetCharacter, PetOverlay, PetWindowRoot, type PetProps } from '../src/client/Pet.tsx'
 import type { PetViewState } from '../src/client/store.ts'
+import { BUILTIN_FRAME_SET, type PetFrameSet } from '../src/client/frames.ts'
 import type { NotificationSink } from '../src/client/notifier.ts'
 import { PetPreferenceStore } from '../src/client/preferences.ts'
 import { hostPending, S1, sessionView, snapshot } from './fixtures.ts'
@@ -68,11 +69,12 @@ function setup(
   const approvalStore = createSnapshotStore<readonly AnswerableApproval[]>(approvals, { flush: 'sync' })
   const questionStore = createSnapshotStore<readonly AnswerableQuestion[]>(questions, { flush: 'sync' })
   const controller = controllerStub(viewStore, preferences, notifications)
+  const packStore = createSnapshotStore<PetFrameSet>(BUILTIN_FRAME_SET, { flush: 'sync' })
   const props: PetProps = {
     t, controller, useView: hook(viewStore), useApprovals: hook(approvalStore), useQuestions: hook(questionStore),
-    usePreferences: hook(preferences.snapshot),
+    usePreferences: hook(preferences.snapshot), usePack: hook(packStore),
   }
-  return { props, controller, viewStore, approvalStore, questionStore, preferences }
+  return { props, controller, viewStore, approvalStore, questionStore, preferences, packStore }
 }
 
 function asked(questions: AnswerableQuestion['questions'], key = 'q'): AnswerableQuestion {
@@ -317,6 +319,17 @@ describe('PetMenu', () => {
     fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
     fireEvent.click(screen.getByText('menu.openMain'))
     expect(controller.openMain).toHaveBeenCalled()
+  })
+
+  it('marks a development pack on both surfaces', () => {
+    const { props, packStore } = setup({ connected: true, snapshot: snapshot() })
+    const view = render(<PetWindowRoot {...props} onQuickAsk={() => () => {}} />)
+    expect(screen.queryByText('devPack')).toBeNull()
+    act(() => { packStore.set({ ...BUILTIN_FRAME_SET, key: 'dev@0.1.0', dev: true }) })
+    expect(screen.getByText('devPack')).toBeDefined()
+    view.unmount()
+    render(<PetOverlay {...props} />)
+    expect(screen.getByText('devPack')).toBeDefined()
   })
 
   it('drags the Desktop pet window from the character', () => {
