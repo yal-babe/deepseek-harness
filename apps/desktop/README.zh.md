@@ -15,6 +15,7 @@ Desktop 在原生应用中运行 Harness 工作区。本参考文档说明应用
 - [应用概览](#application-overview)
 - [终端命令](#terminal-command)
 - [关闭窗口与退出](#closing-the-window-and-quitting)
+- [桌宠窗口](#pet-window)
 - [关键技术决策](#key-technical-decisions)
 - [内置命令运行时](#bundled-command-runtime)
 - [安装归属](#installation-ownership)
@@ -77,6 +78,12 @@ Windows 在整个运行期间常驻托盘图标。悬停提示为产品名，单
 以下情况跳过确认：安装更新的重启已确认过任务中断、致命错误恢复对话框中的退出或重启、开发版"重启应用与 Host"命令，以及操作系统关机、重启或注销：Windows 在确定性的会话结束消息上设置该状态；macOS 在关机通知上设置，而其他应用仍可能取消这次关机，因此主窗口下一次获得焦点或显示时会清除它。安装器接管退出时会取消尚未结束的普通退出决策；晚到的查询结果和弹框答复不会再次打开确认框或重复清理。窗口隐藏期间完成的用户主动发起的更新下载，把"安装并重启"确认推迟到窗口再次显示时；强制更新流程沿用其任务栏和 Dock 提醒。Windows 安装程序和卸载程序在应用仍在运行时提示用户先在系统托盘中退出。Desktop 默认未开启定时任务，定时任务的说明只在该功能开启后出现；提醒只在已加载的会话中触发，未加载的会话既不计入，也要等到打开后才会继续。
 
 托盘渲染器以底板中心为基准将鲸鱼放大 20%，保留背景和宽高比；应用和安装器图标保持原有比例。
+
+<a id="pet-window"></a>
+
+## 桌宠窗口
+
+工作区打开后，Desktop 还会打开 Studio 桌宠窗口：位于主显示器工作区右下角的 340 × 560 透明、无边框、置顶窗口，不出现在任务栏。它以 `?dsh-pet-window=1` 加载同一个应用文档，因此复用主窗口的 Host 连接、cookie 与 preload；随后 [ui-pet](../../packages/client/ui-pet/README.zh.md) 插件只渲染角色。窗口除角色与气泡区域外忽略鼠标输入。`CommandOrControl+Shift+Space` 注册为全局快捷键，用于显示桌宠并打开快速提问；注册失败只记录警告。`DSH_DESKTOP_PET=0` 可禁用该窗口。当前是 Phase 0：没有托盘开关，也不会记住窗口位置。
 
 <a id="key-technical-decisions"></a>
 

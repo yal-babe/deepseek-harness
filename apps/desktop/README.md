@@ -15,6 +15,7 @@ Desktop runs the Harness workspace in a native application. This reference cover
 - [Application overview](#application-overview)
 - [Terminal command](#terminal-command)
 - [Closing the window and quitting](#closing-the-window-and-quitting)
+- [Pet window](#pet-window)
 - [Key technical decisions](#key-technical-decisions)
 - [Bundled command runtime](#bundled-command-runtime)
 - [Installation ownership](#installation-ownership)
@@ -77,6 +78,12 @@ The mandatory update confirmation includes the installation wait notice on Windo
 The confirmation is skipped when the installer restart already confirmed task interruption, when the fatal-recovery dialog exits or restarts, when the development Restart App and Host command runs, and during operating-system shutdown, restart, or log-off: Windows sets this on the definitive session-end message; macOS sets it on the power-off notification, and because another application can still cancel that shutdown, the next focus or show of the main window clears it. Installer-owned quit cancels any pending ordinary quit decision; late inspection results and dialog answers cannot open another confirmation or repeat cleanup. A user-initiated update download that finishes while the window is hidden defers its Install and Restart confirmation until the window is shown again; the mandatory flow keeps its taskbar and Dock attention. The Windows installer and uninstaller tell a user whose application is still running to quit it from the system tray. Desktop does not enable scheduled tasks by default, so the scheduled-task explanations appear only once that feature is on; reminders fire only in loaded sessions, and unloaded sessions are neither counted nor resumed until they are opened.
 
 The tray renderer enlarges the whale by 20% around the tile center while preserving the background and aspect ratio; application and installer icons retain their original proportions.
+
+<a id="pet-window"></a>
+
+## Pet window
+
+After the workspace opens, Desktop also opens the Studio Pet window: a 340 × 560 transparent, frameless, always-on-top window at the bottom-right of the primary work area, kept out of the taskbar. It loads the same application document with `?dsh-pet-window=1`, so it reuses the Host connection, cookie, and preload of the main window; the [ui-pet](../../packages/client/ui-pet/README.md) plugin then renders only the character. The window ignores mouse input except over the character and bubble. `CommandOrControl+Shift+Space` is registered as a global shortcut that shows the pet and opens its quick ask; registration failure only logs a warning. `DSH_DESKTOP_PET=0` disables the window. This is Phase 0: there is no tray toggle, and the window position is not remembered.
 
 <a id="key-technical-decisions"></a>
 

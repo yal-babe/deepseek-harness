@@ -61,6 +61,7 @@ import { installDesktopShortcuts } from './keyboard.ts'
 import { DesktopUpdateOverlays } from './update-overlay.ts'
 import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
+import { DesktopPetWindow } from './pet-window.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
 
 let focusPrimaryWindow = (): void => {}
@@ -405,6 +406,20 @@ async function main(): Promise<void> {
   })
   const appPreload = fileURLToPath(new URL('./preload-app.cjs', import.meta.url))
   const applicationUrl = `${SCHEME}://app/`
+  // Studio Pet window (Phase 0): DSH_DESKTOP_PET=0 keeps it closed to save the second renderer's memory.
+  const petEnabled = process.env.DSH_DESKTOP_PET !== '0'
+  const pet = new DesktopPetWindow({
+    preload: appPreload,
+    applicationUrl,
+    openMain: () => {
+      const window = mainWindow
+      if (window === undefined || window.isDestroyed()) return
+      window.show()
+      window.focus()
+    },
+  })
+  const removePetIpc = pet.installIpc(ipcMain)
+  app.on('will-quit', () => { removePetIpc(); pet.dispose() })
   let hostUrl: string | undefined
   let hostCookie: string | undefined
   const browserGuests = new DesktopBrowserGuests(() => hostUrl)
@@ -717,7 +732,8 @@ async function main(): Promise<void> {
   })
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*', 'wss://127.0.0.1/*'] }, (details, callback) => {
-    if (hostUrl === undefined || hostCookie === undefined || details.webContentsId !== mainWindow?.webContents.id) {
+    if (hostUrl === undefined || hostCookie === undefined
+      || (details.webContentsId !== mainWindow?.webContents.id && !pet.owns(details.webContentsId))) {
       callback({})
       return
     }
@@ -755,7 +771,8 @@ async function main(): Promise<void> {
     if (source === 'light' || source === 'dark' || source === 'system') nativeTheme.themeSource = source
   })
   ipcMain.handle(DESKTOP_IPC.localeBootstrap, async (event) => {
-    if (event.sender !== mainWindow?.webContents || event.senderFrame !== mainWindow.webContents.mainFrame
+    // The Studio Pet window boots the same document and reads the same locale.
+    if ((event.sender !== mainWindow?.webContents && !pet.owns(event.sender.id)) || event.senderFrame !== event.sender.mainFrame
       || new URL(event.senderFrame.url).origin !== new URL(applicationUrl).origin) {
       throw new Error('desktop welcome: rejected locale request from an unowned frame')
     }
@@ -1129,6 +1146,7 @@ async function main(): Promise<void> {
     if (activate) window.show()
     else window.showInactive()
     enteredWorkspace = true
+    if (petEnabled) pet.start()
     if (welcomeWindow !== undefined) {
       welcomeWindow.close()
       window.webContents.send(DESKTOP_IPC.enterWorkspace)
@@ -1253,6 +1271,7 @@ async function main(): Promise<void> {
     stopAccount?.()
     if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) welcomeWindow.hide()
     if (mainWindow !== undefined && !mainWindow.isDestroyed()) mainWindow.hide()
+    pet.dispose()
     updateSchedule.dispose()
     updateDialog.dispose()
     mandatoryUI?.dispose()

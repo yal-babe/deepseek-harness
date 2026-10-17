@@ -2,7 +2,7 @@
 
 import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+import { DESKTOP_IPC, PET_IPC, PET_WINDOW_QUERY, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
 import { PLATFORM_IPC } from './platform-ipc.ts'
 import { markDocumentPlatform, syncWindowFullscreen } from './preload-platform.ts'
 import { syncNativeTheme } from './preload-theme.ts'
@@ -86,6 +86,21 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
     ready: () => ipcRenderer.invoke(DESKTOP_IPC.boot) as Promise<unknown>,
     failed: (message: string) => ipcRenderer.invoke(DESKTOP_IPC.bootFailed, message) as Promise<void>,
   })
+  // Studio Pet bridge; the main process accepts these messages only from the pet window's top frame.
+  if (process.isMainFrame) {
+    contextBridge.exposeInMainWorld('dshDesktopPet', {
+      protocolVersion: 1,
+      role: new URLSearchParams(location.search).get(PET_WINDOW_QUERY) === '1' ? 'pet' : 'main',
+      setInteractive: (interactive: boolean) => { ipcRenderer.send(PET_IPC.setInteractive, interactive) },
+      setVisible: (visible: boolean) => { ipcRenderer.send(PET_IPC.setVisible, visible) },
+      openMain: () => { ipcRenderer.send(PET_IPC.openMain) },
+      onQuickAsk: (listener: () => void) => {
+        const handle = (): void => { listener() }
+        ipcRenderer.on(PET_IPC.quickAsk, handle)
+        return () => { ipcRenderer.off(PET_IPC.quickAsk, handle) }
+      },
+    })
+  }
   contextBridge.exposeInMainWorld('dshPlatform', {
     open: (page: 'usage' | 'top-up', bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke(PLATFORM_IPC.open, page, bounds),
     setBounds: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke(PLATFORM_IPC.bounds, bounds),

@@ -33,6 +33,17 @@ export const DESKTOP_IPC = {
   windowsMenu: 'dsh-desktop:windows-menu',
 } as const
 
+/** IPC channels between the Studio Pet window renderer and the main process. */
+export const PET_IPC = {
+  setInteractive: 'dsh-pet:set-interactive',
+  setVisible: 'dsh-pet:set-visible',
+  openMain: 'dsh-pet:open-main',
+  quickAsk: 'dsh-pet:quick-ask',
+} as const
+
+/** Query parameter the ui-pet Client reads to render only the pet. */
+export const PET_WINDOW_QUERY = 'dsh-pet-window'
+
 /** Desktop release update state rendered by desktop-owned UI. */
 export type DesktopUpdatePreparationFailureKind = 'stop-failed' | 'tasks-changed' | 'tasks-unavailable'
 
