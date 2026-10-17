@@ -282,6 +282,7 @@
     { "path": "./packages/api/oauth-controller" },
     { "path": "./packages/api/provider-quota" },
     { "path": "./packages/sync/studio-cloud" },
+    { "path": "./packages/pet/pet" },
     { "path": "./packages/session/usage-stats" },
     { "path": "./packages/credentials/deepseek-account-platform" },
     { "path": "./packages/credentials/deepseek-account" },

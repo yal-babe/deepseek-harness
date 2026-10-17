@@ -99,6 +99,8 @@ export const remoteDefaultResponses: RemoteTable = {
     'session/control': openStream([{ type: 'baseline', value: { projections: {} } }]),
     // ui-settings-account shares the account snapshot across settings and the sidebar menu.
     'studioCloud/watch': openStream([studioSignedOut]),
+    // ui-pet store subscribes to the Host pet snapshot at apply.
+    'pet/watch': openStream([{ revision: 1, primary: 'IDLE', sessions: [], pending: [], jobs: [], visible: true }]),
     'account/watch': openStream([{ status: 'signed-out', attempt: null, links: { usageUrl: 'https://platform.deepseek.com/usage', topUpUrl: 'https://platform.deepseek.com/top_up' } }]),
     // ui-settings-oauth watches the Codex credential key from apply.
     'oauth/watch': openStream([{ status: 'idle', inFlight: false, credentialConfigured: false }]),

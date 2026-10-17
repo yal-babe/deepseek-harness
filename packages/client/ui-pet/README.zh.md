@@ -1,0 +1,69 @@
+---
+description: "内置桌宠角色：Web 页内浮层，以及 Desktop 桌宠窗口中的整个文档。"
+kind: "package-reference"
+---
+
+# @deepseek-ai/dsh-client-ui-pet
+
+[English](README.md) | 中文
+
+## 概述
+
+内置桌宠的浏览器端。它镜像 Host [`pet`](../../pet/pet/README.zh.md) 快照，渲染一个带气泡的小型动画角色。气泡显示焦点会话、待审批项，以及可拖入文件的快速提问框。Web 上角色位于 `shell.overlay`。在 Desktop 桌宠窗口（`?dsh-pet-window=1`）中，插件遮蔽 `root`，整个透明文档就是桌宠。
+
+## 目录
+
+- [使用本包](#use-this-package)
+- [理解实现](#understand-the-implementation)
+- [模型体验](#model-experience)
+- [已知限制与延期工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+-----
+
+<a id="use-this-package"></a>
+## 使用本包
+
+web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 页面，右下角即显示角色。在 URL 后加 `?dsh-pet-window=1` 可在浏览器中预览桌宠窗口界面。Desktop 在该 URL 上打开一个独立的透明置顶窗口，此时 Desktop 主窗口不再显示页内角色。`CommandOrControl+Shift+Space` 可在任何地方打开快速提问，并在桌宠被隐藏后重新显示它。
+
+审批卡片出现后两个按钮会禁用 800 ms，回车从不批准。在桌宠中决定与在主窗口中决定回答的是同一个 Host 请求；先到的回答生效，另一处界面关闭卡片。
+
+-----
+
+<a id="understand-the-implementation"></a>
+## 理解实现
+
+<details>
+<summary>实现细节 — 点击展开</summary>
+
+- `PetStore` 通过 `ctx.remote.$stream` 消费 `pet.watch()`；载体断开或终止性失败会让角色显示 `DISCONNECTED`，直到下一帧到来。
+- 审批不经 Host 决定。每个 Client 本来就用 ui-approval 的 `PendingApproval` 回答转发来的 `approval/request` waterfall。桌宠从 `uiSession.sessionStatus` 读取这些对象，按会话与工具调用与 Host 待审批项匹配，并通过 `PetApprovalBridge` 回答；它会拒绝同一界面的第二次提交。Gateway 以第一个结果结束 waterfall 并取消其他 Client，因此主窗口与桌宠窗口不可能都做出决定。
+- 快速提问依次执行 `session.create`（新会话时）、对每个拖入的文件执行 `fileUpload.upload`，再以 queue 模式执行 `session.prompt`。
+- Desktop bridge（`window.dshDesktopPet`）在指针进入或离开角色与气泡时切换点击穿透，跟随 Host 可见性，并转发全局快捷键。
+- 帧：鲸尾女仆角色的 idle、thinking、working、waiting、success、error 片段各取六帧，裁剪并缩放到 160 px。这些帧以 MIT 许可发布，Copyright (c) 2026 PC2005-cloud；许可证见 `src/client/assets/whaletail-maid/LICENSE.txt`。
+
+</details>
+
+-----
+
+<a id="model-experience"></a>
+## 模型体验
+
+无，本包在浏览器中渲染桌宠，不注册任何面向模型的内容。
+
+#### KV Cache 影响
+
+无；快速提问就是普通的用户提示。
+
+## 已知限制与延期工作
+
+<a id="known-limitations-and-deferred-work"></a>
+
+- **Phase 0 范围** — 没有拖动、触摸反应、声音、说话状态或角色包；帧集是内嵌的小子集。
+- **每个会话一个审批** — 会话状态只暴露优先级最高的待交互项，同一会话中并行的第二个审批需在主窗口回答。
+- **Web 上没有页内"重新显示"** — 隐藏后 Web 需要重置 Host 设置；Desktop 使用全局快捷键。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。

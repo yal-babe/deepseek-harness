@@ -157,6 +157,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   providerQuota: 'credentials.md',
   studioCloud: 'sync.md',
   usageStats: 'session.md',
+  pet: 'session.md',
 }
 
 /**

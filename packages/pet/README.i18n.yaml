@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/pet/README.md
+/:
+  en: e82ba729c719bdcb
+  zh: 2e08bdb7a435d0af
+/pet-studio-pet:
+  en: b4b608a9f81e6148
+  zh: f47e8cac7860e01f
+/pet-studio-pet/summary:
+  en: 1b87c8ad6c137634
+  zh: b579f4cdcdb17f80
+/pet-studio-pet/table-of-contents:
+  en: 1eb35b015a6c423f
+  zh: a8a3dceee2c9e943
+/pet-studio-pet/packages:
+  en: 5d3d11a01cb09205
+  zh: 2e2737475e507fbb
+/pet-studio-pet/related-documentation:
+  en: 2189dd252a1495bf
+  zh: 36c52737bbea91af
+/pet-studio-pet/dev-note:
+  en: 5de1d6304e00c58f
+  zh: e58fc8dda0bea8d5

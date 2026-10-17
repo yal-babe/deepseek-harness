@@ -963,6 +963,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     mode: 'core',
     note: 'Folds session token usage and activity into point-in-time usage snapshots for the personal center interface.',
   },
+  {
+    key: 'pet',
+    pkg: 'pet',
+    title: 'Studio Pet snapshot',
+    mode: 'core',
+    note: 'Folds live Session events into the built-in desktop pet state and pending approvals served on the pet Remote.',
+  },
 ]
 
 function generatedHeader(title: string): string[] {

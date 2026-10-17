@@ -2487,6 +2487,34 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-persona -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-pet -->
+<a id="deepseek-aidsh-pet"></a>
+
+## `@deepseek-ai/dsh-pet`
+
+- `source`: [`packages/pet/pet/src/index.ts:20`](../packages/pet/pet/src/index.ts)
+
+```ts config-catalog
+/** Deployment options of the Studio Pet Host module. */
+export interface Config {
+  /** Initial "show desktop pet" value; hiding never stops the Host module. */
+  visible?: boolean
+  /** Track subagent Sessions as their own entries. */
+  includeSubagents?: boolean
+  /** Milliseconds a completed turn shows `SUCCESS` before reading as `IDLE`. */
+  successHoldMs?: number
+  /** Milliseconds a failed turn shows `ERROR` before reading as `IDLE`. */
+  errorHoldMs?: number
+  /** Maximum Session entries per snapshot. */
+  maxSessions?: number
+  /** Minimum milliseconds between two `watch()` frames. */
+  snapshotDebounceMs?: number
+  /** Whether a `WAITING` Session takes focus from a pinned Session. */
+  waitingPreempts?: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-pet -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-plan-mode -->
 <a id="deepseek-aidsh-plan-mode"></a>
 
@@ -4780,6 +4808,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-personal-center` | — | [`packages/client/ui-personal-center/src/index.ts`](../packages/client/ui-personal-center/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-pet` | — | [`packages/client/ui-pet/src/index.ts`](../packages/client/ui-pet/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-plan` | — | [`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-plugin-market` | — | [`packages/client/ui-plugin-market/src/index.ts`](../packages/client/ui-plugin-market/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-reference` | — | [`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts) |

@@ -104,6 +104,7 @@
     "@deepseek-ai/dsh-llm-oauth-bridge": "workspace:*",
     "@deepseek-ai/dsh-deepseek-account": "workspace:*",
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
-    "@deepseek-ai/dsh-studio-cloud": "workspace:*"
+    "@deepseek-ai/dsh-studio-cloud": "workspace:*",
+    "@deepseek-ai/dsh-pet": "workspace:*"
   }
 }

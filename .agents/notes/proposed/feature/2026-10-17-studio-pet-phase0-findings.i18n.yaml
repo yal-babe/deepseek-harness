@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for 2026-10-17-studio-pet-phase0-findings.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-10-17-studio-pet-phase0-findings.md
+/agent-note-studio-pet-phase-0-findings:
+  en: 977d907ae2977da5
+  zh: 47bd7be0d7081b16
+/agent-note-studio-pet-phase-0-findings/problem:
+  en: e27b80d7d066585a
+  zh: c1bd649dff181e61
+/agent-note-studio-pet-phase-0-findings/proposal:
+  en: 7e50081f9ab106bf
+  zh: 66554d4378f9ccd5
+/agent-note-studio-pet-phase-0-findings/findings:
+  en: 1824c2f9e430a89c
+  zh: 1824c2f9e430a89c
+/agent-note-studio-pet-phase-0-findings/findings/approval-race-a:
+  en: 820dc194c22713ab
+  zh: a106be42cc35d7ca
+/agent-note-studio-pet-phase-0-findings/findings/shared-authenticated-connection-b:
+  en: 58c42d76dbdf9000
+  zh: ad9ea15b9a5d0f76
+/agent-note-studio-pet-phase-0-findings/findings/quick-ask-with-files-c:
+  en: e90cbe7311e04f5e
+  zh: 3a11bfd520a2cbb0
+/agent-note-studio-pet-phase-0-findings/findings/global-shortcut-d:
+  en: b9f05699b008445b
+  zh: f818751f57a19101
+/agent-note-studio-pet-phase-0-findings/alternatives-considered:
+  en: 87947a876dca539b
+  zh: 41c0731abf7ede57
+/agent-note-studio-pet-phase-0-findings/acceptance-criteria:
+  en: 560846a0a13b5547
+  zh: a29530b4965aa5ff
+/agent-note-studio-pet-phase-0-findings/risks:
+  en: 633be5fc27a06999
+  zh: 4a30f931b12df57d

@@ -109,6 +109,9 @@
     },
     {
       "path": "../../sync/studio-cloud"
+    },
+    {
+      "path": "../../pet/pet"
     }
   ]
 }

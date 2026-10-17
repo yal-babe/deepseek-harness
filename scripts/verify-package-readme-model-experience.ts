@@ -78,6 +78,8 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/sync/studio-cloud': { kind: 'none', reason: 'Personal cloud identity and object sync do not contribute model input or tools.' },
   'packages/api/provider-quota': { kind: 'none', reason: 'Quota Remote returns browser-safe usage cards; tokens never enter model prompts, Session logs, or tool results.' },
   'packages/session/usage-stats': { kind: 'none', reason: 'Local usage fold for Personal Center; exposes no model-facing tools or prompts.' },
+  'packages/pet/pet': { kind: 'none', reason: 'Studio Pet folds Session events for display; exposes no model-facing tools or prompts.' },
+  'packages/client/ui-pet': { kind: 'none', reason: 'Browser-side Studio Pet character; registers nothing model-facing.' },
   'packages/client/ui-personal-center': { kind: 'none', reason: 'Browser-side Personal Center surface; registers nothing model-facing.' },
   'packages/client/ui-settings-oauth': { kind: 'none', reason: 'Codex and Antigravity sign-in are configuration-time conversations and no OAuth state enters a model request.' },
 
