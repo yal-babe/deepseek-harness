@@ -10,6 +10,8 @@ afterEach(cleanup)
 
 function mockOperations(overrides: Partial<StudioOperations> = {}): StudioOperations {
   return {
+    studioConfigureSync: vi.fn(),
+    studioUnlockCredentials: vi.fn(),
     studioLogin: vi.fn(),
     studioLogout: vi.fn(),
     studioChangePassword: vi.fn(),
@@ -43,14 +45,13 @@ it('requires explicit service credentials and does not upload data when opening'
       {...mockOperations({ studioLogin })}
     />,
   )
-  expect(screen.getByText(en.studioDescription)).toBeTruthy()
+  expect(screen.getByText(en.studioLocalDescription)).toBeTruthy()
   expect(studioLogin).not.toHaveBeenCalled()
   fireEvent.change(screen.getByLabelText(en.studioOrigin), { target: { value: 'https://cloud.example.test' } })
   fireEvent.change(screen.getByLabelText(en.studioUsername), { target: { value: 'personal' } })
   fireEvent.change(screen.getByLabelText(en.studioPassword), { target: { value: 'test-password' } })
-  fireEvent.change(screen.getByLabelText(en.studioDevice), { target: { value: 'Laptop' } })
   fireEvent.click(screen.getByRole('button', { name: en.signIn }))
-  expect(studioLogin).toHaveBeenCalledWith('https://cloud.example.test', 'personal', 'test-password', 'Laptop', false)
+  expect(studioLogin).toHaveBeenCalledWith('https://cloud.example.test', 'personal', 'test-password', '', false)
 })
 
 for (const [language,copy] of [['en',en],['zh',zh]] as const) it(`records the Studio account consent form in ${language}`, async()=>{

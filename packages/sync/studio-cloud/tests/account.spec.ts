@@ -86,6 +86,7 @@ async function fixture() {
       send({ usedBytes: 0, quotaBytes: 100000, encryptionMode: 'plain' })
       return
     }
+    if (req.url?.startsWith('/v1/sync/snapshot')) { send({ snapshot: randomUUID(), items: [], hasMore: false, after: null, cursor: '0' }); return }
     if (req.url === '/v1/auth/logout') {
       send({ ok: true })
       return
@@ -150,7 +151,8 @@ describe('Host-owned Studio identity', () => {
     const state = await f.ctx.studioCloud.getState()
     expect(state.phase).toBe('preview-required')
     expect(JSON.stringify(state)).not.toContain('access-one')
-    expect(f.calls.some(path => path.includes('/sync/'))).toBe(false)
+    expect(f.calls.some(path => path.includes('/sync/snapshot'))).toBe(true)
+    expect(f.calls.some(path => path.includes('/sync/push'))).toBe(false)
     const record = await f.ctx.credentials.readRecord(credentialKey('studio-cloud', 'connection'))
     expect(record?.kind).toBe('grant')
     expect(await f.ctx.studioCloud.signOut()).toEqual({ revoked: true })

@@ -129,6 +129,38 @@ function owner(seed = 'local') {
 }
 
 describe('personal object synchronization', () => {
+  it('downloads on a new device without enabling uploads, then uploads only selected categories', async () => {
+    const f = fixture(), source = owner('cloud preference')
+    const first = new PersonalSync(await root(), 'https://cloud.test', 'alice', new Map([['owner', source.contribution]]))
+    await first.configure(['settings'], false, f.connection)
+    const local = owner('local preference'), directory = await root()
+    const receiver = new PersonalSync(directory, 'https://cloud.test', 'alice', new Map([['owner', local.contribution]]))
+    const uploads = f.requests.length
+    await receiver.download(f.connection)
+    expect(local.text).toBe('cloud preference')
+    expect(f.requests).toHaveLength(uploads)
+    expect(await receiver.status()).toMatchObject({ enabled: false, categories: [], automatic: false })
+    local.text = 'local edit'
+    await receiver.configure(['projects'], true, f.connection)
+    expect(f.requests).toHaveLength(uploads)
+    await receiver.configure(['settings'], true, f.connection)
+    expect(f.current?.payload).toEqual({ text: 'local edit' })
+    const restarted = new PersonalSync(directory, 'https://cloud.test', 'alice', new Map([['owner', local.contribution]]))
+    expect(await restarted.status()).toMatchObject({ categories: ['settings'], automatic: true })
+  })
+  it('retains immutable unknown-outcome uploads when their category is disabled', async () => {
+    const f = fixture(), o = owner(), directory = await root()
+    const engine = new PersonalSync(directory, 'https://cloud.test', 'alice', new Map([['owner', o.contribution]]))
+    f.lose()
+    await expect(engine.configure(['settings'], false, f.connection)).rejects.toMatchObject({ code: 'NETWORK' })
+    const original = f.requests[0]!
+    await engine.configure([], false, f.connection)
+    expect(f.requests).toHaveLength(1)
+    expect(await engine.status()).toMatchObject({ enabled: false, pending: 1 })
+    await engine.configure(['settings'], false, f.connection)
+    expect(f.requests[1]).toEqual(original)
+    expect(f.current?.version).toBe(1)
+  })
   it('does not upload during preview and filters fields before redacting text', async () => {
     const f = fixture(),
       o = owner('api_key=sk-sensitive-value'),
@@ -156,7 +188,7 @@ describe('personal object synchronization', () => {
     expect(f.requests).toHaveLength(2)
     expect(f.requests[0]?.requestId).toEqual(f.requests[1]?.requestId)
     expect(f.current?.version).toBe(1)
-    expect(await restarted.status()).toEqual({ enabled: true, pending: 0, selectedCount: 1 })
+    expect(await restarted.status()).toEqual({ enabled: true, pending: 0, selectedCount: 1, categories: [], automatic: false })
   })
   it('keeps both sides on conflict and resolves only after explicit cloud selection', async () => {
     const f = fixture(),
@@ -183,7 +215,7 @@ describe('personal object synchronization', () => {
     await alice.preview(f.connection)
     await alice.select([{ id: 'preference:one', source: 'local', version: 0 }], f.connection)
     const bob = new PersonalSync(directory, 'https://cloud.test', 'bob', owners)
-    expect(await bob.status()).toEqual({ enabled: false, pending: 0, selectedCount: 0 })
+    expect(await bob.status()).toEqual({ enabled: false, pending: 0, selectedCount: 0, categories: [], automatic: false })
     await alice.pause(true)
     o.text = 'paused edit'
     await alice.synchronize(f.connection)

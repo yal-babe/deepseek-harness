@@ -32,7 +32,7 @@ it.each(['accepted', 'refused', 'disconnected', 'pending'] as const)('initialize
     locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },
     configForms: {
       get: () => ({ subscribe: () => () => {}, getSnapshot: () => ({ status: 'loading', value: undefined }) }),
-      describe: () => ({ subscribe: () => () => {}, getSnapshot: () => ({ error: null }) }),
+      describe: () => ({ ensure: async () => {}, subscribe: () => () => {}, getSnapshot: () => ({ error: null }) }),
     },
     slots: {
       inject: (_name: string, install: () => (() => void) | undefined) => {

@@ -1,6 +1,5 @@
 /** Account settings registration and reconnecting Remote subscription. */
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
-import type { TranscriptViewMode } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -11,7 +10,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-remotes/client'
 import type { StudioState } from '@deepseek-ai/dsh-studio-cloud/types'
 import type { AccountView, AccountDetails } from '@deepseek-ai/dsh-deepseek-account/types'
-import type { OnboardingChange } from './onboarding-contract.ts'
 import type { PlatformBridge } from './PlatformOverlay.tsx'
 import { ContactConfig, CONTACT_CONFIG_GLOBAL } from '../contact-config.ts'
 import { contactUrl } from './contact-url.ts'
@@ -20,7 +18,7 @@ import { BrowserLogin } from './browser-login.ts'
 import { AccountModelCard } from './AccountModelCard.tsx'
 import { AccountOnboarding } from './AccountOnboarding.tsx'
 import { AccountPlatformHost, type AccountPlatformHostInjected } from './AccountPlatformHost.tsx'
-import { StudioSection, StudioOverlay, type StudioInjected, type StudioSnapshot } from './StudioAccount.tsx'
+import { StudioSection, StudioOverlay, StudioIntroduction, type StudioInjected, type StudioSnapshot } from './StudioAccount.tsx'
 import { AccountMenu } from './AccountMenu.tsx'
 import { createPlatformPages, type PlatformPages } from './platform-pages.ts'
 import { AccountSection, type AccountSnapshot, type AccountSectionInjected } from './AccountSection.tsx'
@@ -30,9 +28,6 @@ import { accountClientMetadata } from './client-metadata.ts'
 import { en, zh, type AccountKey } from './locales.ts'
 import { AccountQuotaNotice, type AccountQuotaNoticeInjected } from './AccountQuotaNotice.tsx'
 import { DESKTOP_ONBOARDING_NAMESPACE, type OnboardingSettings } from '../onboarding-settings.ts'
-import { DesktopOnboardingController } from './onboarding-state.ts'
-import { DesktopOnboardingEntry, type DesktopOnboardingInjected } from './DesktopOnboardingEntry.tsx'
-import { readOnboardingApiKeyPresence } from './onboarding-credentials.ts'
 import { refreshAfterReturn } from './account-refresh.ts'
 import { AccountAvatarLoader } from './account-avatar.ts'
 export type { AccountSectionInjected, AccountSectionProps } from './AccountSection.tsx'
@@ -54,7 +49,7 @@ export function apply(ctx: Context): void {
   const page = globalThis as Partial<Record<typeof CONTACT_CONFIG_GLOBAL, unknown>>
   const config = ContactConfig(page[CONTACT_CONFIG_GLOBAL] ?? {})
   let snapshot: AccountSnapshot = {
-    view: undefined, details: undefined, avatar: undefined, failed: false, loginVisible: false, desktopOnboardingVisible: desktop,
+    view: undefined, details: undefined, avatar: undefined, failed: false, loginVisible: false, desktopOnboardingVisible: false,
   }
   // Desktop main opens the authorization page natively; a plain browser opens it in a tab it owns.
   const browser = new BrowserLogin(url => authorizeUrlWithTheme(url, ctx.theme.getTheme().active.colorScheme))
@@ -187,9 +182,11 @@ export function apply(ctx: Context): void {
     const result = await ctx.remote.studioCloud.getState()
     if(generation!==studioGeneration)return
     if (!result.ok) {publishStudio({ ...studioSnapshot,error:true });return}
-    publishStudio({ ...studioSnapshot,state:result.value,error:false })
+    publishStudio({ ...studioSnapshot,state:result.value,error:false }); publish({ ...snapshot,studio:result.value })
   }
   let studioDisposed = false
+  let offerFirstUse = () => {}
+  let dismissFirstUse = () => {}
   const studio:StudioInjected = {
     hooks: {
       studio: {
@@ -205,6 +202,8 @@ export function apply(ctx: Context): void {
       const result = await ctx.remote.studioCloud.signIn(origin,login,password,device,allowHttp)
       if (!result.ok) throw result.error
       await refreshStudio()
+      publishStudio({ ...studioSnapshot, visible: false })
+      dismissFirstUse()
     },
     studioLogout:async () => {
       studioGeneration++
@@ -317,12 +316,22 @@ export function apply(ctx: Context): void {
       if(!result.ok)throw result.error
       await refreshStudio()
     },
+    studioUnlockCredentials: async (passphrase) => {
+      const result = await ctx.remote.studioCloud.unlockCredentials(passphrase)
+      if (!result.ok) throw result.error
+      await refreshStudio()
+    },
+    studioConfigureSync: async (categories, automatic) => {
+      const result = await ctx.remote.studioCloud.configureSync(categories, automatic)
+      if (!result.ok) throw result.error
+      await refreshStudio()
+    },
     studioRefresh:async()=>{
       const result=await ctx.remote.studioCloud.synchronize()
       if(!result.ok)throw result.error
       await refreshStudio()
     },
-    studioClose:()=>{ publishStudio({ ...studioSnapshot,visible:false }) },
+    studioClose:()=>{ publishStudio({ ...studioSnapshot,visible:false }); dismissFirstUse() },
   }
   const studioStream=ctx.remote.$stream<StudioState>({
     name:'studio-cloud',open:signal=>ctx.remote.studioCloud.watch(signal),ended:()=>new Error('Studio account stream ended'),
@@ -335,6 +344,8 @@ export function apply(ctx: Context): void {
         studioGeneration++
         publishStudio({ state: frame.value, visible: studioSnapshot.visible, error: false })
       } else publishStudio({ ...studioSnapshot, state: frame.value, error: false })
+      publish({ ...snapshot, studio: frame.value })
+      offerFirstUse()
       frame.accept()
     }
   })().catch(() => {
@@ -347,6 +358,7 @@ export function apply(ctx: Context): void {
     name:'shell.overlay',id:'studio-cloud.login',locale:'settings.account',inject:()=>studio,
   },StudioOverlay))
   const operations: AccountSectionInjected = {
+    signOutStudio: () => studio.studioLogout(),
     showStudio:()=>{publishStudio({ ...studioSnapshot,visible:true });void refreshStudio()},
     avatarFailed: (value) => { avatar.failed(value) },
     subscribeSessionExpired: listener => ctx.remote.$on('deepseek-account/session-expired', listener),
@@ -432,41 +444,33 @@ export function apply(ctx: Context): void {
       throw result.error
     },
   }
-  if (desktop) {
-    const controller = new DesktopOnboardingController(
-      ctx.configForms.get<OnboardingSettings>(DESKTOP_ONBOARDING_NAMESPACE),
-      ctx.configForms.get<{ transcriptView?: TranscriptViewMode | null; performanceUsage: 'compact' | 'detailed' }>('ui-chat'),
-      enabled => ctx.configForms.developerTools.setEnabled(enabled),
-      operations.hooks.account,
-      readOnboardingApiKeyPresence,
-      ctx.configForms.describe(),
-    )
-    ctx.effect(() => () => { controller.dispose() }, 'account: desktop onboarding lifetime')
-    ctx.effect(() => {
-      const refreshCredentials = () => { controller.invalidateCredentials() }
-      const disposers = [
-        ctx.remote.$on('credentials/reference-updated', refreshCredentials),
-        ctx.remote.$on('llm/adapters-updated', refreshCredentials),
-        ctx.configForms.describe().subscribe(refreshCredentials),
-      ]
-      return () => { for (const dispose of disposers) dispose() }
-    }, 'account: desktop credential readiness')
-    ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-      name: 'shell.overlay', id: 'desktop-onboarding', locale: 'settings.account',
-      inject: (): DesktopOnboardingInjected => ({
-        hooks: { account: operations.hooks.account, onboarding: controller.state },
-        setVisible: (visible: boolean) => {
-          if (snapshot.desktopOnboardingVisible !== visible) publish({ ...snapshot, desktopOnboardingVisible: visible })
-        },
-        // Onboarding's recharge return re-reads profile and balance only.
-        ...nativePlatform === undefined ? {} : { openPlatformPage: platformPageOpener(refresh) },
-        update: (change: OnboardingChange) => controller.update(change),
-        complete: (reason: 'completed' | 'skipped') => controller.complete(reason),
-        retry: () => controller.retry(),
-        track: (name, attributes) => ctx.get('productAnalytics')?.track(name, attributes),
-      }),
-    }, DesktopOnboardingEntry))
+  const introduction = ctx.configForms.get<OnboardingSettings>(DESKTOP_ONBOARDING_NAMESPACE)
+  offerFirstUse = () => {
+    if (studioDisposed || studioSnapshot.state === null) return
+    const progress = introduction.getSnapshot()
+    if (progress.status !== 'ready') return
+    const firstUse = progress.value?.step !== 'done' && !studioSnapshot.state.identity
+    if (studioSnapshot.firstUse !== firstUse) publishStudio({ ...studioSnapshot, firstUse })
   }
+  dismissFirstUse = () => {
+    void introduction.mutate([
+      { op: 'set', path: ['step'], value: 'done' },
+      { op: 'set', path: ['completion'], value: 'skipped' },
+    ]).catch((_settingsFailure: unknown) => {
+      // The workspace remains available; an unsaved dismissal can be offered again on the next launch.
+    })
+  }
+  ctx.effect(() => {
+    const dispose = introduction.subscribe(offerFirstUse)
+    void ctx.configForms.describe().ensure().then(offerFirstUse).catch((_settingsFailure: unknown) => {
+      // Initial settings failure never blocks local workspace access.
+    })
+    offerFirstUse()
+    return dispose
+  }, 'Studio optional first-use prompt')
+  ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
+    name: 'settings.onboarding', id: 'studio-introduction', order: -50, locale: 'settings.account', inject: () => studio,
+  }, StudioIntroduction))
   ctx.slots.inject('settings.models.provider-card', () => ctx.slots.register({
     name: 'settings.models.provider-card', key: 'llm-deepseek-account',
     locale: 'settings.account', inject: () => operations,

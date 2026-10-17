@@ -10,11 +10,6 @@ import type {
 import type { QuotaNoticeOwnerProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import { Config as OnboardingConfig } from '../src/index.ts'
-import { ChatSettingsSchema as ChatConfig } from '../../ui-chat/src/chat-settings.ts'
-import { DeveloperToolsSettingsSchema as SettingsConfig } from '../../ui-settings/src/developer-tools-settings.ts'
-import type { DesktopOnboardingInjected } from '../src/client/DesktopOnboardingEntry.tsx'
 import type { AccountSectionInjected } from '../src/client/AccountSection.tsx'
 import { CONTACT_CONFIG_GLOBAL } from '../src/contact-config.ts'
 import { AccountPlatformHost } from '../src/client/AccountPlatformHost.tsx'
@@ -430,55 +425,6 @@ it('re-reads the account when the shared host returns from top-up, and not from 
   expect(mock.remote.account.getProfile).toHaveBeenCalledOnce()
 }, 60_000)
 
-it('re-reads profile and balance but no bonus for the onboarding recharge return, and nothing on supersede or release', async ({ start }) => {
-  vi.stubGlobal('dshDesktop', {})
-  const c = await start()
-  vi.stubGlobal('dshPlatform', { open: vi.fn(), setBounds: vi.fn(), close: vi.fn() })
-  await c.reload(SELF)
-  const actions = operations(c)
-  const track = vi.fn()
-  c.ctx.provide('productAnalytics', { track } as never)
-  expect(actions).not.toHaveProperty('track')
-  const onboarding = injectedOf(c.ctx.slots.entries('shell.overlay')
-    .find(entry => entry.options.id === 'desktop-onboarding')!) as DesktopOnboardingInjected
-  onboarding.track?.('onboarding_page_view', { page_name: 'onboarding_recharge' })
-  expect(track).toHaveBeenCalledWith('onboarding_page_view', { page_name: 'onboarding_recharge' })
-  const host = injectedOf(platformHostEntry(c)!) as AccountPlatformHostInjected
-  c.mock.remote.account.getProfile.mockResolvedValue(ok(profile))
-  c.mock.remote.account.getBalance.mockResolvedValue(ok(null))
-  c.mock.remote.account.getUnnotifiedBonuses.mockResolvedValue(ok({ accountId: 'account-user' as AccountUserId, bonuses: [] }))
-  c.mock.streams.push('account/watch', stored)
-  await vi.waitFor(() => { expect(actions.hooks.account.getSnapshot().view).toEqual(stored) })
-  await vi.waitFor(() => { expect(c.mock.remote.account.getUnnotifiedBonuses).toHaveBeenCalled() })
-  await c.flush()
-  const bonusesBefore = c.mock.remote.account.getUnnotifiedBonuses.mock.calls.length
-  // The account becoming active already ran the shared refresh; measure only the
-  // reads each later event triggers.
-  c.mock.remote.account.getProfile.mockClear()
-  c.mock.remote.account.getBalance.mockClear()
-
-  // A superseded page is not a return, so it reads nothing for either caller.
-  onboarding.openPlatformPage!('top-up', () => {})
-  actions.openPlatformPage!('top-up', () => {})
-  await c.flush()
-  expect(c.mock.remote.account.getProfile).not.toHaveBeenCalled()
-
-  // Releasing a request is not a return either.
-  const release = actions.openPlatformPage!('top-up', () => {})
-  release()
-  await c.flush()
-  expect(c.mock.remote.account.getProfile).not.toHaveBeenCalled()
-
-  // The onboarding return re-reads profile and balance, and never the bonus: an
-  // unseen award must not be acknowledged behind the onboarding surface.
-  onboarding.openPlatformPage!('top-up', () => {})
-  host.closePage()
-  await vi.waitFor(() => { expect(c.mock.remote.account.getProfile).toHaveBeenCalledOnce() })
-  await vi.waitFor(() => { expect(c.mock.remote.account.getBalance).toHaveBeenCalledOnce() })
-  await c.flush()
-  expect(c.mock.remote.account.getUnnotifiedBonuses.mock.calls.length).toBe(bonusesBefore)
-}, 60_000)
-
 it('waits for an in-flight pre-return read before the post-top-up read', async ({ start }) => {
   vi.stubGlobal('dshDesktop', {})
   const c = await start()
@@ -720,57 +666,13 @@ it('forwards live account notices and removes their subscriptions', async ({ sta
   expect(expired).toHaveBeenCalledOnce()
   expect(unavailable).toHaveBeenCalledOnce()
 })
-for (const native of [false, true]) it(`exposes desktop progress actions and disposes its subscriptions (native platform: ${native})`, async ({ start, mock }) => {
+for (const native of [false, true]) it(`keeps provider onboarding out of local startup (native platform: ${native})`, async ({ start }) => {
   vi.stubGlobal('dshDesktop', {})
-  const platform = { open: vi.fn(), setBounds: vi.fn(), close: vi.fn() }
-  if (native) vi.stubGlobal('dshPlatform', platform)
+  if (native) vi.stubGlobal('dshPlatform', { open: vi.fn(), setBounds: vi.fn(), close: vi.fn() })
   const c = await start()
-  const entry = c.ctx.slots.entries('shell.overlay').find(entry => entry.options.id === 'desktop-onboarding')!
-  const injected = (entry.inject!() as object) as DesktopOnboardingInjected
-  expect(injected.hooks.account.getSnapshot().desktopOnboardingVisible).toBe(true)
-  injected.setVisible(false)
-  expect(injected.hooks.account.getSnapshot().desktopOnboardingVisible).toBe(false)
-  const revealed = injected.hooks.account.getSnapshot()
-  injected.setVisible(false)
-  expect(injected.hooks.account.getSnapshot()).toBe(revealed)
-  // Onboarding requests the shared native page through the one host; it holds no
-  // bridge of its own.
-  if (native) expect(injected.openPlatformPage).toBeDefined()
-  else expect(injected.openPlatformPage).toBeUndefined()
-  expect(await injected.update({ step: 'credit' })).toBe(false)
-  expect(await injected.complete('skipped')).toBe(false)
-  expect(await injected.retry()).toBe(false)
-  expect(injected.hooks.onboarding.getSnapshot().visible).toBe(false)
-  await c.unload(SELF)
   expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'desktop-onboarding')).toBe(false)
-  expect(mock.remote.account.getBalance).not.toHaveBeenCalled()
-}, 60_000)
-
-it('applies API-key defaults through the desktop slot and shared configuration owners', async ({ start, mock }) => {
-  vi.stubGlobal('dshDesktop', {})
-  const values: Record<string, object> = {
-    'ui-settings-account': { version: 1, step: 'welcome', purpose: null, process: null, completion: null, usage: 'compact', developerTools: false },
-    'ui-chat': { transcriptView: 'compact', performanceUsage: 'detailed', linkOpening: 'sidebar' },
-    'ui-settings': { enabled: false },
-  }
-  const schemas = { 'ui-settings-account': OnboardingConfig, 'ui-chat': ChatConfig, 'ui-settings': SettingsConfig }
-  const namespace = (ns: keyof typeof schemas) => ({ ns, autoGenerate: false, schema: JSON.parse(JSON.stringify(schemas[ns].toJSON())) as JsonValue, value: values[ns] as JsonValue, applies: 'live' as const, secrets: [], revision: 0 })
-  mock.remote.settings.describe.mockResolvedValue(ok({
-    writable: true, hasDocument: true, namespaces: Object.keys(schemas).map(ns => namespace(ns as keyof typeof schemas)),
-  }))
-  const hasApiKey = vi.fn(async () => true)
-  vi.stubGlobal('dshOnboarding', { hasApiKey })
-  mock.remote.settings.mutate.mockImplementation(async (ns, ops) => {
-    const key = ns as keyof typeof schemas
-    const value: Record<string, unknown> = { ...values[key] }
-    for (const op of ops) if (op.op === 'set') value[String(op.path[0])] = op.value
-    values[key] = value
-    return ok(namespace(key))
-  })
-  const c = await start()
-  const injected = c.ctx.slots.entries('shell.overlay').find(entry => entry.options.id === 'desktop-onboarding')!.inject!() as object as DesktopOnboardingInjected
-  await vi.waitFor(() => { expect(injected.hooks.onboarding.getSnapshot().progress.step).toBe('done') })
-  expect(hasApiKey).toHaveBeenCalled()
-  expect(values['ui-settings']).toEqual({ enabled: true })
-  expect(values['ui-chat']).toMatchObject({ transcriptView: 'standard' })
+  expect(operations(c).hooks.account.getSnapshot().desktopOnboardingVisible).toBe(false)
+  expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'studio-cloud.login')).toBe(true)
+  await c.unload(SELF)
+  expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'studio-cloud.login')).toBe(false)
 }, 60_000)

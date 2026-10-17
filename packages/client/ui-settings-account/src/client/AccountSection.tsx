@@ -1,5 +1,6 @@
 /** Account settings renders safe Host state and explicit login actions. */
 import { Big } from 'big.js'
+import type { StudioState } from '@deepseek-ai/dsh-studio-cloud/types'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Button, IconRightUpOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
@@ -18,6 +19,9 @@ import css from './AccountSection.module.css'
 
 /** Safe account snapshot shared by the settings page and launcher. */
 export interface AccountSnapshot {
+  /** Studio identity shown by the sidebar, independent of model-provider credentials. */
+  studio?: StudioState
+
   /** Server-authored bonus notice awaiting display, absent when none is available. */
   notice?: BonusNotice
 
@@ -45,6 +49,8 @@ export interface AccountSnapshot {
 export interface AccountSectionInjected {
   /** Open the independent Studio account overlay. */
   showStudio?: () => void
+  /** End Studio synchronization and revoke its device session without signing out model providers. */
+  signOutStudio?: () => Promise<void>
   /** @param snapshot - picture attempt whose rendered image failed; superseded attempts are ignored. */
   avatarFailed: (snapshot: AccountAvatarSnapshot) => void
   /** Subscribe to live credential-expiry notifications.

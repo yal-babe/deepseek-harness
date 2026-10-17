@@ -3,29 +3,29 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-settings-account/README.md
 /:
-  en: f7c2cf78119dbd1f
-  zh: 6accf0b3936349ce
+  en: 1f41dc47eea87e87
+  zh: 7d366f8ac10c6963
 /deepseek-ai-dsh-client-ui-settings-account:
   en: 9ff7ac2d70f70b59
   zh: ded522c4cfd6e040
 /deepseek-ai-dsh-client-ui-settings-account/summary:
-  en: 9e179789413c5451
-  zh: b838834eb61031de
+  en: c1c10d353422dd5d
+  zh: 7b853ff19e3a97bf
 /deepseek-ai-dsh-client-ui-settings-account/table-of-contents:
   en: c26f81e8adf0128b
   zh: e11ab371f51f66bc
 /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
-  en: dab55975e3e8a34b
-  zh: 70f769f27a5126c1
+  en: 0b361939c00d65ee
+  zh: 7b39ed3de9c82fea
 /deepseek-ai-dsh-client-ui-settings-account/use-this-package/desktop-onboarding:
-  en: c1c4db71fd09ca13
-  zh: a40c0a01e9951945
+  en: 872aa66d5c754918
+  zh: db283d7f97b34f03
 /deepseek-ai-dsh-client-ui-settings-account/understand-the-implementation:
-  en: 6312ce3582b29cf4
-  zh: 1c20d5d549af8da5
+  en: c03a124b27a4277b
+  zh: 99dd47fbfb92005a
 /deepseek-ai-dsh-client-ui-settings-account/further-exploration:
-  en: f5ca95916ef486dc
-  zh: 1e238d8299e0d838
+  en: 1dd4c962bfc783b0
+  zh: 9d102059c5768e85
 /deepseek-ai-dsh-client-ui-settings-account/model-experience:
   en: ee1df7ca3467ee3f
   zh: 84904a5148da3862
@@ -33,8 +33,8 @@
   en: ca3015e252db0114
   zh: ebca9253cf15e8e9
 /deepseek-ai-dsh-client-ui-settings-account/known-limitations-and-deferred-work:
-  en: 7afbd3f7afc20bd8
-  zh: f54c57e3d6738c7c
+  en: 562bc6637d52d4ac
+  zh: 2e449c6be72e0715
 /deepseek-ai-dsh-client-ui-settings-account/known-limitations-and-deferred-work/dev-note:
-  en: 7cb9683e68b1ce90
-  zh: 898915068d5f51b2
+  en: 566a784156ad966d
+  zh: 9d6685cf3c3b0528

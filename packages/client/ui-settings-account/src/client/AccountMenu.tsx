@@ -5,9 +5,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AccountSectionInjected } from './AccountSection.tsx'
-import { SignOutDialog } from './SignOutDialog.tsx'
 import { LogoutIcon } from './LogoutIcon.tsx'
-import { AccountAvatar } from './AccountAvatar.tsx'
 import { AccountNoticeCard } from './AccountNotice.tsx'
 import css from './AccountMenu.module.css'
 
@@ -20,8 +18,8 @@ export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'
  */
 export function AccountMenu({
   subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, settingsOpen,
-  useAccount, signOut, hasRunningAccountTasks, refreshAccount, bonusNoticeShown, bonusNoticeDismissed,
-  contactUs, avatarFailed, showStudio, t,
+  useAccount, signOutStudio, refreshAccount, bonusNoticeShown, bonusNoticeDismissed,
+  contactUs, showStudio, t,
 }: AccountMenuProps) {
   const anchor = useRef<HTMLDivElement>(null)
   // The launcher outlives the panel, so a false-to-true edge is one Settings entry:
@@ -32,28 +30,30 @@ export function AccountMenu({
     settingsWasOpen.current = settingsOpen
   }, [refreshAccount, settingsOpen])
   const account = useAccount(state => state)
-  const signedIn = account.view?.status === 'credential-stored'
+  const modelSignedIn = account.view?.status === 'credential-stored'
+  const identity = account.studio?.identity
+  const signedIn = Boolean(identity)
   const [signInNotice, setSignInNotice] = useState(0)
   useEffect(() => subscribeModelSignInRequired?.(() => { setSignInNotice(value => value + 1) }), [subscribeModelSignInRequired])
   const [expiryNotice, setExpiryNotice] = useState(false)
   useEffect(() => subscribeSessionExpired?.(() => { setExpiryNotice(true) }), [subscribeSessionExpired])
-  const profile = account.details?.profile
-  const label = profile === undefined ? null : profile.status === 'ready'
-    ? profile.value.name ?? profile.value.contact ?? t('signedIn') : t('signedIn')
+  const label = identity ? identity.displayName || identity.username : t('studioLocalName')
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState(false)
-  const [signOutImpact, setSignOutImpact] = useState<boolean | 'unknown'>()
+  const [signOutFailed, setSignOutFailed] = useState(false)
   const requestSignOut = async () => {
+    if (!signOutStudio) return
     setBusy(true)
-    try { setSignOutImpact(await hasRunningAccountTasks()); setOpen(false) }
-    catch (_error) { setSignOutImpact('unknown'); setOpen(false) }
+    setSignOutFailed(false)
+    try { await signOutStudio(); setOpen(false) }
+    catch (_failure) { setSignOutFailed(true) }
     finally { setBusy(false) }
   }
   return <div ref={anchor} className={css.root}>
     {signInNotice > 0 && <Toast key={signInNotice} text={t('modelSignInRequired')} onDone={() => { setSignInNotice(0) }} />}
     {expiryNotice && <Toast text={t('sessionExpired')} onDone={() => { setExpiryNotice(false) }} />}
-    {signedIn && !account.desktopOnboardingVisible && !account.onboarding && account.notice && <AccountNoticeCard
+    {modelSignedIn && !account.desktopOnboardingVisible && !account.onboarding && account.notice && <AccountNoticeCard
       key={account.notice.orderId} notice={account.notice}
       anchor={anchor} title={t('bonusNoticeTitle')} closeLabel={t('close')}
       onShown={bonusNoticeShown} onDismiss={bonusNoticeDismissed} />}
@@ -61,17 +61,15 @@ export function AccountMenu({
       anchor={<button ref={trigger} type="button" className={css.trigger} data-collapsed={!wide} data-signed-out={!signedIn} aria-label={t('menu')}
         aria-haspopup="menu" aria-expanded={open} onClick={() => { setOpen(value => !value) }}>
         {signedIn
-          ? <span className={css.avatar} data-avatar-status={account.avatar?.status}>
-            <AccountAvatar avatar={account.avatar} avatarFailed={avatarFailed} />
-          </span>
+          ? <span className={css.avatar}><IconUserOutlineMedium size={18} /></span>
           : <IconEllipsisOutlineMedium size={14} />}
-        {wide && <span className={css.label}>{signedIn ? label : t('more')}</span>}
+        {wide && <span className={css.label}>{label}</span>}
       </button>}
       items={[
         { id: 'settings', label: t('settings'), icon: <IconSettingsOutlineMedium size={16} />,
           ...(settingsShortcut === undefined ? {} : { shortcut: settingsShortcut }) },
         { id: 'contact', label: t('contactUs'), icon: <IconPaperPlaneOutlineMedium size={16} /> },
-        { id: 'signin', label: t('studioLogin'), icon: <IconUserOutlineMedium size={16} /> },
+        ...(!signedIn ? [{ id: 'signin', label: t('studioLogin'), icon: <IconUserOutlineMedium size={16} /> }] : []),
         ...(signedIn ? [{ id: 'signout', label: t('signOut'), icon: <LogoutIcon />, disabled: busy }] : []),
       ]}
       onClose={() => { setOpen(false) }}
@@ -81,7 +79,6 @@ export function AccountMenu({
         else if (id === 'signin') { setOpen(false); showStudio?.() }
         else void requestSignOut()
       }} />
-    {signedIn && signOutImpact !== undefined && <SignOutDialog running={signOutImpact} signOut={signOut}
-      close={() => { setSignOutImpact(undefined) }} t={t} />}
+    {signOutFailed && <Toast text={t('studioFailure')} onDone={() => { setSignOutFailed(false) }} />}
   </div>
 }

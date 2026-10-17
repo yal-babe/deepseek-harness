@@ -13,6 +13,8 @@ afterEach(() => {
 
 function mockOperations(overrides?: Partial<StudioOperations>): StudioOperations {
   return {
+    studioConfigureSync: vi.fn(),
+    studioUnlockCredentials: vi.fn(),
     studioLogin: vi.fn(),
     studioLogout: vi.fn(),
     studioChangePassword: vi.fn(),
@@ -173,4 +175,24 @@ describe('StudioForm', () => {
     fireEvent.click(updateBtn)
     expect(operations.studioUpdateProfile).toHaveBeenCalledWith('New Name')
   })
+})
+
+it('requires explicit category and automatic-sync choices, and keeps credentials locked until passphrase entry', async () => {
+  const operations = mockOperations()
+  render(<StudioForm snapshot={{ visible: false, error: false, state: {
+    origin: 'https://cloud.test', identity: { id: 'user-1' as StudioUserId, username: 'personal', displayName: 'Personal', email: null, mustChangePassword: false },
+    phase: 'preview-required', usedBytes: 0, quotaBytes: 100000, pending: 0, uploadCategories: [], automatic: false, credentialsLocked: true,
+  } }} t={key => en[key]} {...operations} />)
+  expect(operations.studioConfigureSync).not.toHaveBeenCalled()
+  expect(screen.getByRole('checkbox', { name: en['studioCategory.deepseek'] }).hasAttribute('disabled')).toBe(true)
+  expect(screen.getByRole('checkbox', { name: en.studioAutomatic }).hasAttribute('disabled')).toBe(true)
+  fireEvent.click(screen.getByRole('checkbox', { name: en['studioCategory.settings'] }))
+  fireEvent.click(screen.getByRole('checkbox', { name: en.studioAutomatic }))
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: en.studioSaveSync })))
+  expect(operations.studioConfigureSync).toHaveBeenCalledWith(['settings'], true)
+  fireEvent.change(screen.getByLabelText(en.studioSyncPassphrase), { target: { value: 'independent-passphrase' } })
+  fireEvent.change(screen.getByLabelText(en.studioConfirmPassphrase), { target: { value: 'independent-passphrase' } })
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: en.studioUnlockCredentials })))
+  expect(operations.studioUnlockCredentials).toHaveBeenCalledWith('independent-passphrase')
+  expect((screen.getByLabelText(en.studioSyncPassphrase) as HTMLInputElement).value).toBe('')
 })

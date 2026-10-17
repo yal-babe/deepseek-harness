@@ -6,7 +6,8 @@ import { z } from 'zod'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { redactJsonValue } from '@deepseek-ai/dsh-sync-protocol'
 import { CloudError } from './transport.ts'
-import type { StudioPreviewRow } from './types.ts'
+import type { StudioPreviewRow, StudioSyncCategory } from './types.ts'
+import { syncCategory, syncCategorySchema } from './sync-options.ts'
 
 const object = z.object({
   id: z.string(),
@@ -25,6 +26,9 @@ export type ObjectValue = z.infer<typeof object>
 const stateSchema = z.object({
   version: z.literal(1),
   enabled: z.boolean(),
+  automatic: z.boolean().default(false),
+  categories: z.array(syncCategorySchema).nullable().default(null),
+  deferred: z.array(z.string()).default([]),
   selected: z.array(z.string()),
   cursor: z.string().nullable(),
   known: z.record(z.string(), object),
@@ -54,6 +58,8 @@ export interface SyncContribution {
    * @returns after all referenced files are complete; the queued request itself stays unchanged.
    */
   prepare?: (value:ObjectValue,connection:SyncConnection)=>Promise<void>
+  /** Verify an unchanged encrypted record without overwriting refreshed local credentials. */
+  validate?: (value: ObjectValue, signal: AbortSignal) => Promise<void>
   /** @param value - validated supported-version cloud object selected by the user. */
   import: (value: ObjectValue, signal: AbortSignal, connection?:SyncConnection) => Promise<void>
 }
@@ -100,7 +106,10 @@ export class PersonalSync {
       this.state = stateSchema.parse(JSON.parse(await readFile(this.path(), 'utf8')))
     } catch (error) {
       if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
-      this.state = { version: 1, enabled: false, selected: [], cursor: null, known: {}, queue: [] }
+      this.state = {
+        version: 1, enabled: false, automatic: false, categories: null, deferred: [],
+        selected: [], cursor: null, known: {}, queue: [],
+      }
     }
     return this.state
   }
@@ -111,9 +120,18 @@ export class PersonalSync {
    * Read the current sync engine status.
    * @returns Durable opt-in and pending operation counts without making network requests.
    */
-  async status(): Promise<{ enabled: boolean; pending: number; selectedCount: number }> {
+  async status(): Promise<{
+    enabled: boolean
+    pending: number
+    selectedCount: number
+    categories: StudioSyncCategory[]
+    automatic: boolean
+  }> {
     const state = await this.load()
-    return { enabled: state.enabled, pending: state.queue.length, selectedCount: state.selected.length }
+    return {
+      enabled: state.enabled, pending: state.queue.length, selectedCount: state.categories?.length ?? state.selected.length,
+      categories: state.categories ?? [], automatic: state.automatic,
+    }
   }
   private async local(ids?:readonly string[],signal?:AbortSignal): Promise<Map<string, ObjectValue>> {
     const local = new Map<string, ObjectValue>()
@@ -202,6 +220,52 @@ export class PersonalSync {
     }
     return { objects, cursor }
   }
+  /** Download cloud changes independently of upload consent; locked credential objects remain deferred.
+   * @param connection - account-bound download transport.
+   * @param restoreCredentials - verify existing ciphertext and retry locked credential imports.
+   */
+  async download(connection: SyncConnection, restoreCredentials = false): Promise<void> {
+    const state = await this.load()
+    let cloud: { objects: Map<string, ObjectValue>; cursor: string }
+    try { cloud = await this.incremental(connection, state) }
+    catch (error) {
+      if (!(error instanceof CloudError) || error.status !== 410) throw error
+      cloud = await this.cloud(connection)
+    }
+    const imports = [...cloud.objects].sort(([, a], [, b]) => Number(a.namespace?.startsWith('studio.credentials.')) - Number(b.namespace?.startsWith('studio.credentials.')))
+    for (const [id, value] of imports) {
+      const owner = this.owners.get(value.namespace ?? '')
+      if (!owner || value.encrypted || value.formatVersion !== owner.version || value.deleted) continue
+      const unchanged = state.known[id]?.version === value.version && !state.deferred.includes(id)
+      const verify = unchanged && restoreCredentials && value.namespace?.startsWith('studio.credentials.') && owner.validate
+      if (unchanged && !verify) continue
+      try {
+        if (verify) await verify(value, connection.signal)
+        else await this.import(owner, value, connection.signal, connection)
+        state.deferred = state.deferred.filter(pending => pending !== id)
+      } catch (error) {
+        if (!(error instanceof CloudError) || !['CREDENTIALS_LOCKED', 'CREDENTIALS_KEY_INVALID'].includes(error.code)) throw error
+        if (!verify && !state.deferred.includes(id)) state.deferred.push(id)
+      }
+      state.known[id] = value
+      await this.save()
+    }
+    state.cursor = cloud.cursor
+    await this.save()
+  }
+  /** Persist explicit upload categories and automatic-sync preference before the first upload.
+   * @param categories - categories explicitly allowed to upload.
+   * @param automatic - background synchronization consent.
+   * @param connection - account-bound upload and download transport.
+   */
+  async configure(categories: StudioSyncCategory[], automatic: boolean, connection: SyncConnection): Promise<void> {
+    const state = await this.load()
+    state.categories = [...new Set(categories)]
+    state.enabled = categories.length > 0
+    state.automatic = automatic
+    await this.save()
+    await this.synchronize(connection)
+  }
   /**
    * Download a consistent snapshot before presenting local/cloud values; never writes local owner data.
    * @param connection - current account transport.
@@ -255,6 +319,7 @@ export class PersonalSync {
     state.enabled = false
     state.queue = []
     state.selected = []
+    state.categories = null
     await this.save()
     const selected: string[] = []
     for (const choice of choices) {
@@ -286,8 +351,12 @@ export class PersonalSync {
   }
   private async flush(connection: SyncConnection): Promise<void> {
     const state = await this.load()
-    while (state.queue.length) {
-      const [request] = state.queue
+    while (true) {
+      const categories = state.categories
+      const index = state.queue.findIndex(request => categories === null
+        || request.changes.every(change => categories.includes(syncCategory(change))))
+      if (index < 0) break
+      const request = state.queue[index]
       if (request === undefined) throw new CloudError('INVALID_QUEUE')
       for(const change of request.changes) {
         const owner=this.owners.get(change.namespace ?? '')
@@ -306,7 +375,7 @@ export class PersonalSync {
         const { baseVersion: _base, ...value } = change
         state.known[change.id] = { ...value, version }
       }
-      state.queue.shift()
+      state.queue.splice(index, 1)
       // Upload cursors never skip cloud changes this device has not imported.
       await this.save()
     }
@@ -318,16 +387,19 @@ export class PersonalSync {
    */
   async synchronize(connection: SyncConnection): Promise<void> {
     const state = await this.load()
-    if (!state.enabled) return
+    if (!state.enabled) { await this.download(connection); return }
     await this.flush(connection)
-    const local = await this.local(state.selected,connection.signal),
+    const local = await this.local(state.categories === null ? state.selected : undefined,connection.signal),
       cloud = await this.incremental(connection, state)
-    for (const id of state.selected) {
+    const ids = state.categories === null ? state.selected : [...new Set([...local.keys(), ...cloud.objects.keys()])]
+    for (const id of ids) {
       if (connection.signal.aborted) throw new CloudError('CANCELLED')
       const here = local.get(id),
         there = cloud.objects.get(id),
         known = state.known[id]
-      const localChanged = here !== undefined && JSON.stringify(here.payload) !== JSON.stringify(known?.payload)
+      const localChanged = here !== undefined
+        && (state.categories === null || state.categories.includes(syncCategory(here)))
+        && JSON.stringify(here.payload) !== JSON.stringify(known?.payload)
       const remoteChanged = there !== undefined && there.version !== (known?.version ?? 0)
       if (localChanged && remoteChanged && JSON.stringify(here.payload) === JSON.stringify(there.payload)) {
         state.known[id] = there
@@ -337,9 +409,14 @@ export class PersonalSync {
       if (localChanged && remoteChanged) throw new CloudError('VERSION_CONFLICT', 409)
       if (remoteChanged) {
         const owner = this.owners.get(there.namespace ?? '')
+        if ((!owner || there.formatVersion !== owner.version || there.encrypted) && state.categories !== null) continue
         if (!owner || there.formatVersion !== owner.version || there.encrypted)
           throw new CloudError('UNSUPPORTED_PAYLOAD')
-        await this.import(owner, there, connection.signal,connection)
+        try { await this.import(owner, there, connection.signal,connection) }
+        catch (error) {
+          if (!(error instanceof CloudError) || !['CREDENTIALS_LOCKED', 'CREDENTIALS_KEY_INVALID'].includes(error.code)) throw error
+          if (!state.deferred.includes(id)) state.deferred.push(id)
+        }
         state.known[id] = there
         await this.save()
       } else if (localChanged) {
@@ -358,7 +435,7 @@ export class PersonalSync {
    */
   async pause(paused: boolean): Promise<void> {
     const state = await this.load()
-    if (!paused && !state.selected.length) throw new CloudError('PREVIEW_REQUIRED')
+    if (!paused && !(state.categories?.length ?? state.selected.length)) throw new CloudError('PREVIEW_REQUIRED')
     state.enabled = !paused
     await this.save()
   }

@@ -1,9 +1,10 @@
 /** Studio account controls consume Host-owned state independently of model accounts. */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   StudioState,
+  StudioSyncCategory,
   StudioPreviewRow,
   StudioDevice,
   StudioHistoryItem,
@@ -15,12 +16,14 @@ import type {
 } from '@deepseek-ai/dsh-studio-cloud/types'
 import type { AccountKey } from './locales.ts'
 import { StudioLoginDialog } from './StudioLoginDialog.tsx'
+import { StudioSignIn } from './StudioSignIn.tsx'
 import css from './StudioAccount.module.css'
 
 /** Safe state shared by the settings section and sidebar dialog. */
 export interface StudioSnapshot {
   state: StudioState | null
   visible: boolean
+  firstUse?: boolean
   error: boolean
   preview?: StudioPreviewRow[]
   devices?: StudioDevice[]
@@ -45,6 +48,8 @@ export interface StudioInjected {
   studioLogout: () => Promise<void>
   studioChangePassword: (current: string, next: string) => Promise<void>
   studioRefresh: () => Promise<void>
+  studioUnlockCredentials: (passphrase: string) => Promise<void>
+  studioConfigureSync: (categories: StudioSyncCategory[], automatic: boolean) => Promise<void>
   studioPreview: () => Promise<void>
   studioSelect: (choices: { id: string; source: 'local' | 'cloud'; version: number }[]) => Promise<void>
   studioPause: (paused: boolean) => Promise<void>
@@ -68,6 +73,8 @@ export type StudioOperations = Pick<
   | 'studioLogout'
   | 'studioChangePassword'
   | 'studioRefresh'
+  | 'studioUnlockCredentials'
+  | 'studioConfigureSync'
   | 'studioPreview'
   | 'studioSelect'
   | 'studioPause'
@@ -95,18 +102,16 @@ export function StudioForm({
   t,
   ...operations
 }: Operations & { snapshot: StudioSnapshot; t: (key: AccountKey) => string }) {
-  const [origin, setOrigin] = useState(snapshot.state?.origin ?? '')
-  const [mode, setMode] = useState<'login' | 'invite' | 'forgot' | 'reset' | 'verify'>('login')
   const [mail, setMail] = useState('')
-  const [token, setToken] = useState('')
   const [succeeded, setSucceeded] = useState(false)
-  const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [nextPassword, setNextPassword] = useState('')
-  const [device, setDevice] = useState('')
-  const [allowHttp, setAllowHttp] = useState(false)
   const [choices, setChoices] = useState<Record<string, 'local' | 'cloud'>>({})
   const [consent, setConsent] = useState(false)
+  const [syncPassphrase, setSyncPassphrase] = useState('')
+  const [syncConfirmation, setSyncConfirmation] = useState('')
+  const [categories, setCategories] = useState<StudioSyncCategory[]>(snapshot.state?.uploadCategories ?? [])
+  const [automatic, setAutomatic] = useState(snapshot.state?.automatic ?? false)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [editingName, setEditingName] = useState(snapshot.state?.identity?.displayName ?? '')
@@ -121,7 +126,6 @@ export function StudioForm({
       await action()
       setPassword('')
       setNextPassword('')
-      setToken('')
       setSucceeded(true)
     } catch (_failure) {
       setFailed(true)
@@ -137,9 +141,9 @@ export function StudioForm({
           {t('studioDone')}
         </p>
       )}
-      {(failed || snapshot.error) && (
+      {(failed || snapshot.error || state?.failureCode) && (
         <p role="alert" className={css.description}>
-          {t('studioFailure')}
+          {t(state?.failureCode === 'CREDENTIALS_KEY_INVALID' ? 'studioPassphraseInvalid' : 'studioFailure')}
         </p>
       )}
       {state?.identity ? (
@@ -221,26 +225,49 @@ export function StudioForm({
           )}
           {!state.identity.mustChangePassword && state.phase !== 'unsupported' && (
             <>
-              <div className={css.actions}>
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => {
-                    setConsent(false)
-                    setChoices({})
-                    void run(operations.studioPreview)
-                  }}
-                >
-                  {t('studioPreview')}
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={busy || (state.phase !== 'ready' && state.phase !== 'paused')}
-                  onClick={() => void run(() => operations.studioPause(state.phase === 'ready'))}
-                >
-                  {t(state.phase === 'ready' ? 'studioPause' : 'studioResume')}
-                </Button>
-              </div>
+              <section className={css.syncCard}>
+                <h3>{t('studioChooseContent')}</h3>
+                <p className={css.description}>{t('studioDownloadDescription')}</p>
+                <div className={css.categories}>
+                  {(['profile', 'settings', 'projects', 'conversations', 'plugins', 'deepseek', 'codex', 'antigravity', 'api-keys'] as const).map(category => (
+                    <label className={css.category} key={category}>
+                      <input type="checkbox" checked={categories.includes(category)}
+                        disabled={busy || (state.credentialsLocked !== false && ['deepseek', 'codex', 'antigravity', 'api-keys'].includes(category))}
+                        onChange={event => setCategories(previous => event.target.checked
+                          ? [...previous, category] : previous.filter(value => value !== category))} />
+                      <span>{t(`studioCategory.${category}`)}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className={css.description}>{t('studioCredentialEncryption')}</p>
+                {state.credentialsLocked !== false ? <>
+                  <label>{t('studioSyncPassphrase')}<Input type="password" autoComplete="new-password" value={syncPassphrase}
+                    onChange={event => setSyncPassphrase(event.target.value)} /></label>
+                  <label>{t('studioConfirmPassphrase')}<Input type="password" autoComplete="new-password" value={syncConfirmation}
+                    onChange={event => setSyncConfirmation(event.target.value)} /></label>
+                  <Button variant="outline" disabled={busy || syncPassphrase.length < 12 || syncPassphrase !== syncConfirmation}
+                    onClick={() => void run(async () => { await operations.studioUnlockCredentials(syncPassphrase); setSyncPassphrase(''); setSyncConfirmation('') })}>
+                    {t('studioUnlockCredentials')}
+                  </Button>
+                </> : <p>{t('studioCredentialsUnlocked')}</p>}
+                <label className={css.consent}><input type="checkbox" checked={automatic} disabled={busy || !categories.length}
+                  onChange={event => setAutomatic(event.target.checked)} />{t('studioAutomatic')}</label>
+                <div className={css.actions}>
+                  <Button variant="outline" disabled={busy} onClick={() => void run(() => operations.studioConfigureSync([], false))}>
+                    {t('studioDisableUploads')}
+                  </Button>
+                  <Button variant="primary" disabled={busy || !categories.length}
+                    onClick={() => void run(() => operations.studioConfigureSync(categories, automatic))}>
+                    {t('studioSaveSync')}
+                  </Button>
+                </div>
+              </section>
+              <details className={css.syncCard}>
+                <summary>{t('studioAdvancedSync')}</summary>
+                <Button variant="outline" disabled={busy} onClick={() => {
+                  setConsent(false); setChoices({}); void run(operations.studioPreview)
+                }}>{t('studioPreview')}</Button>
+              </details>
               {snapshot.preview && (
                 <div className={css.form}>
                   <p className={css.description}>{t('studioConsentDescription')}</p>
@@ -523,7 +550,7 @@ export function StudioForm({
           )}
           <div className={css.actions}>
             <Button variant="outline" disabled={busy} onClick={() => void run(operations.studioRefresh)}>
-              {t('retry')}
+              {t('studioSyncNow')}
             </Button>
             <Button variant="outline" disabled={busy} onClick={() => void run(operations.studioLogout)}>
               {t('signOut')}
@@ -531,153 +558,7 @@ export function StudioForm({
           </div>
         </>
       ) : (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            void run(async () => {
-              if (mode === 'login') await operations.studioLogin(origin, login, password, device, allowHttp)
-              else if (mode === 'invite')
-                await operations.studioAction({ kind: 'invite', origin, allowHttp, token, username: login, password })
-              else if (mode === 'forgot')
-                await operations.studioAction({ kind: 'forgot', origin, allowHttp, email: mail })
-              else if (mode === 'reset')
-                await operations.studioAction({ kind: 'reset', origin, allowHttp, token, password })
-              else await operations.studioAction({ kind: 'verify', origin, allowHttp, token })
-            })
-          }}
-          className={css.form}
-        >
-          <label>
-            {t('studioOrigin')}
-            <Input
-              type="url"
-              autoComplete="url"
-              value={origin}
-              onChange={(event) => {
-                setOrigin(event.target.value)
-              }}
-              required
-            />
-          </label>
-          {(mode === 'login' || mode === 'invite') && (
-            <label>
-              {t('studioUsername')}
-              <Input
-                autoComplete="username"
-                value={login}
-                onChange={(event) => {
-                  setLogin(event.target.value)
-                }}
-                required
-              />
-            </label>
-          )}
-          {(mode === 'login' || mode === 'invite' || mode === 'reset') && (
-            <label>
-              {t('studioPassword')}
-              <Input
-                type="password"
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value)
-                }}
-                required
-              />
-            </label>
-          )}
-          {mode === 'login' && (
-            <label>
-              {t('studioDevice')}
-              <Input
-                value={device}
-                onChange={(event) => {
-                  setDevice(event.target.value)
-                }}
-                required
-              />
-            </label>
-          )}
-          {mode === 'forgot' && (
-            <label>
-              {t('studioEmail')}
-              <Input
-                type="email"
-                autoComplete="email"
-                value={mail}
-                onChange={(event) => {
-                  setMail(event.target.value)
-                }}
-                required
-              />
-            </label>
-          )}
-          {(mode === 'invite' || mode === 'reset' || mode === 'verify') && (
-            <label>
-              {t('studioMailToken')}
-              <Input
-                value={token}
-                onChange={(event) => {
-                  setToken(event.target.value)
-                }}
-                required
-              />
-            </label>
-          )}
-          <label className={css.consent}>
-            <input
-              type="checkbox"
-              checked={allowHttp}
-              onChange={(event) => {
-                setAllowHttp(event.target.checked)
-              }}
-            />
-            {t('studioAllowHttp')}
-          </label>
-          <Button type="submit" variant="primary" disabled={busy || !origin}>
-            {t(
-              mode === 'login'
-                ? 'signIn'
-                : mode === 'invite'
-                  ? 'studioInvite'
-                  : mode === 'forgot'
-                    ? 'studioForgot'
-                    : mode === 'reset'
-                      ? 'studioReset'
-                      : 'studioVerify',
-            )}
-          </Button>
-          <div className={css.actions}>
-            {(['login', 'invite', 'forgot', 'reset', 'verify'] as const)
-              .filter(item => item !== mode)
-              .map(item => (
-                <Button
-                  key={item}
-                  variant="ghost"
-                  disabled={busy}
-                  onClick={() => {
-                    setMode(item)
-                    setFailed(false)
-                    setSucceeded(false)
-                    setPassword('')
-                    setToken('')
-                  }}
-                >
-                  {t(
-                    item === 'login'
-                      ? 'signIn'
-                      : item === 'invite'
-                        ? 'studioInvite'
-                        : item === 'forgot'
-                          ? 'studioForgot'
-                          : item === 'reset'
-                            ? 'studioReset'
-                            : 'studioVerify',
-                  )}
-                </Button>
-              ))}
-          </div>
-        </form>
+        <StudioSignIn origin={snapshot.state?.origin} t={t} {...operations} />
       )}
     </div>
   )
@@ -711,4 +592,16 @@ export function StudioOverlay({ useStudio, t, ...operations }: StudioOverlayProp
   return snapshot.visible ? (
     <StudioLoginDialog snapshot={snapshot} t={t} {...operations} onClose={operations.studioClose} />
   ) : null
+}
+
+/** First-use login follows existing announcement steps and can always be skipped.
+ * @param props - coordinator completion and Host identity operations.
+ * @returns the optional Studio dialog after its status is ready.
+ */
+export function StudioIntroduction({ complete, useStudio, t, ...operations }:
+  PropsRuntime<'settings.onboarding'> & PropsLocale<'settings.account'> & InjectFace<StudioInjected>) {
+  const snapshot = useStudio(value => value)
+  useEffect(() => { if (snapshot.firstUse === false) complete() }, [snapshot.firstUse, complete])
+  if (!snapshot.firstUse) return null
+  return <StudioLoginDialog snapshot={snapshot} t={t} {...operations} onClose={() => { operations.studioClose(); complete() }} />
 }

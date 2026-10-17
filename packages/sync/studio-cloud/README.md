@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Host-owned Studio login, separate from model-provider authorization. Mount `@deepseek-ai/dsh-studio-cloud` in the Web or desktop profile. The service requires `credentials`; the browser calls its generated `studioCloud` Remote and never receives cloud tokens. Signing in does not enable uploads: account status remains `preview-required` until the user confirms the local and cloud preview. Refresh rotation is single-flight and persists pending rotation before sending requests. Signing out aborts active requests, deletes the local grant, and reports whether device revocation succeeded. Model credentials and local Sessions remain intact.
+Host-owned Studio login, separate from model-provider authorization. Mount `@deepseek-ai/dsh-studio-cloud` in the Web or desktop profile. The service requires `credentials`; the browser calls its generated `studioCloud` Remote and never receives cloud tokens. Signing in downloads existing cloud data without enabling uploads. Users separately choose upload categories and automatic synchronization; device names default to the operating-system hostname. Refresh rotation is single-flight and persists pending rotation before sending requests. Signing out aborts active requests, deletes the local grant, and reports whether device revocation succeeded. Model credentials and local Sessions remain intact.
 
 ## Table of Contents
 
@@ -25,11 +25,11 @@ Host-owned Studio login, separate from model-provider authorization. Mount `@dee
 <a id="use-this-package"></a>
 ## Use this package
 
-The Web and Desktop profiles mount this service separately from the legacy batch outbox. The default state directory is located under `$DSH_HOME/studio-cloud`; service origin and account hashes isolate the persisted queue, cursor, and local project mappings. The sync loop default interval is 30000ms and executes only after explicit user selection.
+The Web and Desktop profiles mount this service separately from the legacy batch outbox. The default state directory is located under `$DSH_HOME/studio-cloud`; service origin and account hashes isolate the persisted queue, cursor, and local project mappings. The sync loop default interval is 30000ms and executes only when uploads and automatic synchronization are both enabled.
 
-Contributions declare a namespace, payload version, top-level field allowlist, exporter, and importer. Export filters fields before text redaction. The built-in preference contributor includes theme and language fields; project metadata excludes local directory paths, and downloaded projects require an explicit workspace binding. Unknown payload versions remain visible in preview but cannot be imported. Unregistered plugin configuration and storage are never exported.
+Contributions declare a namespace, payload version, top-level field allowlist, exporter, and importer. Export filters fields before text redaction. The built-in preference contributor includes theme, language, chat presentation, Coding Tools visibility, and model provider settings; custom provider headers stay local; project metadata excludes local directory paths, and downloaded projects require an explicit workspace binding. Unknown payload versions remain visible in preview but cannot be imported. Unregistered plugin configuration and storage are never exported.
 
-Initial preview downloads a consistent cloud snapshot. Selection chooses local or cloud values explicitly; conflicts never silently overwrite either side. Subsequent sync uses the incremental cursor and retains immutable queued requests until acknowledgement. A failed import retains its checkpoint. Pausing retains all local data.
+Login restores a cloud snapshot and later downloads use an incremental cursor. Locked model credentials remain deferred. Upload categories include future objects; advanced preview retains explicit local/cloud conflict resolution. Subsequent sync uses the incremental cursor and retains immutable queued requests until acknowledgement. A failed import retains its checkpoint. Pausing retains all local data.
 
 -----
 
@@ -73,7 +73,9 @@ None; synchronization does not modify model requests.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- Model credentials, execution permissions, environment variables, and local code directories remain local on this device and are never synchronized.
+- DeepSeek, Codex, Antigravity grants and managed model API keys sync only after selecting their categories and unlocking an independent passphrase of at least 12 characters. AES-256-GCM encrypts them before the sync queue, previews, or HTTP transport; scrypt derives an account-bound key locally. Studio tokens, device identity, ambient environment values, execution permissions, and local code directories are excluded.
+- The passphrase and key are held in Host memory only; restart or Studio sign-out locks credential sync. New devices use the same passphrase. Password recovery cannot recover encrypted credentials. Ordinary data remains unencrypted unless the server independently enables whole-space encryption, which this client does not support.
+- Plugin inventory restores for review; arbitrary plugin storage requires an owner-registered contribution and plugins are not installed or enabled automatically.
 - Arbitrary unapproved plugin code execution is prevented during restore.
 
 <a id="dev-note"></a>

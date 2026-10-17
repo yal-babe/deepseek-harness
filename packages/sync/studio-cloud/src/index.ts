@@ -5,10 +5,14 @@ import { credentialKey } from '@deepseek-ai/dsh-credentials'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import { join } from 'node:path'
+import { hostname } from 'node:os'
 import { readFile } from 'node:fs/promises'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { createHash, randomUUID } from 'node:crypto'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
+import { CredentialSync } from './credential-sync.ts'
+import type {} from '@deepseek-ai/dsh-llm'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { CloudSessions } from './cloud-sessions.ts'
 import type { SessionSyncServices } from './cloud-sessions.ts'
 import type {} from '@deepseek-ai/dsh-session-persistence'
@@ -19,9 +23,11 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { WorkspaceRegistry } from '@deepseek-ai/dsh-workspace'
 import { PersonalSync, type SyncConnection, type SyncContribution } from './sync-engine.ts'
 import type {} from '@deepseek-ai/dsh-settings'
+import { syncCategorySchema } from './sync-options.ts'
 import { cloudOrigin, cloudRequest, cloudDownload, CloudError } from './transport.ts'
 import type {
   StudioIdentity,
+  StudioSyncCategory,
   StudioState,
   StudioPreviewRow,
   StudioHistoryItem,
@@ -84,10 +90,24 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+// Custom provider headers may contain credentials without schema secret annotations.
+function syncPreference(value: z.infer<ReturnType<typeof z.json>>): z.infer<ReturnType<typeof z.json>> {
+  if (Array.isArray(value)) return value.map(syncPreference)
+  if (value === null || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value)
+    .filter(([name]) => {
+      const excluded =
+        /^(?:headers|api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|authorization|private[_-]?key|env|environment)$/i
+      return !excluded.test(name)
+    })
+    .map(([name, entry]) => [name, syncPreference(entry)]))
+}
+
 /** Host owner for Studio device login; signing out retains all local Session and provider data. */
 export class StudioCloud extends TypertRemoteService {
   static inject = ['credentials']
   static Config = Config
+  private readonly credentialSync: CredentialSync
   private readonly timeout: number
   private readonly directory: string
   private readonly owners = new Map<string, SyncContribution>()
@@ -105,6 +125,20 @@ export class StudioCloud extends TypertRemoteService {
   /** @param ctx - Host with credential storage. @param config - request deadline. */
   constructor(ctx: Context, config: Config) {
     super(ctx, 'studioCloud')
+    this.credentialSync = new CredentialSync(ctx.credentials, () => {
+      const llm = ctx.get('llm'), settings = ctx.get('settings')
+      if (!llm || !settings) return []
+      return llm.listConfigurableProviders().flatMap((provider) => {
+        let value: unknown = settings.describe({ redactSecrets: true }).find(item => item.ns === provider.settingsNs)?.value
+        for (const segment of provider.settingsPath) {
+          const parsed = z.record(z.string(), z.unknown()).safeParse(value)
+          value = parsed.success ? parsed.data[segment] : undefined
+        }
+        const parsed = z.object({ apiKeyEnv: z.string().min(1) }).safeParse(value)
+        return parsed.success ? [credentialRef(parsed.data.apiKeyEnv)] : []
+      })
+    })
+    for (const contribution of this.credentialSync.contributions()) ctx.effect(() => this.register(contribution))
     const resolved = Config(config)
     this.timeout = resolved.requestTimeoutMs
     this.chunkBytes=resolved.sessionChunkBytes
@@ -121,6 +155,10 @@ export class StudioCloud extends TypertRemoteService {
           'terminalFontFamily',
         ],
         locale: ['preference'],
+        'ui-chat': ['transcriptView', 'performanceUsage', 'linkOpening'],
+        'ui-settings': ['enabled'],
+        'llm-pi-ai': ['providers'],
+        'llm-antigravity': ['baseURL', 'apiKeyEnv'],
       }
       scope.effect(
         () =>
@@ -137,7 +175,7 @@ export class StudioCloud extends TypertRemoteService {
                     values: Record<string, z.infer<ReturnType<typeof z.json>>> = {}
                   for (const field of allowed) {
                     const value = source[field]
-                    if (Object.hasOwn(source, field) && value !== undefined) values[field] = value
+                    if (Object.hasOwn(source, field) && value !== undefined) values[field] = syncPreference(value)
                   }
                   return [{ id: `preference:${item.ns}`, kind: 'preference', payload: { namespace: item.ns, values } }]
                 }),
@@ -156,9 +194,20 @@ export class StudioCloud extends TypertRemoteService {
               const values: Record<string, z.infer<ReturnType<typeof z.json>>> = {}
               for (const field of allowed) {
                 const value = payload.values[field]
-                if (Object.hasOwn(payload.values, field) && value !== undefined) values[field] = value
+                if (Object.hasOwn(payload.values, field) && value !== undefined) values[field] = syncPreference(value)
               }
               if (signal.aborted) throw new CloudError('CANCELLED')
+              if (payload.namespace === 'llm-pi-ai') {
+                const local = z.object({
+                  providers: z.record(z.string(), z.record(z.string(), z.json())).optional(),
+                }).parse(descriptor.value)
+                const incoming = z.record(z.string(), z.record(z.string(), z.json())).parse(values.providers)
+                for (const [name, provider] of Object.entries(incoming)) {
+                  const headers = local.providers?.[name]?.headers
+                  if (headers !== undefined) provider.headers = headers
+                }
+                values.providers = { ...local.providers, ...incoming }
+              }
               await scope.settings.update(payload.namespace, values, descriptor.revision)
             },
           }),
@@ -296,7 +345,10 @@ export class StudioCloud extends TypertRemoteService {
       const timer = setInterval(() => {
         void this.task(async () => {
           const record = await this.record()
-          if (record && (await this.engine(record).status()).enabled) await this.synchronize()
+          if (record) {
+            const state = await this.engine(record).status()
+            if (state.enabled && state.automatic) await this.synchronize()
+          }
         }).catch((_reportedFailure: unknown) => {
           /* The account status retains syncFailure for the Retry action. */
         })
@@ -310,6 +362,7 @@ export class StudioCloud extends TypertRemoteService {
     })
     ctx.effect(
       () => async () => {
+        this.credentialSync.clear()
         this.closed = true
         this.changed()
         this.lifetime.abort()
@@ -662,6 +715,7 @@ export class StudioCloud extends TypertRemoteService {
         this.assertActive(life.signal)
         const record = await this.record()
         if (!record) throw new CloudError('REAUTH_REQUIRED')
+        this.credentialSync.bind(JSON.stringify([record.origin, record.identity.id]))
         const space = await this.authenticated('/v1/me/storage', storage)
         if (space.encryptionMode !== 'plain') throw new CloudError('E2EE_UNSUPPORTED')
         return work(this.engine(record), {
@@ -696,6 +750,40 @@ export class StudioCloud extends TypertRemoteService {
     )
     this.syncTail = result.catch(() => undefined)
     return this.task(() => result)
+  }
+  /** Unlock encrypted model credentials locally, then retry deferred cloud downloads.
+   * @param passphrase - independent sync secret; never transmitted to the server.
+   */
+  @Remote
+  unlockCredentials(passphrase: string): Promise<void> {
+    return this.serialized(async (engine, connection) => {
+      await this.credentialSync.unlock(passphrase)
+      if (connection.signal.aborted) { this.credentialSync.clear(); throw new CloudError('CANCELLED') }
+      await engine.download(connection, true)
+      if (this.credentialSync.locked) throw new CloudError('CREDENTIALS_KEY_INVALID')
+      this.syncFailure = null
+    })
+  }
+  /** Download cloud data without granting upload permission. */
+  @Remote
+  download(): Promise<void> {
+    return this.serialized(async (engine, connection) => {
+      await engine.download(connection)
+      this.syncFailure = null
+    })
+  }
+  /** Configure explicit upload categories and automatic synchronization.
+   * @param categories - selected data owners allowed to upload.
+   * @param automatic - whether the background timer may synchronize.
+   */
+  @Remote
+  configureSync(categories: StudioSyncCategory[], automatic: boolean): Promise<void> {
+    const selected = z.array(syncCategorySchema).parse(categories)
+    return this.serialized(async (engine, connection) => {
+      if (this.credentialSync.locked && selected.some(value => ['deepseek', 'codex', 'antigravity', 'api-keys'].includes(value))) throw new CloudError('CREDENTIALS_LOCKED')
+      await engine.configure(selected, automatic, connection)
+      this.syncFailure = null
+    })
   }
   /**
    * Preview local allowlisted data and the current cloud snapshot without uploading.
@@ -786,6 +874,10 @@ export class StudioCloud extends TypertRemoteService {
         usedBytes: space.usedBytes,
         quotaBytes: space.quotaBytes,
         pending: sync.pending,
+        uploadCategories: sync.categories,
+        automatic: sync.automatic,
+        credentialsLocked: this.credentialSync.locked,
+        ...(this.syncFailure ? { failureCode: this.syncFailure } : {}),
       }
     })
   }
@@ -806,6 +898,7 @@ export class StudioCloud extends TypertRemoteService {
     deviceName: string,
     allowHttp: boolean,
   ): Promise<StudioIdentity> {
+    this.credentialSync.clear()
     this.lifetime.abort()
     this.lifetime = new AbortController()
     this.refresh = undefined
@@ -817,7 +910,7 @@ export class StudioCloud extends TypertRemoteService {
         address,
         '/v1/auth/login',
         tokens,
-        { method: 'POST', body: { login, password, deviceName, client: 'device' } },
+        { method: 'POST', body: { login, password, deviceName: deviceName.trim() || hostname(), client: 'device' } },
         life,
       )
       const user = await this.call(address, '/v1/auth/session', identitySchema, { token: grant.accessToken }, life)
@@ -828,6 +921,14 @@ export class StudioCloud extends TypertRemoteService {
           payload: { version: 1, origin: address, identity: user, ...grant, refreshPending: false },
         })
       })
+      this.changed()
+      if (!user.mustChangePassword) {
+        try { await this.download() }
+        catch (error) {
+          this.syncFailure = error instanceof RemoteError ? 'DOWNLOAD_FAILED' : 'NETWORK'
+          this.changed()
+        }
+      }
       return user
     })
   }
@@ -837,6 +938,7 @@ export class StudioCloud extends TypertRemoteService {
    */
   @Remote
   signOut(): Promise<{ revoked: boolean }> {
+    this.credentialSync.clear()
     this.lifetime.abort()
     this.lifetime = new AbortController()
     const life = this.lifetime
@@ -896,6 +998,7 @@ export class StudioCloud extends TypertRemoteService {
       )
       await this.authenticated(`/v1/me/devices/${z.uuid().parse(id)}`, okay, { method: 'DELETE' })
       if (devices.some(device => device.id === id && device.current)) {
+        this.credentialSync.clear()
         this.lifetime.abort()
         this.lifetime = new AbortController()
         await this.ctx.credentials.deleteRecord(key)
@@ -991,6 +1094,7 @@ export class StudioCloud extends TypertRemoteService {
   changePassword(currentPassword: string, newPassword: string): Promise<void> {
     return this.task(async () => {
       await this.authenticated('/v1/me/password', okay, { method: 'POST', body: { currentPassword, newPassword } })
+      this.credentialSync.clear()
       this.lifetime.abort()
       this.lifetime = new AbortController()
       await this.ctx.credentials.deleteRecord(key)

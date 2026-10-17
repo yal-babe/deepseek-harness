@@ -176,34 +176,26 @@ it('starts sign-in and disables cancellation during persistence', async () => {
   expect(screen.queryByRole('button', { name: en.signIn })).toBeNull()
 })
 
-it.each([en, zh].flatMap(copy => ([false, true, 'unknown'] as const).map(running => ({ copy, running }))))('confirms sidebar sign-out with task impact $running', async ({ copy, running }) => {
-  const signOut = vi.fn(() => Promise.resolve())
-  const openSettings = vi.fn()
-  const operations = mount({ status: 'credential-stored', attempt: null }, copy)
-  cleanup()
+it.each([en, zh])('uses Studio identity and signs out without stopping provider tasks', async (copy) => {
+  const operations = operationsOf({ status: 'credential-stored', attempt: null })
+  const signOutStudio = vi.fn(async () => {})
   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
-  render(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} signOut={signOut}
-    hasRunningAccountTasks={async () => { if (running === 'unknown') throw new Error('offline'); return running }}
-    useAccount={selector => selector(operations.hooks.account.getSnapshot())}
+  const base = operations.hooks.account.getSnapshot()
+  const studio = { origin: 'https://studio.test', identity: { id: 'user-one' as import('@deepseek-ai/dsh-studio-cloud/types').StudioUserId,
+    username: 'studio-user', displayName: 'Studio Name', email: null, mustChangePassword: false },
+  phase: 'ready' as const, usedBytes: 0, quotaBytes: 1000, pending: 0 }
+  render(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false} signOutStudio={signOutStudio}
+    useAccount={selector => selector({ ...base, studio })}
     useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
-    useQuota={selector => selector(operations.hooks.quota.getSnapshot())} wide openOnboarding={() => {}} openSettings={openSettings}
-    t={key => key in copy ? copy[key as AccountKey] : key} />)
+    useQuota={selector => selector(operations.hooks.quota.getSnapshot())} wide openOnboarding={vi.fn()} openSettings={vi.fn()}
+    t={key => copy[key as AccountKey]} />)
+  expect(screen.getByText('Studio Name')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
-  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.studioLogin, copy.signOut])
+  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.signOut])
   await expect(`${screen.getByRole('menu').textContent}\n`).toMatchFileSnapshot(`./expected/menu-${copy === en ? 'en' : 'zh'}.txt`)
-  fireEvent.click(screen.getByRole('menuitem', { name: copy.settings }))
-  expect(openSettings).toHaveBeenCalledOnce()
-  fireEvent.click(screen.getByRole('button', { name: copy.menu }))
-  fireEvent.click(screen.getByRole('menuitem', { name: copy.contactUs }))
-  expect(operations.contactUs).toHaveBeenCalledOnce()
-  expect(screen.queryByRole('menu')).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: copy.menu }))
-  await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: copy.signOut })) })
-  expect(signOut).not.toHaveBeenCalled()
-  expect(screen.getByText(running === 'unknown' ? copy.signOutUnknownDescription : running ? copy.signOutRunningDescription : copy.signOutDescription)).toBeTruthy()
-  await act(async () => { fireEvent.click(screen.getByRole('button', { name: copy.signOut })) })
-  expect(signOut).toHaveBeenCalledOnce()
-  expect(screen.queryByRole('menu')).toBeNull()
+  await act(async () => fireEvent.click(screen.getByRole('menuitem', { name: copy.signOut })))
+  expect(signOutStudio).toHaveBeenCalledOnce()
+  expect(operations.signOut).not.toHaveBeenCalled()
 })
 
 it.each([en, zh])('updates the Settings menu keycaps and accessible combination from its owner', async (copy) => {
@@ -246,7 +238,7 @@ it.each([en, zh])('offers settings, contact and sign-in from the signed-out acco
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())} wide openOnboarding={() => {}} openSettings={openSettings}
     t={key => key in copy ? copy[key as AccountKey] : key} />)
   const trigger = screen.getByRole('button', { name: copy.menu })
-  expect(trigger.textContent).toBe(copy.more)
+  expect(trigger.textContent).toBe(copy.studioLocalName)
   expect(trigger.querySelector('svg')).not.toBeNull()
   fireEvent.click(trigger)
   expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.studioLogin])
@@ -258,7 +250,7 @@ it.each([en, zh])('offers settings, contact and sign-in from the signed-out acco
   expect(operations.contactUs).toHaveBeenCalledOnce()
 })
 
-it('labels a signed-in launcher with contact when the name is missing', async () => {
+it('keeps provider contact separate from the local Studio identity', async () => {
   const operations = operationsOf(
     { status: 'credential-stored', attempt: null },
     { profile: { status: 'ready', value: { id: 'u1' as AccountUserId, name: null, contact: 'ada@example.com' } } },
@@ -271,7 +263,7 @@ it('labels a signed-in launcher with contact when the name is missing', async ()
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())}
     wide openOnboarding={() => {}} openSettings={() => {}}
     t={key => en[key as AccountKey]} />)
-  expect(screen.getByText('ada@example.com')).toBeTruthy()
+  expect(screen.getByText(en.studioLocalName)).toBeTruthy()
 })
 
 it('keeps the signed-in fallback while profile is not ready', async () => {
@@ -286,7 +278,7 @@ it('keeps the signed-in fallback while profile is not ready', async () => {
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())}
     wide openOnboarding={() => {}} openSettings={() => {}}
     t={key => en[key as AccountKey]} />)
-  expect(screen.getByText(en.signedIn)).toBeTruthy()
+  expect(screen.getByText(en.studioLocalName)).toBeTruthy()
 })
 
 it('falls back to the signed-in label when name and contact are missing', async () => {
@@ -301,7 +293,7 @@ it('falls back to the signed-in label when name and contact are missing', async 
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())}
     wide openOnboarding={() => {}} openSettings={() => {}}
     t={key => en[key as AccountKey]} />)
-  expect(screen.getByText(en.signedIn)).toBeTruthy()
+  expect(screen.getByText(en.studioLocalName)).toBeTruthy()
 })
 
 it('opens the DSH Studio account opener from the signed-out menu without starting DeepSeek sign-in', async () => {
@@ -320,25 +312,6 @@ it('opens the DSH Studio account opener from the signed-out menu without startin
   fireEvent.click(screen.getByRole('menuitem', { name: en.studioLogin }))
   expect(start).not.toHaveBeenCalled()
   expect(showStudio).toHaveBeenCalledOnce()
-})
-
-it('keeps the confirmation dialog open after a failed sign-out', async () => {
-  const operations = mount({ status: 'credential-stored', attempt: null })
-  cleanup()
-  const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
-  const signOut = vi.fn((): Promise<void> => Promise.reject(new Error('account sign-out failed')))
-  render(<AccountMenu {...({} as GlobalStandardProps)} {...operations} settingsOpen={false}
-    signOut={signOut}
-    useAccount={selector => selector(operations.hooks.account.getSnapshot())}
-    useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
-    useQuota={selector => selector(operations.hooks.quota.getSnapshot())} wide
-    openOnboarding={() => {}} openSettings={() => {}} t={key => key in en ? en[key as AccountKey] : key} />)
-  fireEvent.click(screen.getByRole('button', { name: en.menu }))
-  await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: en.signOut })) })
-  await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.signOut })) })
-  // The confirmation dialog owns the failure; the launcher renders no error of its own.
-  const dialog = screen.getByRole('dialog')
-  expect(within(dialog).getByRole('alert').textContent).toBe(en.failed)
 })
 
 it.each([en, zh])('renders Platform profile and recharge wallet balances', async (copy) => {
@@ -485,7 +458,7 @@ it.each([
   [null, '138****0000', '138****0000'],
   [null, 'u***@example.com', 'u***@example.com'],
   [null, null, en.signedIn],
-])('uses the sidebar profile label %s / %s', async (name, contact, expected) => {
+])('keeps provider profile %s / %s out of the Studio launcher', async (name, contact, _expected) => {
   const operations = mount({ status: 'credential-stored', attempt: null }, en, {
     profile: { status: 'ready', value: { id: null, name, contact } },
   })
@@ -496,10 +469,10 @@ it.each([
     useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())}
     wide openSettings={() => {}} openOnboarding={() => {}} t={key => en[key as AccountKey]} />)
-  expect(screen.getByRole('button', { name: en.menu }).textContent).toBe(expected)
+  expect(screen.getByRole('button', { name: en.menu }).textContent).toBe(en.studioLocalName)
 })
 
-it('shows the same shared picture outcome in settings and the sidebar', async () => {
+it('shows the provider picture only in provider settings', async () => {
   const avatar: AccountAvatarSnapshot = { status: 'ready', url: 'https://example.test/avatar.png' }
   const operations = mount({ status: 'credential-stored', attempt: null }, en, {
     profile: { status: 'ready', value: { id: null, name: 'User', contact: null, avatarUrl: 'https://example.test/avatar.png' } },
@@ -511,10 +484,10 @@ it('shows the same shared picture outcome in settings and the sidebar', async ()
     useQuota={selector => selector(operations.hooks.quota.getSnapshot())}
     wide openSettings={() => {}} openOnboarding={() => {}} t={key => en[key as AccountKey]} />)
   const images = document.querySelectorAll('img')
-  expect(images).toHaveLength(2)
+  expect(images).toHaveLength(1)
   for (const image of images) expect(image.getAttribute('src')).toBe('https://example.test/avatar.png')
   for (const image of images) fireEvent.error(image)
-  expect(operations.avatarFailed).toHaveBeenCalledTimes(2)
+  expect(operations.avatarFailed).toHaveBeenCalledTimes(1)
   expect(operations.avatarFailed).toHaveBeenCalledWith(avatar)
 })
 

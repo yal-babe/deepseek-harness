@@ -66,10 +66,10 @@ export interface WelcomeAuthentication {
 }
 
 /**
- * Decide whether a startup or sign-out requires the welcome entry.
- * @param authentication - current account and independently stored API-key facts.
- * @returns true only when neither authentication route is configured.
+ * Model authentication never gates the workspace; optional Studio sign-in lives in the shared client.
+ * @param _authentication - current account and independently stored API-key facts.
+ * @returns false; retained for legacy native welcome callers.
  */
-export function needsWelcome(authentication: WelcomeAuthentication): boolean {
-  return !authentication.loggedIn && !authentication.hasApiKey
+export function needsWelcome(_authentication: WelcomeAuthentication): boolean {
+  return false
 }

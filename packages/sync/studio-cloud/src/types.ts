@@ -14,6 +14,9 @@ export interface StudioIdentity {
   displayName: string
   mustChangePassword: boolean
 }
+/** Upload categories are opt-in; signing in separately enables cloud downloads. */
+export type StudioSyncCategory = 'profile' | 'settings' | 'projects' | 'conversations' | 'plugins' | 'deepseek' | 'codex' | 'antigravity' | 'api-keys'
+
 /** Connection and sync readiness returned to the renderer. */
 export interface StudioState {
   origin: string
@@ -22,6 +25,14 @@ export interface StudioState {
   usedBytes: number | null
   quotaBytes: number | null
   pending: number
+  /** Safe failure code for localized recovery; no server response bodies. */
+  failureCode?: string
+  /** Explicit upload categories; empty means download-only. */
+  uploadCategories?: StudioSyncCategory[]
+  /** Whether the background loop may synchronize automatically. */
+  automatic?: boolean
+  /** Model-credential synchronization awaits local sync-passphrase unlock. */
+  credentialsLocked?: boolean
 }
 /** One device that can be explicitly revoked. */
 export interface StudioDevice {
