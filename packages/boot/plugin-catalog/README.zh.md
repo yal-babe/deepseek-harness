@@ -25,6 +25,8 @@ Host Remote：下载并缓存社区插件目录与 Codex 市场源，为设置�
 <a id="use-this-package"></a>
 ## 使用本包
 
+`plugin-catalog/install-progress` 上报目录条目 id 与单调递增的阶段完成百分比。社区插件按元数据检查及 plugin-manager 安装、应用阶段推进，Codex 还包含技能文件完成计数。成功时上报 100%，失败则返回正常错误结果，不标记安装完成。不同条目可同时请求，plugin-manager 协调共享 profile 的修改。
+
 基于 base 的 Web profile 与 `plugin-manager` 一并组合本服务。设置中的 **插件市场** 页（[ui-settings-plugin-marketplace](../../client/ui-settings-plugin-marketplace/README.zh.md)）调用 `pluginCatalog.search` / `get` / `installEntry` / `uninstall`，带 Hub 分类、排序、已安装筛选与 Codex 源。Feed URL 与缓存时长为 Config 字段。Feed 下载或校验失败会抛出 `plugin-catalog/feed-failed`；UI 必须显示可重试错误，禁止静默空列表。
 
 可解析安装规格的社区条目为 `compatibility: full`，经 `pluginManager.inspect` + `installBundle` 安装。提供 skills 的 Codex 条目为 `partial`（skills 落到 `$DSH_HOME/skills/codex-<name>`）；仅 MCP/hooks 的表面为 `unsupported`，或在详情中说明部分兼容缺口。

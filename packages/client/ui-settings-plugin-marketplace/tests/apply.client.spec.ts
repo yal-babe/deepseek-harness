@@ -90,7 +90,7 @@ describe('ui-settings-plugin-marketplace apply', () => {
     await fiber.dispose()
 
     expect(slots.entries('settings.section')).toHaveLength(0)
-    expect(offChanged).toHaveBeenCalledOnce()
+    expect(offChanged).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -101,12 +101,12 @@ describe('marketplace operations', () => {
     const pending = Promise.withResolvers<{ ok: true; value: CatalogInstallResult }>()
     pluginCatalog.installEntry.mockReturnValueOnce(pending.promise)
     const installing = controller.install('codex:demo')
-    expect(controller.store.getSnapshot()).toMatchObject({ busyId: 'codex:demo', busyOperation: 'install' })
+    expect(controller.store.getSnapshot()).toMatchObject({ operations: { 'codex:demo': { mode: 'install', percent: 0 } } })
     await controller.uninstall('codex:demo')
     expect(pluginCatalog.uninstall).not.toHaveBeenCalled()
     pending.resolve({ ok: true, value: { ok: true, code: 'installed', message: 'Installed.' } })
     await installing
-    expect(controller.store.getSnapshot()).toMatchObject({ busyId: null, detail: null, notice: { textKey: 'noticeInstalled' } })
+    expect(controller.store.getSnapshot()).toMatchObject({ operations: {}, detail: null, notice: { textKey: 'noticeInstalled' } })
   })
 
   it('settles activation failures without reporting success', async () => {
@@ -115,7 +115,7 @@ describe('marketplace operations', () => {
     pluginCatalog.setEnabled.mockResolvedValueOnce({ ok: false, error: { message: 'Unavailable' } })
     await controller.setEnabled('codex:demo', false)
     expect(pluginCatalog.setEnabled).toHaveBeenCalledWith('codex:demo', false)
-    expect(controller.store.getSnapshot()).toMatchObject({ busyId: null, notice: { kind: 'error', textKey: 'noticeFailed' } })
+    expect(controller.store.getSnapshot()).toMatchObject({ operations: {}, notice: { kind: 'error', textKey: 'noticeFailed' } })
   })
 })
 
@@ -151,4 +151,26 @@ describe('shared community activation', () => {
     controller.refresh()
     await vi.waitFor(() => { expect(controller.store.getSnapshot().result?.entries[0]?.enabled).toBe(false) })
   })
+})
+
+it('tracks different plugin installations independently and prevents duplicate installs of the same plugin', async () => {
+  const { ctx, pluginCatalog } = await bench()
+  const controller = new MarketplaceStore(ctx)
+  const first = Promise.withResolvers<{ ok: true; value: CatalogInstallResult }>()
+  const second = Promise.withResolvers<{ ok: true; value: CatalogInstallResult }>()
+  pluginCatalog.installEntry.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+  const a = controller.install('codex:first'), b = controller.install('codex:second')
+  await controller.install('codex:first')
+  expect(pluginCatalog.installEntry).toHaveBeenCalledTimes(2)
+  controller.progress('codex:first', 25); controller.progress('codex:second', 90)
+  expect(controller.store.getSnapshot().operations).toMatchObject({
+    'codex:first': { percent: 25 }, 'codex:second': { percent: 90 },
+  })
+  first.resolve({ ok: true, value: { ok: true, code: 'installed', message: 'Installed' } })
+  await a
+  expect(controller.store.getSnapshot().operations?.['codex:first']).toBeUndefined()
+  expect(controller.store.getSnapshot().operations?.['codex:second']?.percent).toBe(90)
+  second.resolve({ ok: true, value: { ok: false, code: 'failed', message: 'Failed' } })
+  await b
+  expect(controller.store.getSnapshot().operations).toEqual({})
 })

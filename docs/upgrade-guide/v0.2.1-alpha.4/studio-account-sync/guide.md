@@ -15,7 +15,7 @@ Studio sign-in downloads existing cloud data. Upload categories and automatic sy
 
 ## Migration
 
-1. Open Settings → Cloud sync to sign in, select upload categories, and optionally enable automatic synchronization.
+1. Save an HTTP or HTTPS origin in Settings → Server configuration, then use Account sign-in. Existing signed-in origins migrate automatically. Login and recovery reuse the saved origin without an HTTP checkbox. Select upload categories and automatic synchronization in Cloud sync.
 2. For model credentials, enter and confirm a separate passphrase of at least 12 characters. Use the same passphrase on other devices. Restarting the Host or signing out requires unlocking again.
 3. Configure provider accounts in Account balance or Models. Local data and provider credentials remain available when signing out of Studio.
 4. Verify the sidebar shows the Studio display name, and only checked categories upload. Projects require local workspace binding; plugin inventory requires local review before installation.

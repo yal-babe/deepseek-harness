@@ -46,10 +46,12 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-plugin-marketplace: section dictionaries')
 
   const controller = new MarketplaceStore(ctx)
+  ctx.effect(() => () => { controller.dispose() }, 'marketplace controller lifetime')
   ctx.effect(() => {
+    const offProgress = ctx.remote.$on('plugin-catalog/install-progress', (value) => { controller.progress(value.id, value.percent) })
     const offChanged = ctx.remote.$on('plugin-manager/changed', () => { controller.refresh() })
     const offReset = ctx.on('connection/reset', () => { controller.refresh() })
-    return () => { offChanged(); offReset() }
+    return () => { offProgress(); offChanged(); offReset() }
   }, 'ui-settings-plugin-marketplace: inventory changes')
   const sectionInjected = (): MarketplaceSectionInjected => ({
     controller,

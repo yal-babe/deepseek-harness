@@ -120,3 +120,19 @@ export interface CatalogInstallResult {
   restartRequired?: boolean
   entry?: CatalogEntry
 }
+
+/** Installation stage completion for one catalog entry; independent entries may run concurrently. */
+export interface CatalogInstallProgress {
+  id: string
+  percent: number
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /** A catalog installation completed another stage.
+     * @mode emit
+     * @param progress - catalog entry identity and completed stage percentage.
+     */
+    'plugin-catalog/install-progress'(progress: CatalogInstallProgress): void
+  }
+}

@@ -3,6 +3,8 @@
  * (openai/plugins) feeds, Host-side search, and install dispatch.
  */
 
+import { randomUUID } from 'node:crypto'
+import type { PluginInstallRequestId } from '@deepseek-ai/dsh-plugin-manager/types'
 import { access } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -237,10 +239,17 @@ export class PluginCatalog extends TypertRemoteService {
       }
       throw error
     }
-    if (entry.source === 'community') {
-      return await this.installCommunity(entry)
+    let percent = 0
+    const progress = (next: number) => {
+      percent = Math.max(percent, Math.min(100, next))
+      this.ctx.emit('plugin-catalog/install-progress', { id, percent })
     }
-    return await this.installCodex(entry)
+    progress(10)
+    const result = entry.source === 'community'
+      ? await this.installCommunity(entry, progress)
+      : await this.installCodex(entry, progress)
+    if (result.ok) progress(100)
+    return result
   }
 
   /**
@@ -295,7 +304,7 @@ export class PluginCatalog extends TypertRemoteService {
     }
   }
 
-  private async installCommunity(entry: CatalogEntry): Promise<CatalogInstallResult> {
+  private async installCommunity(entry: CatalogEntry, progress: (percent: number) => void = () => {}): Promise<CatalogInstallResult> {
     if (entry.installSpec === undefined || entry.compatibility !== 'full') {
       return unsupportedInstall(entry)
     }
@@ -320,10 +329,19 @@ export class PluginCatalog extends TypertRemoteService {
           entry,
         }
       }
-      const change = await manager.installBundle(entry.installSpec, {
-        enabled: !entry.installed || entry.enabled === true,
-        saveExact: false,
+      progress(25)
+      const requestId = randomUUID() as PluginInstallRequestId
+      const offState = this.ctx.on('plugin-manager/install-state', (value) => {
+        if (value.requestId === requestId) progress(value.phase === 'applying' ? 90 : 35)
       })
+      let change: Awaited<ReturnType<typeof manager.installBundle>>
+      try {
+        change = await manager.installBundle(entry.installSpec, {
+          requestId,
+          enabled: !entry.installed || entry.enabled === true,
+          saveExact: false,
+        })
+      } finally { offState() }
       return {
         ok: change.application !== 'failed' && change.application !== 'cancelled',
         code: change.application === 'failed' || change.application === 'cancelled' ? 'failed' : 'installed',
@@ -374,16 +392,17 @@ export class PluginCatalog extends TypertRemoteService {
     }
   }
 
-  private async installCodex(entry: CatalogEntry): Promise<CatalogInstallResult> {
+  private async installCodex(entry: CatalogEntry, progress: (percent: number) => void = () => {}): Promise<CatalogInstallResult> {
     if (entry.compatibility === 'unsupported' || !entry.kinds.includes('skill')) {
       return unsupportedInstall(entry)
     }
     const listed = await this.listCodexSkills(entry.name)
+    progress(30)
     const result = await installCodexSkills(
       entry.name,
       listed.names,
       url => this.fetchText(url),
-      { skillsDir: listed.dir },
+      { skillsDir: listed.dir, onProgress: (completed, total) => { progress(30 + Math.floor(completed / total * 60)) } },
     )
     return { ...result, entry: await this.get(entry.id).catch(() => entry) }
   }

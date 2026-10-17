@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import {
-  Button, Input, Modal, Tag, Toast, MarkdownText, PluginArtworkSubagent,
+  Button, Input, Modal, Tag, Toast, MarkdownText, PluginArtworkSubagent, StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -88,12 +88,12 @@ export function MarketplaceSection({
         />
       </div>
 
-      {state.busyId !== null ? <OperationProgress operation={state.busyOperation} t={t} /> : null}
 
       {state.tab === 'custom' ? (
         <CustomInstall
           spec={state.customSpec}
-          busy={state.busyId !== null}
+          busy={state.operations?.custom !== undefined}
+          percent={state.operations?.custom?.percent}
           t={t}
           onChange={(value) => { controller.setCustomSpec(value) }}
           onInstall={() => { void controller.installCustom() }}
@@ -118,7 +118,8 @@ export function MarketplaceSection({
           footer={(
             <DetailActions
               entry={detail}
-              busy={state.busyId !== null}
+              busy={state.operations?.[detail.id] !== undefined}
+              percent={state.operations?.[detail.id]?.mode === 'install' ? state.operations[detail.id]?.percent : undefined}
               t={t}
               onInstall={() => { void controller.install(detail.id) }}
               onUninstall={() => { void controller.uninstall(detail.id) }}
@@ -126,7 +127,6 @@ export function MarketplaceSection({
             />
           )}
         >
-          {state.busyId === detail.id ? <OperationProgress operation={state.busyOperation} t={t} /> : null}
           <DetailBody entry={detail} t={t} />
         </Modal>
       ) : null}
@@ -268,7 +268,8 @@ function CatalogPanel({
               <li key={entry.id}>
                 <PluginCard
                   entry={entry}
-                  busy={state.busyId !== null}
+                  busy={state.operations?.[entry.id] !== undefined}
+                  percent={state.operations?.[entry.id]?.mode === 'install' ? state.operations[entry.id]?.percent : undefined}
                   t={t}
                   onDetail={() => { void controller.openDetail(entry.id) }}
                   onInstall={() => { void controller.install(entry.id) }}
@@ -310,6 +311,7 @@ function CatalogPanel({
 function PluginCard({
   entry,
   busy,
+  percent,
   t,
   onDetail,
   onInstall,
@@ -318,6 +320,7 @@ function PluginCard({
 }: {
   entry: CatalogEntry
   busy: boolean
+  percent?: number | undefined
   t: MarketplaceSectionProps['t']
   onDetail: () => void
   onInstall: () => void
@@ -368,13 +371,16 @@ function PluginCard({
         </div>
         <div className={css.actions}>
           <Button className={css.actionButton} variant="outline" size="sm" onClick={onDetail}>{t('detail')}</Button>
-          {entry.installed ? (
+          {percent !== undefined ? (
+            <Button className={css.actionButton} variant="primary" size="sm" disabled
+              aria-label={`${t('installing')} ${percent}%`}>
+              <InstallProgress percent={percent} t={t} />
+            </Button>
+          ) : entry.installed ? (
             <>
               {entry.updateAvailable === true ? (
                 <Button className={css.actionButton} variant="primary" size="sm" disabled={busy || !canInstall} onClick={onInstall}>{t('update')}</Button>
-              ) : (
-                <Tag tone={entry.enabled ? 'success' : 'neutral'}>{t(entry.enabled ? 'enabled' : 'disabled')}</Tag>
-              )}
+              ) : null}
               <Button className={css.actionButton} variant="outline" size="sm" disabled={busy} onClick={onToggle}>{t(entry.enabled ? 'disable' : 'enable')}</Button>
               <Button className={css.actionButton} variant="outline" size="sm" disabled={busy} onClick={onUninstall}>{t('uninstall')}</Button>
             </>
@@ -437,6 +443,7 @@ function DetailBody({
 function DetailActions({
   entry,
   busy,
+  percent,
   t,
   onInstall,
   onUninstall,
@@ -444,6 +451,7 @@ function DetailActions({
 }: {
   entry: CatalogEntry
   busy: boolean
+  percent?: number | undefined
   t: MarketplaceSectionProps['t']
   onInstall: () => void
   onUninstall: () => void
@@ -457,7 +465,8 @@ function DetailActions({
         <Button className={css.actionButton} variant="outline" size="sm" disabled={busy} onClick={onUninstall}>{t('uninstall')}</Button>
       ) : null}
       <Button variant="primary" size="sm" disabled={busy || !canInstall || (entry.installed && entry.updateAvailable !== true)} onClick={onInstall}>
-        {entry.installed ? t(entry.updateAvailable === true ? 'update' : 'installed') : canInstall ? t('install') : t('unsupported')}
+        {percent !== undefined ? <InstallProgress percent={percent} t={t} />
+          : entry.installed ? t(entry.updateAvailable === true ? 'update' : 'installed') : canInstall ? t('install') : t('unsupported')}
       </Button>
     </>
   )
@@ -466,12 +475,14 @@ function DetailActions({
 function CustomInstall({
   spec,
   busy,
+  percent,
   t,
   onChange,
   onInstall,
 }: {
   spec: string
   busy: boolean
+  percent?: number | undefined
   t: MarketplaceSectionProps['t']
   onChange: (value: string) => void
   onInstall: () => void
@@ -487,7 +498,9 @@ function CustomInstall({
           onChange={(event) => { onChange(event.target.value) }}
           aria-label={t('customPlaceholder')}
         />
-        <Button variant="primary" size="sm" disabled={busy} onClick={onInstall}>{t('customInstall')}</Button>
+        <Button variant="primary" size="sm" disabled={busy} onClick={onInstall}>
+          {percent === undefined ? t('customInstall') : <InstallProgress percent={percent} t={t} />}
+        </Button>
       </div>
     </div>
   )
@@ -608,15 +621,11 @@ function EntryIcon({ entry }: { entry: CatalogEntry }): ReactNode {
   </span>
 }
 
-function OperationProgress({ operation, t }: {
-  operation: MarketplaceState['busyOperation']
-  t: MarketplaceSectionProps['t']
-}): ReactNode {
-  const key = operation === 'uninstall' ? 'uninstalling' : operation === 'enable' ? 'enabling' : operation === 'disable' ? 'disabling' : 'installing'
-  return <div className={css.operation} role="status" aria-live="polite">
-    <span>{t(key)}</span>
-    <progress className={css.progress} aria-label={t(key)} />
-  </div>
+function InstallProgress({ percent, t }: { percent: number; t: MarketplaceSectionProps['t'] }): ReactNode {
+  return <span className={css.installProgress} role="progressbar" aria-label={t('installing')}
+    aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+    <StateDot state="ongoing" size={14} /><span>{t('installing')} {percent}%</span>
+  </span>
 }
 
 /**

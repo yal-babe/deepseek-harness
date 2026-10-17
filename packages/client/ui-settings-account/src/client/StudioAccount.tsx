@@ -48,6 +48,7 @@ export interface StudioInjected {
   studioLogout: () => Promise<void>
   studioChangePassword: (current: string, next: string) => Promise<void>
   studioRefresh: () => Promise<void>
+  studioConfigureServer: (origin: string) => Promise<void>
   studioUnlockCredentials: (passphrase: string) => Promise<void>
   studioConfigureSync: (categories: StudioSyncCategory[], automatic: boolean) => Promise<void>
   studioPreview: () => Promise<void>
@@ -69,6 +70,7 @@ export interface StudioInjected {
 }
 export type StudioOperations = Pick<
   StudioInjected,
+  | 'studioConfigureServer'
   | 'studioLogin'
   | 'studioLogout'
   | 'studioChangePassword'
@@ -604,4 +606,33 @@ export function StudioIntroduction({ complete, useStudio, t, ...operations }:
   useEffect(() => { if (snapshot.firstUse === false) complete() }, [snapshot.firstUse, complete])
   if (!snapshot.firstUse) return null
   return <StudioLoginDialog snapshot={snapshot} t={t} {...operations} onClose={() => { operations.studioClose(); complete() }} />
+}
+
+/** Device-local server configuration, shared by every Studio account operation.
+ * @param props - safe connection state and Host configuration action.
+ * @returns the server settings form.
+ */
+export function StudioServerSection({ useStudio, studioConfigureServer, t }: StudioSectionProps) {
+  const snapshot = useStudio(value => value)
+  const [origin, setOrigin] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [outcome, setOutcome] = useState<'ok' | 'failed' | null>(null)
+  useEffect(() => { setOrigin(snapshot.state?.origin ?? '') }, [snapshot.state?.origin])
+  return <section className={css.section}>
+    <h2>{t('studioServerConfig')}</h2>
+    <form className={css.form} onSubmit={(event) => {
+      event.preventDefault(); setBusy(true); setOutcome(null)
+      void studioConfigureServer(origin.trim()).then(() => { setOutcome('ok') }, () => { setOutcome('failed') })
+        .finally(() => { setBusy(false) })
+    }}>
+      <p className={css.description}>{t('studioServerDescription')}</p>
+      <label>{t('studioOrigin')}<Input type="url" required value={origin}
+        onChange={(event) => { setOrigin(event.target.value) }} /></label>
+      {snapshot.state?.identity && <p className={css.description}>{t('studioServerSignOut')}</p>}
+      {outcome && <p role={outcome === 'failed' ? 'alert' : 'status'}>
+        {t(outcome === 'failed' ? 'studioFailure' : 'studioDone')}
+      </p>}
+      <Button type="submit" variant="primary" disabled={busy || !origin.trim()}>{t('studioSaveServer')}</Button>
+    </form>
+  </section>
 }

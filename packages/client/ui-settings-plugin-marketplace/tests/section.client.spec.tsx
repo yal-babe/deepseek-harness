@@ -54,7 +54,7 @@ function idleState(overrides: Partial<MarketplaceState> = {}): MarketplaceState 
     result: null,
     detail: null,
     detailStatus: 'idle',
-    busyId: null,
+    operations: {},
     notice: null,
     customSpec: '',
     ...overrides,
@@ -130,16 +130,14 @@ describe('MarketplaceSection', () => {
     expect(screen.getByRole('button', { name: en.sortUpdated })).toBeTruthy()
   })
 
-  it('shows progress and blocks mutations while an install is pending', () => {
-    renderSection(idleState({ status: 'ready', result, busyId: sample.id, busyOperation: 'install' }))
+  it('shows progress inside only the active installation button', () => {
+    const other = { ...sample, id: 'codex:other', title: 'Other plugin' }
+    renderSection(idleState({ status: 'ready', result: { ...result, entries: [sample, other] },
+      operations: { [sample.id]: { mode: 'install', percent: 35 } } }))
     const progress = screen.getByRole('progressbar', { name: en.installing })
-    expect({ label: progress.getAttribute('aria-label'), value: progress.getAttribute('value') }).toMatchInlineSnapshot(`
-      {
-        "label": "Installing…",
-        "value": null,
-      }
-    `)
-    expect(screen.getByRole('button', { name: en.install }).hasAttribute('disabled')).toBe(true)
+    expect(progress.getAttribute('aria-valuenow')).toBe('35')
+    expect(screen.getByRole('button', { name: `${en.installing} 35%` }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: en.install }).hasAttribute('disabled')).toBe(false)
   })
 
   it('displays artwork and toggles installed plugin activation', () => {

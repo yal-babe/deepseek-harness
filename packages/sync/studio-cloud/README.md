@@ -25,6 +25,8 @@ Host-owned Studio login, separate from model-provider authorization. Mount `@dee
 <a id="use-this-package"></a>
 ## Use this package
 
+The device-local `server.json` under the state directory stores the HTTP or HTTPS origin independently of the account grant. Settings → Server configuration saves it once for login and recovery; no HTTP checkbox is required. An existing signed-in origin migrates automatically. Sign out before changing issuers. Storage outages retain the cached account identity and origin while exposing a retryable failure.
+
 The Web and Desktop profiles mount this service separately from the legacy batch outbox. The default state directory is located under `$DSH_HOME/studio-cloud`; service origin and account hashes isolate the persisted queue, cursor, and local project mappings. The sync loop default interval is 30000ms and executes only when uploads and automatic synchronization are both enabled.
 
 Contributions declare a namespace, payload version, top-level field allowlist, exporter, and importer. Export filters fields before text redaction. The built-in preference contributor includes theme, language, chat presentation, Coding Tools visibility, and model provider settings; custom provider headers stay local; project metadata excludes local directory paths, and downloaded projects require an explicit workspace binding. Unknown payload versions remain visible in preview but cannot be imported. Unregistered plugin configuration and storage are never exported.

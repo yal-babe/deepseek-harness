@@ -6,6 +6,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {
+  PluginInstallRequestId,
   CatalogEntry,
   CatalogInstallResult,
   CatalogKind,
@@ -13,6 +14,7 @@ import type {
   CatalogSort,
   CatalogSource,
 } from '@deepseek-ai/dsh-api-remotes/client'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 
 /** Source filter shown in the chips; `all` omits the Host filter. */
@@ -56,8 +58,7 @@ export interface MarketplaceState {
   readonly result: CatalogSearchResult | null
   readonly detail: CatalogEntry | null
   readonly detailStatus: 'idle' | 'loading' | 'error'
-  readonly busyId: string | null
-  readonly busyOperation?: 'install' | 'uninstall' | 'enable' | 'disable'
+  readonly operations: Readonly<Record<string, { mode: 'install' | 'uninstall' | 'enable' | 'disable'; percent: number }>>
   readonly notice: MarketplaceNotice | null
   readonly customSpec: string
 }
@@ -68,6 +69,8 @@ const PAGE_SIZE = 24
 export class MarketplaceStore {
   /** Snapshot store holding the latest plugin marketplace state. */
   readonly store: SnapshotStore<MarketplaceState>
+  private customProgressDisposer: (() => void) | undefined
+  private closed = false
   private noticeSeq = 0
   private searchGeneration = 0
   private debounce: ReturnType<typeof setTimeout> | undefined
@@ -91,7 +94,7 @@ export class MarketplaceStore {
       result: null,
       detail: null,
       detailStatus: 'idle',
-      busyId: null,
+      operations: {},
       notice: null,
       customSpec: '',
     })
@@ -105,7 +108,7 @@ export class MarketplaceStore {
   /** Refresh visible inventory after another plugin management surface changes it. */
   refresh(): void {
     const state = this.store.getSnapshot()
-    if (state.status === 'idle' || state.tab === 'custom' || state.busyId !== null) return
+    if (state.status === 'idle' || state.tab === 'custom' || Object.keys(state.operations).length !== 0) return
     void this.search(false)
   }
 
@@ -278,7 +281,7 @@ export class MarketplaceStore {
 
   /** Install the custom spec through plugin-manager. */
   async installCustom(): Promise<void> {
-    if (this.store.getSnapshot().busyId !== null) return
+    if (this.closed || this.store.getSnapshot().operations?.custom) return
     const spec = this.store.getSnapshot().customSpec.trim()
     if (spec.length === 0) {
       this.patch({
@@ -287,12 +290,15 @@ export class MarketplaceStore {
       return
     }
     const manager = this.ctx.remote.pluginManager
-    this.patch({ busyId: 'custom', busyOperation: 'install' })
+    this.begin('custom', 'install')
+    const requestId = randomUUID() as PluginInstallRequestId
+    this.customProgressDisposer = this.ctx.remote.$on('plugin-manager/install-state', (value) => {
+      if (value.requestId === requestId) this.progress('custom', value.phase === 'applying' ? 90 : 35)
+    })
     try {
-      const remote = await manager.installBundle(spec, { enabled: true })
+      const remote = await manager.installBundle(spec, { enabled: true, requestId })
       if (!remote.ok) {
         this.patch({
-          busyId: null,
           notice: {
             kind: 'error',
             textKey: 'noticeFailed',
@@ -304,7 +310,6 @@ export class MarketplaceStore {
       }
       const application = remote.value.application
       this.patch({
-        busyId: null,
         customSpec: '',
         notice: application === 'restart-required'
           ? { kind: 'restart', textKey: 'noticeRestart', seq: ++this.noticeSeq }
@@ -319,7 +324,6 @@ export class MarketplaceStore {
       })
     } catch (error: unknown) {
       this.patch({
-        busyId: null,
         notice: {
           kind: 'error',
           textKey: 'noticeFailed',
@@ -327,6 +331,9 @@ export class MarketplaceStore {
           seq: ++this.noticeSeq,
         },
       })
+    } finally {
+      this.customProgressDisposer?.(); this.customProgressDisposer = undefined
+      this.finish('custom')
     }
   }
 
@@ -340,13 +347,12 @@ export class MarketplaceStore {
     call: () => Promise<{ ok: true; value: CatalogInstallResult } | { ok: false; error: { message: string } }>,
     mode: 'install' | 'uninstall' | 'enable' | 'disable',
   ): Promise<void> {
-    if (this.store.getSnapshot().busyId !== null) return
-    this.patch({ busyId: id, busyOperation: mode })
+    if (this.closed || this.store.getSnapshot().operations?.[id]) return
+    this.begin(id, mode)
     try {
       const remote = await call()
       if (!remote.ok) {
         this.patch({
-          busyId: null,
           notice: {
             kind: 'error',
             textKey: 'noticeFailed',
@@ -366,14 +372,12 @@ export class MarketplaceStore {
         ...result !== null && updated !== undefined ? {
           result: { ...result, entries: result.entries.map(entry => entry.id === id ? updated : entry) },
         } : {},
-        busyId: null,
         notice,
         detail: detail !== null && detail.id === id ? (outcome.entry ?? detail) : this.store.getSnapshot().detail,
       })
       await this.search(false)
     } catch (error: unknown) {
       this.patch({
-        busyId: null,
         notice: {
           kind: 'error',
           textKey: 'noticeFailed',
@@ -381,10 +385,37 @@ export class MarketplaceStore {
           seq: ++this.noticeSeq,
         },
       })
-    }
+    } finally { this.finish(id) }
   }
 
+  /** Update one active installation from Host-reported completed stages.
+   * @param id - catalog entry identity.
+   * @param percent - completed installation percentage.
+   */
+  progress(id: string, percent: number): void {
+    const operations = this.store.getSnapshot().operations ?? {}, operation = operations[id]
+    if (!operation || operation.mode !== 'install' || !Number.isFinite(percent)) return
+    this.patch({ operations: { ...operations, [id]: { ...operation,
+      percent: Math.max(operation.percent, Math.min(100, Math.max(0, Math.floor(percent)))),
+    } } })
+  }
+  private begin(id: string, mode: 'install' | 'uninstall' | 'enable' | 'disable'): void {
+    this.patch({ operations: { ...this.store.getSnapshot().operations, [id]: { mode, percent: 0 } },
+    })
+  }
+  private finish(id: string): void {
+    const operations = Object.fromEntries(Object.entries(this.store.getSnapshot().operations).filter(([key]) => key !== id))
+    this.patch({ operations })
+  }
+  /** Release pending search callbacks and ignore late responses. */
+  dispose(): void {
+    this.closed = true
+    this.customProgressDisposer?.(); this.customProgressDisposer = undefined
+    this.searchGeneration++
+    if (this.debounce !== undefined) clearTimeout(this.debounce)
+  }
   private async search(resetStatus: boolean): Promise<void> {
+    if (this.closed) return
     const generation = ++this.searchGeneration
     if (resetStatus) this.patch({ status: 'loading', errorMessage: null })
     const snap = this.store.getSnapshot()
@@ -442,7 +473,7 @@ export class MarketplaceStore {
   }
 
   private patch(partial: Partial<MarketplaceState>): void {
-    this.store.set({ ...this.store.getSnapshot(), ...partial })
+    if (!this.closed) this.store.set({ ...this.store.getSnapshot(), ...partial })
   }
 }
 

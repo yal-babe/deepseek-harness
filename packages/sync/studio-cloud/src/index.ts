@@ -836,7 +836,7 @@ export class StudioCloud extends TypertRemoteService {
       const record = await this.record()
       this.assertActive(life.signal)
       if (!record)
-        return { origin: '', identity: null, phase: 'signed-out', usedBytes: null, quotaBytes: null, pending: 0 }
+        return { origin: await this.serverOrigin(), identity: null, phase: 'signed-out', usedBytes: null, quotaBytes: null, pending: 0 }
       if (record.refreshPending)
         return {
           origin: record.origin,
@@ -855,24 +855,31 @@ export class StudioCloud extends TypertRemoteService {
           quotaBytes: null,
           pending: 0,
         }
-      const space = await this.authenticated('/v1/me/storage', storage)
+      await this.serverOrigin(record.origin)
+      const space = await this.authenticated('/v1/me/storage', storage).catch((error: unknown) => {
+        if (!(error instanceof CloudError)) throw error
+        this.syncFailure = error.code
+        return null
+      })
       const sync = await this.engine(record).status()
       this.assertActive(life.signal)
       return {
         origin: record.origin,
         identity: record.identity,
         phase:
-          space.encryptionMode !== 'plain'
-            ? 'unsupported'
-            : this.syncFailure === 'VERSION_CONFLICT'
-              ? 'conflict'
-              : sync.enabled
-                ? 'ready'
-                : sync.selectedCount
-                  ? 'paused'
-                  : 'preview-required',
-        usedBytes: space.usedBytes,
-        quotaBytes: space.quotaBytes,
+          space === null
+            ? 'paused'
+            : space.encryptionMode !== 'plain'
+              ? 'unsupported'
+              : this.syncFailure === 'VERSION_CONFLICT'
+                ? 'conflict'
+                : sync.enabled
+                  ? 'ready'
+                  : sync.selectedCount
+                    ? 'paused'
+                    : 'preview-required',
+        usedBytes: space?.usedBytes ?? null,
+        quotaBytes: space?.quotaBytes ?? null,
         pending: sync.pending,
         uploadCategories: sync.categories,
         automatic: sync.automatic,
@@ -881,13 +888,39 @@ export class StudioCloud extends TypertRemoteService {
       }
     })
   }
+  private async serverOrigin(fallback = ''): Promise<string> {
+    try {
+      return cloudOrigin(z.object({ origin: z.string() }).parse(JSON.parse(
+        await readFile(join(this.directory, 'server.json'), 'utf8'),
+      )).origin)
+    } catch (error) {
+      if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
+      if (fallback) await writeFileAtomic(join(this.directory, 'server.json'), JSON.stringify({ origin: fallback }),
+        { mode: 0o600, dirMode: 0o700 })
+      return fallback
+    }
+  }
+  /** Save the device-local Studio server independently of account credentials.
+   * @param origin - HTTP or HTTPS service origin.
+   */
+  @Remote
+  configureServer(origin: string): Promise<void> {
+    return this.task(async () => {
+      const address = cloudOrigin(origin)
+      const record = await this.record()
+      if (record && record.origin !== address) throw new CloudError('SIGN_OUT_REQUIRED')
+      await writeFileAtomic(join(this.directory, 'server.json'), JSON.stringify({ origin: address }),
+        { mode: 0o600, dirMode: 0o700 })
+      this.changed()
+    })
+  }
   /**
    * Sign in to an explicitly selected server; this never enables synchronization.
    * @param origin - root service URL.
    * @param login - username or verified email.
    * @param password - transient password, never persisted.
    * @param deviceName - name displayed in device management.
-   * @param allowHttp - explicit acceptance of an unencrypted deployment connection.
+   * @param allowHttp - compatibility flag; HTTP and HTTPS origins are accepted.
    * @returns safe account identity; temporary accounts must change their password first.
    */
   @Remote
@@ -904,7 +937,7 @@ export class StudioCloud extends TypertRemoteService {
     this.refresh = undefined
     const life = this.lifetime
     return this.task(async () => {
-      const address = cloudOrigin(origin, allowHttp)
+      const address = cloudOrigin(origin || await this.serverOrigin(), allowHttp)
       await this.call(address, '/v1/capabilities', capability, {}, life)
       const grant = await this.call(
         address,
@@ -921,6 +954,7 @@ export class StudioCloud extends TypertRemoteService {
           payload: { version: 1, origin: address, identity: user, ...grant, refreshPending: false },
         })
       })
+      await this.serverOrigin(address)
       this.changed()
       if (!user.mustChangePassword) {
         try { await this.download() }
@@ -1011,7 +1045,7 @@ export class StudioCloud extends TypertRemoteService {
    * @param token - single-use invitation token.
    * @param username - requested account name.
    * @param password - initial transient password.
-   * @param allowHttp - explicit HTTP consent.
+   * @param allowHttp - compatibility flag; HTTP and HTTPS origins are accepted.
    * @returns after server acceptance.
    */
   @Remote
@@ -1027,7 +1061,7 @@ export class StudioCloud extends TypertRemoteService {
    * Request a reset mail; the server deliberately does not reveal account existence.
    * @param origin - selected service URL.
    * @param email - verified address.
-   * @param allowHttp - explicit HTTP consent.
+   * @param allowHttp - compatibility flag; HTTP and HTTPS origins are accepted.
    * @returns after the request is accepted.
    */
   @Remote
@@ -1044,7 +1078,7 @@ export class StudioCloud extends TypertRemoteService {
    * @param origin - selected service URL.
    * @param token - one-time mail token.
    * @param password - replacement transient password.
-   * @param allowHttp - explicit HTTP consent.
+   * @param allowHttp - compatibility flag; HTTP and HTTPS origins are accepted.
    * @returns after password reset is confirmed.
    */
   @Remote
@@ -1060,7 +1094,7 @@ export class StudioCloud extends TypertRemoteService {
    * Verify a one-time email token at its explicitly selected issuer.
    * @param origin - selected service URL.
    * @param token - email verification token.
-   * @param allowHttp - explicit HTTP consent.
+   * @param allowHttp - compatibility flag; HTTP and HTTPS origins are accepted.
    * @returns after email verification is confirmed.
    */
   @Remote

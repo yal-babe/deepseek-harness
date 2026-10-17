@@ -14,10 +14,10 @@ export class CloudError extends Error {
 /**
  * Validate the explicitly selected deployment origin.
  * @param raw - HTTP(S) origin, without userinfo, path, query, or fragment.
- * @param allowHttp - explicit permission to send account credentials without TLS.
+ * @param _allowHttp - retained for compatibility; both HTTP and HTTPS are supported.
  * @returns normalized origin.
  */
-export function cloudOrigin(raw: string, allowHttp: boolean): string {
+export function cloudOrigin(raw: string, _allowHttp = true): string {
   let url: URL
   try {
     url = new URL(raw)
@@ -30,8 +30,7 @@ export function cloudOrigin(raw: string, allowHttp: boolean): string {
     url.password ||
     url.pathname !== '/' ||
     url.search ||
-    url.hash ||
-    (url.protocol === 'http:' && !allowHttp)
+    url.hash
   )
     throw new CloudError('INVALID_ORIGIN')
   return url.origin

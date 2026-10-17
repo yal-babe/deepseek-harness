@@ -60,7 +60,7 @@ export async function installCodexSkills(
   pluginName: string,
   skillNames: readonly string[],
   fetchText: (url: string) => Promise<string>,
-  options: { dshHome?: string; skillsDir?: string } = {},
+  options: { dshHome?: string; skillsDir?: string; onProgress?: (completed: number, total: number) => void } = {},
 ): Promise<CatalogInstallResult> {
   if (skillNames.length === 0) {
     return {
@@ -74,12 +74,14 @@ export async function installCodexSkills(
   const root = await exists(disabled) ? disabled : codexSkillsDir(pluginName, options.dshHome)
   await mkdir(root, { recursive: true })
   try {
+    let completed = 0
     for (const skill of skillNames) {
       const url = `${DEFAULT_CODEX_PLUGIN_RAW_PREFIX}/${pluginName}/${skillsDir}/${skill}/SKILL.md`
       const body = await fetchText(url)
       const skillDir = join(root, skill)
       await mkdir(skillDir, { recursive: true })
       await writeFile(join(skillDir, 'SKILL.md'), body, 'utf8')
+      options.onProgress?.(++completed, skillNames.length)
     }
   } catch (error: unknown) {
     await rm(root, { recursive: true, force: true }).catch((cleanupError: unknown) => {

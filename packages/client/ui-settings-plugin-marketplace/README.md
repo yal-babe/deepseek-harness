@@ -27,7 +27,7 @@ Open **Plugin marketplace** in Settings for Hub-style browse (categories, search
 
 Web compositions that mount [plugin-catalog](../../boot/plugin-catalog/README.md) and this client package show the section next to **Built-in plugins**. Host search pages the community and Codex feeds with Hub categories and sort. Community DSH bundles install through plugin-manager; Codex skills materialize under `$DSH_HOME/skills`. Compatibility badges always show; unsupported entries keep Install disabled. Feed failures show a retryable error instead of an empty list.
 
-Installation and activation show an indeterminate progress bar until the Host reports completion. Installed entries expose enable/disable buttons; catalog artwork appears with a fallback when unavailable. Outcome toasts survive closing Settings.
+Each installation keeps its own disabled Install button with a spinner and Host-reported stage percentage; other plugins remain installable concurrently. Codex file completion contributes to progress, and successful installation reaches 100%. Installed rows expose enable/disable and uninstall actions without separate activation-status badges. Shared profile writes remain coordinated by plugin-manager. Outcome toasts survive closing Settings.
 
 Community activation uses the same plugin-manager operation and inventory as the built-in Plugins page, and follows management changes. Switch between card and list layouts; action rows share a bottom alignment. Details render Markdown in a wider, scrollable dialog.
 

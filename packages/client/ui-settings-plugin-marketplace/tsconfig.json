@@ -40,6 +40,9 @@
     },
     {
       "path": "../ui-layout"
+    },
+    {
+      "path": "../../util/crypto"
     }
   ]
 }

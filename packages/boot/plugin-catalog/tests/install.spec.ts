@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   codexSkillsDir,
   disabledCodexSkillsDir,
@@ -31,13 +31,15 @@ describe('installCodexSkills', () => {
   it('writes SKILL.md files under $DSH_HOME/skills/codex-<name>', async () => {
     const home = await mkdtemp(join(tmpdir(), 'dsh-catalog-'))
     homes.push(home)
+    const onProgress = vi.fn()
     const result = await installCodexSkills(
       'demo',
       ['alpha'],
       async () => '# Alpha\n',
-      { dshHome: home, skillsDir: 'skills' },
+      { dshHome: home, skillsDir: 'skills', onProgress },
     )
     expect(result.ok).toBe(true)
+    expect(onProgress).toHaveBeenCalledWith(1, 1)
     const body = await readFile(join(codexSkillsDir('demo', home), 'alpha', 'SKILL.md'), 'utf8')
     expect(body).toBe('# Alpha\n')
 

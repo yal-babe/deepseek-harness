@@ -25,6 +25,8 @@ Host Remote that downloads and caches the community plugin directory and the Cod
 <a id="use-this-package"></a>
 ## Use this package
 
+`plugin-catalog/install-progress` forwards an entry id and monotonic completed-stage percentage. Community progress follows metadata inspection and plugin-manager installation/application events; Codex progress includes completed skill files. Success emits 100%, while failed operations return their normal error receipt without claiming completion. Different catalog entries can be requested concurrently; plugin-manager coordinates shared profile changes.
+
 Base-backed Web profiles compose this service next to `plugin-manager`. The Settings **Plugin marketplace** page ([ui-settings-plugin-marketplace](../../client/ui-settings-plugin-marketplace/README.md)) calls `pluginCatalog.search` / `get` / `installEntry` / `uninstall` / `setEnabled` with Hub category, sort, and installed-only filters plus a Codex source. Feed URLs and cache lifetime are Config fields (`communityOrigin`, `communityLocale`, `codexMarketplaceUrl`, `cacheTtlMs`, `fetchTimeoutMs`). A failed or invalid feed throws `plugin-catalog/feed-failed`; the UI must show a retryable error rather than an empty list.
 
 Community entries with a parseable install spec are `compatibility: full` and install through `pluginManager.inspect` + `installBundle`. Codex entries that expose skills are `partial` (skills materialize under `$DSH_HOME/skills/codex-<name>`); MCP/hooks-only surfaces are `unsupported` or documented as partial gaps in the detail notes.

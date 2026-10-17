@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { Context } from '@deepseek-ai/cordis'
@@ -12,6 +15,8 @@ afterEach(async () => {
   while (cleanups.length) await cleanups.pop()!()
 })
 async function fixture() {
+  const stateDirectory = await mkdtemp(join(tmpdir(), 'studio-account-'))
+  cleanups.push(() => rm(stateDirectory, { recursive: true, force: true }))
   const user = {
     id: randomUUID(),
     username: 'personal',
@@ -20,6 +25,7 @@ async function fixture() {
     mustChangePassword: false,
   }
   const calls: string[] = []
+  let unavailable = false
   let access = 'access-one',
     refresh = 'refresh-one',
     expired = false,
@@ -83,6 +89,7 @@ async function fixture() {
       return
     }
     if (req.url === '/v1/me/storage') {
+      if (unavailable) { send({ error: { code: 'TEMPORARILY_UNAVAILABLE' } }, 503); return }
       send({ usedBytes: 0, quotaBytes: 100000, encryptionMode: 'plain' })
       return
     }
@@ -115,7 +122,7 @@ async function fixture() {
   const ctx = new Context(),
     credentials = ctx.plugin(MemoryCredentials)
   await credentials
-  const plugin = ctx.plugin(StudioCloud, { requestTimeoutMs: 5000, syncIntervalMs: 3600000 })
+  const plugin = ctx.plugin(StudioCloud, { stateDirectory, requestTimeoutMs: 5000, syncIntervalMs: 3600000 })
   cleanups.push(async () => {
     await plugin.dispose()
     await credentials.dispose()
@@ -126,6 +133,7 @@ async function fixture() {
     origin: `http://127.0.0.1:${address.port}`,
     calls,
     user,
+    unavailable() { unavailable = true },
     get rotations() {
       return rotations
     },
@@ -177,11 +185,24 @@ describe('Host-owned Studio identity', () => {
     await rejected
     expect((await f.ctx.studioCloud.getState()).identity).toBeNull()
   })
-  it('refuses unconfirmed HTTP before sending credentials', async () => {
+  it('retains account identity and server settings while cloud storage is unavailable', async () => {
     const f = await fixture()
-    await expect(
-      f.ctx.studioCloud.signIn(f.origin, 'personal', 'valid-password', 'Laptop', false),
-    ).rejects.toMatchObject({ details: { code: 'INVALID_ORIGIN' } })
-    expect(f.calls).toHaveLength(0)
+    await f.ctx.studioCloud.signIn(f.origin, 'personal', 'valid-password', '', true)
+    f.unavailable()
+    expect(await f.ctx.studioCloud.getState()).toMatchObject({
+      origin: f.origin, identity: f.user, phase: 'paused', failureCode: 'TEMPORARILY_UNAVAILABLE',
+    })
+  })
+  it('uses a saved HTTP server for login and retains it after sign-out', async () => {
+    const f = await fixture()
+    await f.ctx.studioCloud.configureServer(f.origin)
+    expect((await f.ctx.studioCloud.getState()).origin).toBe(f.origin)
+    await f.ctx.studioCloud.signIn('', 'personal', 'valid-password', '', false)
+    expect(f.calls).toContain('/v1/auth/login')
+    await expect(f.ctx.studioCloud.configureServer('https://other.example')).rejects.toMatchObject({
+      details: { code: 'SIGN_OUT_REQUIRED' },
+    })
+    await f.ctx.studioCloud.signOut()
+    expect((await f.ctx.studioCloud.getState()).origin).toBe(f.origin)
   })
 })

@@ -10,6 +10,7 @@ afterEach(cleanup)
 
 function mockOperations(overrides: Partial<StudioOperations> = {}): StudioOperations {
   return {
+    studioConfigureServer: vi.fn(),
     studioConfigureSync: vi.fn(),
     studioUnlockCredentials: vi.fn(),
     studioLogin: vi.fn(),
@@ -41,17 +42,19 @@ it('requires explicit service credentials and does not upload data when opening'
     <StudioLoginDialog
       t={key => en[key]}
       onClose={vi.fn()}
-      snapshot={{ state: null, visible: true, error: false }}
+      snapshot={{ state: { origin: 'http://cloud.example.test', identity: null, phase: 'signed-out',
+        usedBytes: null, quotaBytes: null, pending: 0 }, visible: true, error: false }}
       {...mockOperations({ studioLogin })}
     />,
   )
   expect(screen.getByText(en.studioLocalDescription)).toBeTruthy()
   expect(studioLogin).not.toHaveBeenCalled()
-  fireEvent.change(screen.getByLabelText(en.studioOrigin), { target: { value: 'https://cloud.example.test' } })
+  expect(screen.queryByLabelText(en.studioOrigin)).toBeNull()
+  expect(screen.queryByRole('checkbox')).toBeNull()
   fireEvent.change(screen.getByLabelText(en.studioUsername), { target: { value: 'personal' } })
   fireEvent.change(screen.getByLabelText(en.studioPassword), { target: { value: 'test-password' } })
   fireEvent.click(screen.getByRole('button', { name: en.signIn }))
-  expect(studioLogin).toHaveBeenCalledWith('https://cloud.example.test', 'personal', 'test-password', '', false)
+  expect(studioLogin).toHaveBeenCalledWith('http://cloud.example.test', 'personal', 'test-password', '', true)
 })
 
 for (const [language,copy] of [['en',en],['zh',zh]] as const) it(`records the Studio account consent form in ${language}`, async()=>{
