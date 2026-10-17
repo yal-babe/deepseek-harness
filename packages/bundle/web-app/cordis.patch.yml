@@ -64,6 +64,10 @@
     - id: studio-cloud
       name: '@deepseek-ai/dsh-studio-cloud'
 
+    # Built-in Studio Pet: Host fold of Session events served on the `pet` Remote.
+    - id: pet
+      name: '@deepseek-ai/dsh-pet'
+
     - id: sync-outbox
       name: '@deepseek-ai/dsh-sync-outbox'
       disabled: !!js "ctx.get('profileContext')?.name !== 'desktop'"
@@ -360,6 +364,10 @@
 
     - id: ui-approval
       name: '@deepseek-ai/dsh-client-ui-approval'
+
+    # Studio Pet character: in-page overlay, and the whole page inside the Desktop pet window.
+    - id: ui-pet
+      name: '@deepseek-ai/dsh-client-ui-pet'
 
     - id: ui-chat
       name: '@deepseek-ai/dsh-client-ui-chat'
