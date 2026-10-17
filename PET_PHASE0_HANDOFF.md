@@ -61,8 +61,9 @@ pnpm exec vitest run packages/pet/pet packages/client/ui-pet apps/desktop/tests/
 - 内嵌帧约 300 KB base64 进入客户端 bundle。
 - THIRD_PARTY_NOTICES 生成器不扫描资源文件，打包声明中缺少鲸尾女仆许可证（许可证文件随源码提供）。
 - 会话状态每个会话只暴露优先级最高的待交互项，同一会话并行的第二个审批要等第一个结束。
-- Web 隐藏后没有页内重新显示入口；Desktop 只能用快捷键重新显示；可见状态与窗口位置不持久化。
-- `openMain` 只聚焦主窗口，不跳到对应会话。
+- macOS 没有菜单栏/Dock 菜单的显示桌宠入口（Windows 有托盘；两端都有快捷键与设置页）。
+- Windows 上 `dsh://session/<id>` 深链经第二实例启动时不会被处理（`second-instance` 拿不到 argv）。
+- 拖动、托盘、会话跳转、设置页均未在真机上运行验证。
 - 基础分支上 `gen-cordis-catalog`、`gen-cordis-api`、`gen-doc-graphs`、`gen-persistence-catalog` 本就失败（plugin-catalog、studio-cloud 的问题），`gen-module-graph` 也有大量无关漂移；因此只手工保留了生成文件中与 pet 相关的部分，`docs/module-graph*.md` 与文档图未更新。
 - `verify-no-unknown-casts`、`verify-package-dependencies` 在基础分支上已有无关违规；新代码未引入新的违规。
 
@@ -78,8 +79,9 @@ Phase 0 提交完成后，MVP 工作在后续分支 `studio/pet-mvp` 上进行�
 | 右键菜单 | **已完成**：右键角色弹出菜单（快速提问、打开主窗口〔仅 Desktop〕、通知开关、勿扰 1 小时、隐藏），Escape 关闭，首项获得焦点（`Pet.tsx` 的 `PetMenu`） |
 | 系统通知 + 基础勿扰 | **已完成（基础版）**：默认关闭，从菜单开启并申请权限；新审批请求、会话完成/出错时通知（文档未聚焦时、不在勿扰时段内）；点击通知把应用切到前台。偏好按设备存 `localStorage`（`dsh-pet:preferences`），不同步。实现：`notifier.ts`（`diffNotices`、`mayNotify`、`watchNotices`、`browserNotifications`）、`preferences.ts`。未做：全屏/会议自动降级、按类别开关、提示音 |
 | Web 重新显示入口 | **已完成**：隐藏后页面角落留一个小鲸鱼按钮，点击即 `setVisible(true)` |
-| `dsh://session/<id>` 跳转（`openMain` 导航到会话） | 未做 |
-| 设置页 zh/en（含"限制在宠物中审批的工具"）、窗口位置持久化、托盘开关 | 未做。可见状态已由 Host `pet` 模块的 Config/`setVisible` 保存在 Host 内存中（Host 重启后回到 `visible` 配置值） |
+| `dsh://session/<id>` 跳转（`openMain` 导航到会话） | **已完成**（`a84eb3eb6`）：菜单"打开主窗口"打开桌宠焦点会话，审批/提问卡上的按钮打开该卡所属会话，点击系统通知打开对应会话。Desktop：桌宠 IPC `openMain(sessionId)` → 主进程校验 id（≤200 字符，`[\w.:-]`）→ 恢复/聚焦主窗口 → `dsh-pet:open-session` → 主窗口 `uiWorkspace.openSession`；macOS 的 `open-url` 也处理 `dsh://session/<id>`。Web：直接 `uiWorkspace.openSession`。未做：Windows 第二实例 argv 中的 `dsh://session/` 链接 |
+| 设置页 zh/en（含"限制在宠物中审批的工具"）、通知类别、可见状态持久化 | **已完成**（`6de3f7fd5`）：设置面板"桌宠"页（`settings.section` id `pet`，Web 与 Desktop 主窗口）。Host `pet` 的 `visible`、`restrictTools`、`restrictedTools`、`notifyWaiting/Success/Error` 是 volatile Config，经 `settings.update(entryId, …)` 写入 profile patch，Host 重启后保留；页面通过通用 `configForms` 编辑，无需新 Remote 方法。受限工具的审批卡不显示按钮，只提示并提供"打开主窗口"（默认不限制，D3）。设备级通知总开关仍在 `localStorage`，两个窗口通过 `storage` 事件同步 |
+| Desktop 托盘开关、窗口位置记忆 | **已完成**（`cd06650f2`）：Windows 托盘菜单"显示桌宠/隐藏桌宠"（经桌宠渲染进程改 Host `visible`，设置页与 Web 同步）；拖动角色（>4 px）移动窗口，主进程自己读鼠标位置；松手后限制在工作区内，按显示器布局保存到 userData `pet-window.json`（最多 8 种布局），显示器变化/重新显示时恢复，无有效记录回到右下角。macOS 暂无菜单栏开关 |
 | 内置宠物包 v2 目录结构（`whaletail-maid@1.0.0`）与开发开关加载本地包 | 未做 |
 | 删除原生 Helper 构建链 | 不适用（本仓库没有引入 Helper） |
 
