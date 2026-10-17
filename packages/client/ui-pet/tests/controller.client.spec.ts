@@ -35,6 +35,7 @@ function bench(bridge?: DesktopPetBridge, sink?: NotificationSink) {
     setVisible: vi.fn(async () => {}),
     acknowledge: vi.fn(async () => {}),
     bridge,
+    openSession: vi.fn(),
     preferences: new PetPreferenceStore(undefined),
     notifications: sink,
     now: () => 1000,
@@ -88,8 +89,9 @@ describe('PetController', () => {
   it('forwards hide, acknowledge, and Desktop window controls', async () => {
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'pet', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: () => () => {},
+      onOpenSession: () => () => {},
     }
-    const { controller, deps } = bench(bridge)
+    const { controller, deps, view } = bench(bridge)
     await controller.hide()
     expect(deps.setVisible).toHaveBeenCalledWith(false)
     await controller.show()
@@ -98,11 +100,19 @@ describe('PetController', () => {
     expect(deps.acknowledge).toHaveBeenCalledWith(S1)
     controller.openMain()
     controller.setInteractive(true)
-    expect(bridge.openMain).toHaveBeenCalledOnce()
+    expect(bridge.openMain).toHaveBeenCalledWith(undefined)
     expect(bridge.setInteractive).toHaveBeenCalledWith(true)
-    const web = bench().controller
-    web.openMain()
-    web.setInteractive(false)
+    view.set({ connected: true, snapshot: snapshot({ focusSessionId: S1, sessions: [sessionView(S1)] }) })
+    controller.openMain()
+    expect(bridge.openMain).toHaveBeenLastCalledWith(S1)
+    controller.openMain(S2)
+    expect(bridge.openMain).toHaveBeenLastCalledWith(S2)
+    const web = bench()
+    web.controller.openMain()
+    expect(web.deps.openSession).not.toHaveBeenCalled()
+    web.controller.openMain(S2)
+    expect(web.deps.openSession).toHaveBeenCalledWith(S2)
+    web.controller.setInteractive(false)
   })
 
   it('turns notifications on only after permission and manages the snooze', async () => {

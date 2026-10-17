@@ -93,7 +93,12 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
       role: new URLSearchParams(location.search).get(PET_WINDOW_QUERY) === '1' ? 'pet' : 'main',
       setInteractive: (interactive: boolean) => { ipcRenderer.send(PET_IPC.setInteractive, interactive) },
       setVisible: (visible: boolean) => { ipcRenderer.send(PET_IPC.setVisible, visible) },
-      openMain: () => { ipcRenderer.send(PET_IPC.openMain) },
+      openMain: (sessionId?: string) => { ipcRenderer.send(PET_IPC.openMain, sessionId) },
+      onOpenSession: (listener: (sessionId: string) => void) => {
+        const handle = (_event: unknown, sessionId: unknown): void => { if (typeof sessionId === 'string') listener(sessionId) }
+        ipcRenderer.on(PET_IPC.openSession, handle)
+        return () => { ipcRenderer.off(PET_IPC.openSession, handle) }
+      },
       onQuickAsk: (listener: () => void) => {
         const handle = (): void => { listener() }
         ipcRenderer.on(PET_IPC.quickAsk, handle)

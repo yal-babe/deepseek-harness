@@ -22,8 +22,19 @@ export interface DesktopPetBridge {
    * @param visible - Host visibility.
    */
   readonly setVisible: (visible: boolean) => void
-  /** Bring the main application window to the front. */
-  readonly openMain: () => void
+  /**
+   * Bring the main application window to the front.
+   * @param sessionId - Session the main window should show, when one is relevant.
+   */
+  readonly openMain: (sessionId?: string) => void
+  /**
+   * Observe Session requests the main process forwards to the main window
+   * (from the pet window or a `dsh://session/<id>` link). Present in both roles;
+   * only the main window receives requests.
+   * @param listener - called with the Session id to show.
+   * @returns unsubscribe.
+   */
+  readonly onOpenSession: (listener: (sessionId: string) => void) => () => void
   /**
    * Observe the global quick-ask shortcut.
    * @param listener - called each time the shortcut fires.

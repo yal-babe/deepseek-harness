@@ -15,8 +15,9 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-approval/client'
 import type {} from '@deepseek-ai/dsh-client-file-upload/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { SessionId } from '@deepseek-ai/dsh-session/types'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { PetController } from './controller.ts'
 import { browserNotifications, setDeviceNotify, watchNotices, type NotificationSink } from './notifier.ts'
@@ -91,6 +92,11 @@ function makeTransparent(): () => void {
   return () => { for (const element of targets) element.style.removeProperty('background') }
 }
 
+/** Show one Session through ui-workspace navigation when this document has it. */
+function openSessionIn(ctx: ClientContext, sessionId: SessionId): void {
+  ctx.get('uiWorkspace')?.openSession(sessionId)
+}
+
 function registerSettings(ctx: ClientContext, deps: {
   readonly desktop: boolean
   readonly preferences: PetPreferenceStore
@@ -128,6 +134,10 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => preferences.follow(window), 'ui-pet: preferences of other documents')
   const notifications = browserNotifications(globalThis)
   if (surface !== 'window') registerSettings(ctx, { desktop: bridge !== undefined, preferences, notifications })
+  if (bridge?.role === 'main') {
+    // Desktop main window: the pet window and `dsh://session/<id>` links ask it to show a Session.
+    ctx.effect(() => bridge.onOpenSession((sessionId) => { openSessionIn(ctx, SessionId(sessionId)) }), 'ui-pet: open Session requests')
+  }
   if (surface === 'none') return
   const pet = new PetStore(ctx.remote, signal => ctx.remote.pet.watch(signal))
   ctx.effect(() => {
@@ -142,6 +152,7 @@ export function apply(ctx: ClientContext): void {
     setVisible: async (visible) => { await ctx.remote.pet.setVisible(visible) },
     acknowledge: async (sessionId: SessionId) => { await ctx.remote.pet.acknowledge(sessionId) },
     bridge,
+    openSession: (sessionId) => { openSessionIn(ctx, sessionId) },
     preferences,
     notifications,
     now,
@@ -158,8 +169,8 @@ export function apply(ctx: ClientContext): void {
         title: t(`notify.${notice.kind}`, { toolName: notice.toolName ?? '' }),
         body: notice.title ?? t('notify.untitled'),
       }),
-      open: () => {
-        controller.openMain()
+      open: (notice) => {
+        controller.openMain(notice.sessionId)
         window.focus()
       },
     }), 'ui-pet: system notifications')

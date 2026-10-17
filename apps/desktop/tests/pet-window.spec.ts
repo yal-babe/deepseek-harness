@@ -1,6 +1,8 @@
 import type { IpcMainEvent } from 'electron'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DesktopPetWindow, PET_IPC, PET_QUICK_ASK_ACCELERATOR, petWindowUrl } from '../src/pet-window.ts'
+import {
+  DesktopPetWindow, PET_IPC, PET_QUICK_ASK_ACCELERATOR, PET_SESSION_ID_MAX_LENGTH, petSessionId, petWindowUrl, sessionDeepLink,
+} from '../src/pet-window.ts'
 
 const native = await vi.hoisted(async () => {
   const { EventEmitter } = await import('node:events')
@@ -74,6 +76,27 @@ function ipcBench(pet: DesktopPetWindow) {
 describe('petWindowUrl', () => {
   it('marks the application document', () => {
     expect(petWindowUrl('dsh-app://app/')).toBe('dsh-app://app/?dsh-pet-window=1')
+  })
+})
+
+describe('Session ids from the pet and deep links', () => {
+  it('accepts only bounded printable ids', () => {
+    expect(petSessionId('2026-10-17_abc:1.x')).toBe('2026-10-17_abc:1.x')
+    expect(petSessionId('')).toBeUndefined()
+    expect(petSessionId('a/b')).toBeUndefined()
+    expect(petSessionId(42)).toBeUndefined()
+    expect(petSessionId('a'.repeat(PET_SESSION_ID_MAX_LENGTH + 1))).toBeUndefined()
+  })
+
+  it('reads dsh://session/<id> and nothing else', () => {
+    expect(sessionDeepLink('dsh://session/abc-1')).toBe('abc-1')
+    expect(sessionDeepLink('dsh://session/abc-1/')).toBe('abc-1')
+    expect(sessionDeepLink('dsh://session/')).toBeUndefined()
+    expect(sessionDeepLink('dsh://session/a/b')).toBeUndefined()
+    expect(sessionDeepLink('dsh://open')).toBeUndefined()
+    expect(sessionDeepLink('https://session/abc')).toBeUndefined()
+    expect(sessionDeepLink('not a url')).toBeUndefined()
+    expect(sessionDeepLink('dsh://session/%E0%A4%A')).toBeUndefined()
   })
 })
 
@@ -185,10 +208,14 @@ describe('DesktopPetWindow', () => {
     expect(fake.hide).toHaveBeenCalled()
     send(PET_IPC.setVisible, 1, fake.webContents)
     send(PET_IPC.openMain, undefined, fake.webContents)
-    expect(openMain).toHaveBeenCalledOnce()
+    expect(openMain).toHaveBeenCalledWith(undefined)
     send(PET_IPC.openMain, undefined, { id: 999, mainFrame: {} })
     send(PET_IPC.openMain, undefined, fake.webContents, { url: 'child-frame' })
     expect(openMain).toHaveBeenCalledOnce()
+    send(PET_IPC.openMain, 'sess-1', fake.webContents)
+    expect(openMain).toHaveBeenLastCalledWith('sess-1')
+    send(PET_IPC.openMain, '../etc', fake.webContents)
+    expect(openMain).toHaveBeenLastCalledWith(undefined)
     remove()
     expect(handlers.size).toBe(0)
   })

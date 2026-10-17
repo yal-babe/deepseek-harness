@@ -6,6 +6,8 @@
  * WebSocket through the cookie allowlist that `owns()` extends). Pointer input
  * passes through to the desktop until the renderer reports the cursor over the
  * character or bubble. The global quick-ask shortcut is registered here.
+ * "Open main window" may carry a Session id; the main process forwards it to
+ * the main window renderer, which shows that Session.
  */
 import { BrowserWindow, globalShortcut, screen, type IpcMain, type IpcMainEvent } from 'electron'
 import { PET_IPC, PET_WINDOW_QUERY } from './ipc.ts'
@@ -29,14 +31,50 @@ export function petWindowUrl(applicationUrl: string): string {
   return url.href
 }
 
+/** Longest Session id accepted from the pet renderer or a deep link. */
+export const PET_SESSION_ID_MAX_LENGTH = 200
+
+/**
+ * Validate a Session id received over IPC or a deep link. Session ids are
+ * opaque to Desktop; only their transport form is checked.
+ * @param value - untrusted value.
+ * @returns the id, or `undefined` when it is not a non-empty printable string without separators.
+ */
+export function petSessionId(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value.length === 0 || value.length > PET_SESSION_ID_MAX_LENGTH) return undefined
+  return /^[\w.:-]+$/u.test(value) ? value : undefined
+}
+
+/**
+ * Read the Session of a `dsh://session/<id>` deep link.
+ * @param url - URL handed to the application.
+ * @returns the Session id, or `undefined` for any other URL.
+ */
+export function sessionDeepLink(url: string): string | undefined {
+  if (!URL.canParse(url)) return undefined
+  const parsed = new URL(url)
+  if (parsed.protocol !== 'dsh:' || parsed.hostname !== 'session') return undefined
+  const [only, ...rest] = parsed.pathname.split('/').filter(segment => segment.length > 0)
+  if (only === undefined || rest.length > 0) return undefined
+  try {
+    return petSessionId(decodeURIComponent(only))
+  } catch (_malformed) {
+    // A malformed percent escape names no Session.
+    return undefined
+  }
+}
+
 /** Collaborators supplied by the main process. */
 export interface DesktopPetWindowOptions {
   /** Application preload shared with the main window. */
   readonly preload: string
   /** Main window document URL. */
   readonly applicationUrl: string
-  /** Bring the main application window forward. */
-  readonly openMain: () => void
+  /**
+   * Bring the main application window forward.
+   * @param sessionId - validated Session to show there, when the pet named one.
+   */
+  readonly openMain: (sessionId: string | undefined) => void
 }
 
 /** Owns the pet BrowserWindow, its IPC, and the global shortcut. */
@@ -175,7 +213,7 @@ export class DesktopPetWindow {
     const listeners: ReadonlyArray<readonly [string, (event: IpcMainEvent, value: unknown) => void]> = [
       [PET_IPC.setInteractive, guard((value) => { if (typeof value === 'boolean') this.setInteractive(value) })],
       [PET_IPC.setVisible, guard((value) => { if (typeof value === 'boolean') this.setVisible(value) })],
-      [PET_IPC.openMain, guard(() => { this.options.openMain() })],
+      [PET_IPC.openMain, guard((value) => { this.options.openMain(petSessionId(value)) })],
     ]
     for (const [channel, listener] of listeners) ipc.on(channel, listener)
     return () => { for (const [channel, listener] of listeners) ipc.removeListener(channel, listener) }

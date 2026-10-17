@@ -306,10 +306,10 @@ export function PetPanel(
       </div>
       {first !== undefined && (
         <ApprovalCard t={t} pending={first} local={matchApproval(first, approvals)} more={pending.length - 1}
-          decide={(approval, outcome) => controller.decide(approval, outcome)} openMain={() => { controller.openMain() }} />
+          decide={(approval, outcome) => controller.decide(approval, outcome)} openMain={() => { controller.openMain(first.sessionId) }} />
       )}
       {first === undefined && question !== undefined && (
-        <QuestionCard t={t} question={question} openMain={() => { controller.openMain() }}
+        <QuestionCard t={t} question={question} openMain={() => { controller.openMain(question.sessionId) }}
           answer={(target, selections) => controller.answerQuestion(target, selections)} />
       )}
       <QuickAsk t={t} controller={controller} focusRequest={focusRequest} />

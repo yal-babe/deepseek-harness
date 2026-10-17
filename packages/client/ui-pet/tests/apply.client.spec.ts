@@ -35,6 +35,7 @@ function fakeConfigForms(served: boolean) {
 
 async function bench(
   search: string, bridge?: DesktopPetBridge, extraFrames?: PetSnapshot[], configForms?: ReturnType<typeof fakeConfigForms>,
+  uiWorkspace?: { openSession: (sessionId: string) => void },
 ) {
   window.history.replaceState(null, '', `/${search}`)
   if (bridge === undefined) Reflect.deleteProperty(globalThis, 'dshDesktopPet')
@@ -73,6 +74,7 @@ async function bench(
     register: (options: Registration['options'], component: unknown) => { registrations.push({ options, component }); return () => {} },
   } as never)
   if (configForms !== undefined) ctx.provide('configForms', configForms as never)
+  if (uiWorkspace !== undefined) ctx.provide('uiWorkspace', uiWorkspace as never)
   const fiber = ctx.plugin({ inject, apply })
   await fiber.await()
   await vi.waitFor(() => { expect(remote.$stream).toHaveBeenCalled() }, { timeout: 100 }).catch(() => {})
@@ -120,6 +122,7 @@ describe('ui-pet apply', () => {
   it('renders only the pet in the Desktop pet window and follows Host visibility', async () => {
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'pet', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
+      onOpenSession: vi.fn(() => () => {}),
     }
     const { registrations, fiber } = await bench('?dsh-pet-window=1', bridge)
     expect(registrations.map(entry => [entry.options.name, entry.options.priority])).toEqual([['root', -1]])
@@ -143,10 +146,47 @@ describe('ui-pet apply', () => {
   it('stays out of the Desktop main window', async () => {
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
+      onOpenSession: vi.fn(() => () => {}),
     }
     const { registrations, remote } = await bench('', bridge)
     expect(registrations).toEqual([])
     expect(remote.$stream).not.toHaveBeenCalled()
+  })
+
+  it('shows Sessions the main process forwards to the Desktop main window', async () => {
+    let forward: ((sessionId: string) => void) | undefined
+    const main: DesktopPetBridge = {
+      protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
+      onOpenSession: vi.fn((listener: (sessionId: string) => void) => { forward = listener; return () => {} }),
+    }
+    const uiWorkspace = { openSession: vi.fn() }
+    await bench('', main, undefined, undefined, uiWorkspace)
+    forward?.('s9')
+    expect(uiWorkspace.openSession).toHaveBeenCalledWith('s9')
+    await bench('', main)
+    expect(() => { forward?.('s9') }).not.toThrow()
+  })
+
+  it('opens the notified Session in the page when a Web notification is clicked', async () => {
+    class FakeNotification {
+      static permission = 'granted' as const
+      static requestPermission = async () => 'granted' as const
+      static last: FakeNotification | undefined
+      onclick: ((event: Event) => unknown) | null = null
+      constructor() { FakeNotification.last = this }
+    }
+    vi.stubGlobal('Notification', FakeNotification)
+    vi.spyOn(window, 'focus').mockImplementation(() => {})
+    window.localStorage.setItem('dsh-pet:preferences', '{"notify":true}')
+    const uiWorkspace = { openSession: vi.fn() }
+    const frames = [snapshot({ sessions: [sessionView(S1, { state: 'WORKING' })] }), snapshot({ sessions: [sessionView(S1, { state: 'ERROR' })] })]
+    const { fiber } = await bench('', undefined, frames, undefined, uiWorkspace)
+    await vi.waitFor(() => { expect(FakeNotification.last).toBeDefined() })
+    FakeNotification.last?.onclick?.(new Event('click'))
+    expect(uiWorkspace.openSession).toHaveBeenCalledWith(S1)
+    await fiber.dispose()
+    window.localStorage.removeItem('dsh-pet:preferences')
+    vi.unstubAllGlobals()
   })
 
   it('registers the settings page on Web and in the Desktop main window while the Host serves the pet entry', async () => {
@@ -164,6 +204,7 @@ describe('ui-pet apply', () => {
     await first.fiber.dispose()
     const main: DesktopPetBridge = {
       protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
+      onOpenSession: vi.fn(() => () => {}),
     }
     const second = await bench('', main, undefined, fakeConfigForms(true))
     expect(second.registrations.map(entry => entry.options.name)).toEqual(['settings.section'])

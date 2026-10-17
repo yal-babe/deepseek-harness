@@ -83,7 +83,7 @@ Windows 在整个运行期间常驻托盘图标。悬停提示为产品名，单
 
 ## 桌宠窗口
 
-工作区打开后，Desktop 还会打开 Studio 桌宠窗口：位于主显示器工作区右下角的 340 × 560 透明、无边框、置顶窗口，不出现在任务栏。它以 `?dsh-pet-window=1` 加载同一个应用文档，因此复用主窗口的 Host 连接、cookie 与 preload；随后 [ui-pet](../../packages/client/ui-pet/README.zh.md) 插件只渲染角色。窗口除角色与气泡区域外忽略鼠标输入。`CommandOrControl+Shift+Space` 注册为全局快捷键，用于显示桌宠并打开快速提问；注册失败只记录警告。`DSH_DESKTOP_PET=0` 可禁用该窗口。当前是 Phase 0：没有托盘开关，也不会记住窗口位置。
+工作区打开后，Desktop 还会打开 Studio 桌宠窗口：位于主显示器工作区右下角的 340 × 560 透明、无边框、置顶窗口，不出现在任务栏。它以 `?dsh-pet-window=1` 加载同一个应用文档，因此复用主窗口的 Host 连接、cookie 与 preload；随后 [ui-pet](../../packages/client/ui-pet/README.zh.md) 插件只渲染角色。窗口除角色与气泡区域外忽略鼠标输入。`CommandOrControl+Shift+Space` 注册为全局快捷键，用于显示桌宠并打开快速提问；注册失败只记录警告。`DSH_DESKTOP_PET=0` 可禁用该窗口。桌宠请求打开主窗口时，Desktop 会恢复、显示并聚焦主窗口，并在工作区已打开时通知页面打开哪个会话；主进程只接受最长 200 个字符、仅由字母、数字、`_`、`.`、`:`、`-` 组成的会话 id。在 macOS 上，`dsh://session/<id>` 起同样作用。当前是 Phase 0：没有托盘开关，也不会记住窗口位置。
 
 <a id="key-technical-decisions"></a>
 

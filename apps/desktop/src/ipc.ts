@@ -39,6 +39,8 @@ export const PET_IPC = {
   setVisible: 'dsh-pet:set-visible',
   openMain: 'dsh-pet:open-main',
   quickAsk: 'dsh-pet:quick-ask',
+  /** Main process to the main window: show one Session (payload: Session id). */
+  openSession: 'dsh-pet:open-session',
 } as const
 
 /** Query parameter the ui-pet Client reads to render only the pet. */

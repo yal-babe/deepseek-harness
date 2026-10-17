@@ -29,7 +29,7 @@ import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-vi
 import { installDesktopDirectoryPicker } from './directory-picker.ts'
 import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
-import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
+import { DESKTOP_IPC, PET_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
 import { readDeviceInfo } from './device-info.ts'
 import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
@@ -61,7 +61,7 @@ import { installDesktopShortcuts } from './keyboard.ts'
 import { DesktopUpdateOverlays } from './update-overlay.ts'
 import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
-import { DesktopPetWindow } from './pet-window.ts'
+import { DesktopPetWindow, sessionDeepLink } from './pet-window.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
 
 let focusPrimaryWindow = (): void => {}
@@ -411,13 +411,17 @@ async function main(): Promise<void> {
   const pet = new DesktopPetWindow({
     preload: appPreload,
     applicationUrl,
-    openMain: () => {
-      const window = mainWindow
-      if (window === undefined || window.isDestroyed()) return
-      window.show()
-      window.focus()
-    },
+    openMain: (sessionId) => { showMainSession(sessionId) },
   })
+  /** Focus the main window and, inside the workspace, ask its renderer to show one Session. */
+  function showMainSession(sessionId: string | undefined): void {
+    const window = mainWindow
+    if (window === undefined || window.isDestroyed()) return
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
+    if (sessionId !== undefined && enteredWorkspace) window.webContents.send(PET_IPC.openSession, sessionId)
+  }
   const removePetIpc = pet.installIpc(ipcMain)
   app.on('will-quit', () => { removePetIpc(); pet.dispose() })
   let hostUrl: string | undefined
@@ -1252,6 +1256,8 @@ async function main(): Promise<void> {
   app.on('open-url', (event, url) => {
     event.preventDefault()
     if (url === 'dsh://open' || url === 'dsh://open/') focusPrimaryWindow()
+    const sessionId = sessionDeepLink(url)
+    if (sessionId !== undefined) showMainSession(sessionId)
   })
 
   app.on('activate', (_event, hasVisibleWindows) => {

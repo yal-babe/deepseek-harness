@@ -35,6 +35,11 @@ export interface PetControllerDeps {
   readonly acknowledge: (sessionId: SessionId) => Promise<void>
   /** Desktop pet-window bridge, when present. */
   readonly bridge: DesktopPetBridge | undefined
+  /**
+   * Show one Session in this document's main view (Web, where the pet shares the page).
+   * @param sessionId - Session to show.
+   */
+  readonly openSession: (sessionId: SessionId) => void
   /** Device-local preferences. */
   readonly preferences: PetPreferenceStore
   /** System notifications, when the platform has them. */
@@ -173,9 +178,15 @@ export class PetController {
     this.deps.preferences.update({ snoozeUntil: undefined })
   }
 
-  /** Bring the Desktop main window forward; no-op on Web. */
-  openMain(): void {
-    this.deps.bridge?.openMain()
+  /**
+   * Bring the Desktop main window forward and show a Session there. On Web the
+   * pet shares the page, so only the Session navigation happens.
+   * @param sessionId - Session to show; defaults to the focused Session of the snapshot.
+   */
+  openMain(sessionId: SessionId | undefined = this.deps.view.getSnapshot().snapshot?.focusSessionId): void {
+    const bridge = this.deps.bridge
+    if (bridge !== undefined) bridge.openMain(sessionId)
+    else if (sessionId !== undefined) this.deps.openSession(sessionId)
   }
 
   /**

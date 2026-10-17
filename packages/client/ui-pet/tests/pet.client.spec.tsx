@@ -36,6 +36,7 @@ function controllerStub(view: ObservableSnapshot<PetViewState>, preferences: Pet
     setVisible: async () => {},
     acknowledge: async () => {},
     bridge: undefined,
+    openSession: () => {},
     preferences,
     notifications,
     now: () => Date.now(),
@@ -178,7 +179,7 @@ describe('PetOverlay', () => {
     expect(screen.getByText('approvalRestricted')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'allowOnce' })).toBeNull()
     fireEvent.click(screen.getAllByRole('button', { name: 'openMain' })[0]!)
-    expect(controller.openMain).toHaveBeenCalled()
+    expect(controller.openMain).toHaveBeenCalledWith(S1)
   })
 
   it('points to the main window when this Client cannot answer', () => {
@@ -228,7 +229,7 @@ describe('QuestionCard', () => {
     render(<PetOverlay {...props} />)
     expect(screen.getByText('questionInMain')).toBeTruthy()
     fireEvent.click(screen.getAllByText('openMain')[0]!)
-    expect(controller.openMain).toHaveBeenCalled()
+    expect(controller.openMain).toHaveBeenCalledWith(S1)
     cleanup()
     const busy = setup({ connected: true, snapshot: snapshot({ pending: [hostPending('r', S1, 'bash', 'c1')] }) }, [local], [asked([branch])])
     render(<PetOverlay {...busy.props} />)
