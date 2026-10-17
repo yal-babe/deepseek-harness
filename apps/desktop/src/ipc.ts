@@ -41,6 +41,12 @@ export const PET_IPC = {
   quickAsk: 'dsh-pet:quick-ask',
   /** Main process to the main window: show one Session (payload: Session id). */
   openSession: 'dsh-pet:open-session',
+  /** Main process to the pet window: set the Host "show desktop pet" value (payload: boolean); the tray uses it. */
+  requestVisible: 'dsh-pet:request-visible',
+  /** Pet window to the main process: a character drag starts, moves, or ends; the main process reads the cursor itself. */
+  dragStart: 'dsh-pet:drag-start',
+  dragMove: 'dsh-pet:drag-move',
+  dragEnd: 'dsh-pet:drag-end',
 } as const
 
 /** Query parameter the ui-pet Client reads to render only the pet. */

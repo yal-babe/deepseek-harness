@@ -8,7 +8,7 @@ import { sendQuickAsk, type QuickAskDeps, type QuickAskOutcome, type QuickAskTar
 import { setDeviceNotify, type NotificationSink } from './notifier.ts'
 import { PET_SNOOZE_MS, type PetPreferences, type PetPreferenceStore } from './preferences.ts'
 import type { PetViewState } from './store.ts'
-import type { DesktopPetBridge } from './surface.ts'
+import type { DesktopPetBridge, PetDragPhase } from './surface.ts'
 
 /** Session status source slice: `uiSession.sessionStatus`. */
 export type SessionStatusSource = ObservableSnapshot<
@@ -195,5 +195,13 @@ export class PetController {
    */
   setInteractive(interactive: boolean): void {
     this.deps.bridge?.setInteractive(interactive)
+  }
+
+  /**
+   * Move the Desktop pet window with a character drag; no-op elsewhere.
+   * @param phase - drag phase.
+   */
+  drag(phase: PetDragPhase): void {
+    this.deps.bridge?.drag(phase)
   }
 }

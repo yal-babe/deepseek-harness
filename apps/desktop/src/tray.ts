@@ -12,6 +12,19 @@ export interface DesktopTrayOptions {
   readonly open: () => void
   /** Request quit through the same confirmation as every other quit entry. */
   readonly quit: () => void
+  /** Studio Pet toggle; omitted when the pet window is disabled. */
+  readonly pet?: DesktopTrayPet | undefined
+}
+
+/** Studio Pet state and action behind the tray's Show / Hide desktop pet entry. */
+export interface DesktopTrayPet {
+  /** Host "show desktop pet" value; `undefined` until the pet window reports it, which disables the entry. */
+  readonly visible: () => boolean | undefined
+  /**
+   * Change the Host value.
+   * @param visible - wanted visibility.
+   */
+  readonly setVisible: (visible: boolean) => void
 }
 
 /** Tray icon present for the whole run, not only while the window is hidden. */
@@ -32,8 +45,15 @@ export class DesktopTray {
     if (tray === undefined) return
     const { messages } = this.options.locale()
     tray.setToolTip(messages.aboutProduct)
+    const pet = this.options.pet
+    const petVisible = pet?.visible()
     tray.setContextMenu(Menu.buildFromTemplate([
       { label: messages.openApplication, click: () => { this.options.open() } },
+      ...pet === undefined ? [] : [{
+        label: petVisible === false ? messages.showPet : messages.hidePet,
+        enabled: petVisible !== undefined,
+        click: () => { pet.setVisible(petVisible === false) },
+      }],
       { type: 'separator' },
       { label: messages.quitApplication, click: () => { this.options.quit() } },
     ]))

@@ -24,7 +24,7 @@ Browser half of the built-in Studio Pet. It mirrors the Host [`pet`](../../pet/p
 <a id="use-this-package"></a>
 ## Use this package
 
-The web-app bundle mounts this plugin with the Host `pet` module. Opening any Web page shows the character in the bottom-right corner. Append `?dsh-pet-window=1` to preview the pet-window surface in a browser. Desktop opens a separate transparent always-on-top window on that URL. The Desktop main window then shows no in-page character. `CommandOrControl+Shift+Space` opens the quick ask from anywhere and shows the pet again after it was hidden.
+The web-app bundle mounts this plugin with the Host `pet` module. Opening any Web page shows the character in the bottom-right corner. Append `?dsh-pet-window=1` to preview the pet-window surface in a browser. Desktop opens a separate transparent always-on-top window on that URL. The Desktop main window then shows no in-page character. In the pet window, dragging the character more than 4 px moves the window instead of opening the bubble, and the Desktop tray can show or hide the pet through the same Host setting. `CommandOrControl+Shift+Space` opens the quick ask from anywhere and shows the pet again after it was hidden.
 
 Right-click the character for its menu: Quick ask, Open main window (Desktop only), notifications on or off, do not disturb for one hour, and Hide pet. Escape closes the menu. Open main window brings the Desktop main window forward and opens the Session the pet is showing; the Open main window buttons on approval and question cards open that card's Session. On Web, where there is no separate window, those card buttons open the Session in the current page.
 
@@ -69,9 +69,9 @@ None; a quick ask is an ordinary user prompt.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Phase 0 scope** — no drag, touch reactions, sounds, talking state, or character packs; the frame set is a small embedded subset.
+- **MVP scope** — no touch reactions, sounds, or talking state; dragging moves only the Desktop pet window, and the Web character stays in its corner. The frame set is a small embedded subset.
 - **One approval per Session** — Session status exposes the highest-precedence pending interaction, so a second parallel approval in the same Session is answered in the main window.
-- **Re-show entry points are minimal** — hiding leaves a small whale handle in the Web page corner; Desktop has only the global shortcut until a tray toggle exists.
+- **Re-show entry points** — hiding leaves a small whale handle in the Web page corner. Desktop offers the global shortcut, the Settings page, and on Windows the tray; macOS has no menu-bar entry yet.
 
 <a id="dev-note"></a>
 ### Dev Note

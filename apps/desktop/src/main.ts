@@ -62,6 +62,7 @@ import { DesktopUpdateOverlays } from './update-overlay.ts'
 import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
 import { DesktopPetWindow, sessionDeepLink } from './pet-window.ts'
+import { PetPositionStore } from './pet-position.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
 
 let focusPrimaryWindow = (): void => {}
@@ -412,6 +413,8 @@ async function main(): Promise<void> {
     preload: appPreload,
     applicationUrl,
     openMain: (sessionId) => { showMainSession(sessionId) },
+    positions: new PetPositionStore(join(app.getPath('userData'), 'pet-window.json')),
+    onVisibleChange: () => { tray?.relabel() },
   })
   /** Focus the main window and, inside the workspace, ask its renderer to show one Session. */
   function showMainSession(sessionId: string | undefined): void {
@@ -1018,7 +1021,8 @@ async function main(): Promise<void> {
     // The tray is the way back to a hidden window; without it, relaunching the application still focuses it.
     try {
       tray = new DesktopTray({ iconPath: trayIconPath, locale: currentDesktopLocale,
-        open: () => { focusPrimaryWindow() }, quit: () => { app.quit() } })
+        open: () => { focusPrimaryWindow() }, quit: () => { app.quit() },
+        pet: petEnabled ? { visible: () => pet.visible, setVisible: (visible) => { pet.requestVisible(visible) } } : undefined })
     } catch (error) { console.warn('desktop tray: unavailable', error) }
   }
   const backgroundNotice = process.platform === 'win32'

@@ -187,6 +187,10 @@ export function apply(ctx: ClientContext): void {
       ctx.effect(() => pet.store.subscribe(() => {
         bridge.setVisible(isPetVisible(pet.store.getSnapshot()))
       }), 'ui-pet: Desktop window visibility')
+      ctx.effect(() => bridge.onVisibleRequest((visible) => {
+        // A failed write keeps the old Host value; the window and the tray label keep following it.
+        void (visible ? controller.show() : controller.hide()).catch(() => {})
+      }), 'ui-pet: Desktop tray visibility requests')
     }
     const onQuickAsk = (listener: () => void): (() => void) => bridge?.onQuickAsk(listener) ?? (() => {})
     // Lower priority than ui-layout's AppFrame (0): this document renders only the pet.

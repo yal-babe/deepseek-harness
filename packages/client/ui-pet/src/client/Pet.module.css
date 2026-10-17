@@ -206,3 +206,8 @@
 .restore:focus-visible {
   opacity: 1;
 }
+
+/* Pointer moves on the Desktop character drag the window instead of scrolling. */
+.window .character {
+  touch-action: none;
+}

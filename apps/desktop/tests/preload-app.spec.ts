@@ -254,3 +254,45 @@ it('forwards browser guest input only for the focused live webview lease', async
   expect(listener).toHaveBeenCalledOnce()
   off()
 })
+
+it('exposes the Studio Pet bridge with validated main-process messages', async () => {
+  vi.stubGlobal('location', new URL('dsh-app://app/?dsh-pet-window=1'))
+  await import('../src/preload-app.ts')
+  const pet = electron.contextBridge.exposeInMainWorld.mock.calls.find(([name]) => name === 'dshDesktopPet')?.[1] as {
+    role: string
+    setInteractive(on: boolean): void
+    setVisible(on: boolean): void
+    openMain(sessionId?: string): void
+    drag(phase: 'start' | 'move' | 'end'): void
+    onOpenSession(listener: (sessionId: string) => void): () => void
+    onQuickAsk(listener: () => void): () => void
+    onVisibleRequest(listener: (visible: boolean) => void): () => void
+  }
+  expect(pet.role).toBe('pet')
+  pet.setInteractive(true)
+  pet.setVisible(false)
+  pet.openMain('s1')
+  pet.drag('start')
+  pet.drag('move')
+  pet.drag('end')
+  expect(electron.ipcRenderer.send.mock.calls).toEqual([
+    ['dsh-pet:set-interactive', true], ['dsh-pet:set-visible', false], ['dsh-pet:open-main', 's1'],
+    ['dsh-pet:drag-start'], ['dsh-pet:drag-move'], ['dsh-pet:drag-end'],
+  ])
+  const handler = (channel: string) =>
+    electron.ipcRenderer.on.mock.calls.find(([name]) => name === channel)?.[1] as (...args: unknown[]) => void
+  const opened = vi.fn()
+  const asked = vi.fn()
+  const requested = vi.fn()
+  const offs = [pet.onOpenSession(opened), pet.onQuickAsk(asked), pet.onVisibleRequest(requested)]
+  handler('dsh-pet:open-session')({}, 's2')
+  handler('dsh-pet:open-session')({}, 3)
+  handler('dsh-pet:quick-ask')({})
+  handler('dsh-pet:request-visible')({}, true)
+  handler('dsh-pet:request-visible')({}, 'yes')
+  expect(opened.mock.calls).toEqual([['s2']])
+  expect(asked).toHaveBeenCalledOnce()
+  expect(requested.mock.calls).toEqual([[true]])
+  for (const off of offs) off()
+  expect(electron.ipcRenderer.off).toHaveBeenCalledTimes(3)
+})

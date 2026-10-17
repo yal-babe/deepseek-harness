@@ -90,6 +90,7 @@ describe('PetController', () => {
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'pet', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: () => () => {},
       onOpenSession: () => () => {},
+      onVisibleRequest: () => () => {}, drag: vi.fn(),
     }
     const { controller, deps, view } = bench(bridge)
     await controller.hide()
@@ -107,6 +108,8 @@ describe('PetController', () => {
     expect(bridge.openMain).toHaveBeenLastCalledWith(S1)
     controller.openMain(S2)
     expect(bridge.openMain).toHaveBeenLastCalledWith(S2)
+    controller.drag('start')
+    expect(bridge.drag).toHaveBeenCalledWith('start')
     const web = bench()
     web.controller.openMain()
     expect(web.deps.openSession).not.toHaveBeenCalled()

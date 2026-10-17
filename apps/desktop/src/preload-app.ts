@@ -104,6 +104,14 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
         ipcRenderer.on(PET_IPC.quickAsk, handle)
         return () => { ipcRenderer.off(PET_IPC.quickAsk, handle) }
       },
+      onVisibleRequest: (listener: (visible: boolean) => void) => {
+        const handle = (_event: unknown, visible: unknown): void => { if (typeof visible === 'boolean') listener(visible) }
+        ipcRenderer.on(PET_IPC.requestVisible, handle)
+        return () => { ipcRenderer.off(PET_IPC.requestVisible, handle) }
+      },
+      drag: (phase: 'start' | 'move' | 'end') => {
+        ipcRenderer.send(phase === 'start' ? PET_IPC.dragStart : phase === 'move' ? PET_IPC.dragMove : PET_IPC.dragEnd)
+      },
     })
   }
   contextBridge.exposeInMainWorld('dshPlatform', {

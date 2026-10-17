@@ -1,7 +1,7 @@
 import type { MenuItemConstructorOptions } from 'electron'
 import { afterEach, expect, it, vi } from 'vitest'
 import { resolveDesktopLocale } from '../src/locale.ts'
-import { DesktopTray } from '../src/tray.ts'
+import { DesktopTray, type DesktopTrayPet } from '../src/tray.ts'
 
 const native = await vi.hoisted(async () => {
   const { EventEmitter } = await import('node:events')
@@ -27,11 +27,11 @@ vi.mock('electron', () => ({
 
 afterEach(() => { native.trays.length = 0; native.menus.length = 0; vi.clearAllMocks() })
 
-function setup(locale = 'en') {
+function setup(locale = 'en', pet?: DesktopTrayPet) {
   let current = resolveDesktopLocale(locale)
   const open = vi.fn()
   const quit = vi.fn()
-  const tray = new DesktopTray({ iconPath: 'C:/app/resources/tray.ico', locale: () => current, open, quit })
+  const tray = new DesktopTray({ iconPath: 'C:/app/resources/tray.ico', locale: () => current, open, quit, pet })
   return { tray, open, quit, native: native.trays[0]!, setLocale: (next: string) => { current = resolveDesktopLocale(next) } }
 }
 
@@ -69,4 +69,23 @@ it('relabels the menu in the current locale and ignores relabel after disposal',
   expect(f.native.destroy).toHaveBeenCalledOnce()
   f.tray.relabel()
   expect(native.menus).toHaveLength(2)
+})
+
+it('offers a Show / Hide desktop pet entry that follows the reported visibility', () => {
+  let visible: boolean | undefined
+  const setVisible = vi.fn()
+  const f = setup('zh', { visible: () => visible, setVisible })
+  const entry = (index: number) => native.menus[index]![1] as { label: string; enabled: boolean; click: () => void }
+  expect(labels(native.menus[0]!)).toEqual(['打开 DSH Studio', '隐藏桌宠', 'separator', '退出 DSH Studio'])
+  expect(entry(0).enabled).toBe(false)
+  visible = true
+  f.tray.relabel()
+  expect(entry(1)).toMatchObject({ label: '隐藏桌宠', enabled: true })
+  entry(1).click()
+  expect(setVisible).toHaveBeenLastCalledWith(false)
+  visible = false
+  f.tray.relabel()
+  expect(entry(2).label).toBe('显示桌宠')
+  entry(2).click()
+  expect(setVisible).toHaveBeenLastCalledWith(true)
 })

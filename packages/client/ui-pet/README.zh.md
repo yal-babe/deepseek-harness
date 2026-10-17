@@ -24,7 +24,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 页面，右下角即显示角色。在 URL 后加 `?dsh-pet-window=1` 可在浏览器中预览桌宠窗口界面。Desktop 在该 URL 上打开一个独立的透明置顶窗口，此时 Desktop 主窗口不再显示页内角色。`CommandOrControl+Shift+Space` 可在任何地方打开快速提问，并在桌宠被隐藏后重新显示它。
+web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 页面，右下角即显示角色。在 URL 后加 `?dsh-pet-window=1` 可在浏览器中预览桌宠窗口界面。Desktop 在该 URL 上打开一个独立的透明置顶窗口，此时 Desktop 主窗口不再显示页内角色。在桌宠窗口中，拖动角色超过 4 px 会移动窗口而不是打开气泡；Desktop 托盘也可以通过同一个 Host 设置显示或隐藏桌宠。`CommandOrControl+Shift+Space` 可在任何地方打开快速提问，并在桌宠被隐藏后重新显示它。
 
 右键点击角色打开菜单：快速提问、打开主窗口（仅 Desktop）、开关系统通知、勿扰 1 小时、隐藏桌宠。按 Escape 关闭菜单。"打开主窗口"会把 Desktop 主窗口切到前台，并打开桌宠当前展示的会话；审批卡片与提问卡片上的"打开主窗口"按钮打开该卡片所属的会话。Web 上没有独立窗口，这些卡片按钮直接在当前页面打开该会话。
 
@@ -69,9 +69,9 @@ web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Phase 0 范围** — 没有拖动、触摸反应、声音、说话状态或角色包；帧集是内嵌的小子集。
+- **MVP 范围** — 没有触摸反应、声音或说话状态；拖动只移动 Desktop 桌宠窗口，Web 角色固定在角落。帧集是内嵌的小子集。
 - **每个会话一个审批** — 会话状态只暴露优先级最高的待交互项，同一会话中并行的第二个审批需在主窗口回答。
-- **重新显示入口很简单** — 隐藏后 Web 页面角落留一个小鲸鱼按钮；在有托盘开关之前，Desktop 只能用全局快捷键。
+- **重新显示入口** — 隐藏后 Web 页面角落留一个小鲸鱼按钮。Desktop 可以用全局快捷键、设置页，Windows 上还可以用托盘；macOS 暂无菜单栏入口。
 
 <a id="dev-note"></a>
 ### 开发备注

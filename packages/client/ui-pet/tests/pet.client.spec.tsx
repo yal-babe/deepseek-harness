@@ -49,6 +49,7 @@ function controllerStub(view: ObservableSnapshot<PetViewState>, preferences: Pet
     acknowledge: vi.spyOn(controller, 'acknowledge').mockResolvedValue(undefined),
     openMain: vi.spyOn(controller, 'openMain').mockImplementation(() => {}),
     setInteractive: vi.spyOn(controller, 'setInteractive').mockImplementation(() => {}),
+    drag: vi.spyOn(controller, 'drag').mockImplementation(() => {}),
     show: vi.spyOn(controller, 'show').mockResolvedValue(undefined),
     setNotify: vi.spyOn(controller, 'setNotify').mockResolvedValue(true),
     snooze: vi.spyOn(controller, 'snooze'),
@@ -316,6 +317,62 @@ describe('PetMenu', () => {
     fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
     fireEvent.click(screen.getByText('menu.openMain'))
     expect(controller.openMain).toHaveBeenCalled()
+  })
+
+  it('drags the Desktop pet window from the character', () => {
+    const capture = vi.fn()
+    HTMLElement.prototype.setPointerCapture = capture
+    const { props, controller } = setup({ connected: true, snapshot: snapshot() })
+    render(<PetWindowRoot {...props} onQuickAsk={() => () => {}} />)
+    const character = screen.getByRole('button', { name: /characterLabel/u })
+    fireEvent.pointerDown(character, { button: 0, screenX: 10, screenY: 10, pointerId: 3 })
+    fireEvent.pointerMove(character, { screenX: 30, screenY: 10 })
+    fireEvent.pointerUp(character)
+    expect(controller.drag.mock.calls).toEqual([['start'], ['move'], ['end']])
+    expect(capture).toHaveBeenCalledWith(3)
+  })
+})
+
+describe('PetCharacter drag', () => {
+  it('tells a click from a drag past the threshold and swallows the click that ends a drag', () => {
+    HTMLElement.prototype.setPointerCapture = vi.fn()
+    const onClick = vi.fn()
+    const onDrag = vi.fn()
+    render(<PetCharacter state="IDLE" label="pet" onClick={onClick} onDrag={onDrag} />)
+    const character = screen.getByRole('button', { name: 'pet' })
+    fireEvent.pointerMove(character, { screenX: 50, screenY: 50 })
+    fireEvent.pointerDown(character, { button: 2, screenX: 0, screenY: 0 })
+    fireEvent.pointerMove(character, { screenX: 50, screenY: 50 })
+    fireEvent.pointerDown(character, { button: 0, screenX: 0, screenY: 0 })
+    fireEvent.pointerMove(character, { screenX: 2, screenY: 2 })
+    fireEvent.pointerUp(character)
+    fireEvent.click(character)
+    expect(onDrag).not.toHaveBeenCalled()
+    expect(onClick).toHaveBeenCalledOnce()
+    fireEvent.pointerDown(character, { button: 0, screenX: 0, screenY: 0 })
+    fireEvent.pointerMove(character, { screenX: 0, screenY: 5 })
+    fireEvent.pointerMove(character, { screenX: 0, screenY: 9 })
+    fireEvent.pointerCancel(character)
+    expect(onDrag.mock.calls).toEqual([['start'], ['move'], ['move'], ['end']])
+    fireEvent.click(character)
+    expect(onClick).toHaveBeenCalledOnce()
+    fireEvent.click(character)
+    expect(onClick).toHaveBeenCalledTimes(2)
+    fireEvent.pointerDown(character, { button: 0, screenX: 0, screenY: 0 })
+    fireEvent.pointerMove(character, { screenX: 9, screenY: 0 })
+    fireEvent.pointerUp(character)
+    fireEvent.pointerDown(character, { button: 0, screenX: 0, screenY: 0 })
+    fireEvent.pointerUp(character)
+    fireEvent.click(character)
+    expect(onClick).toHaveBeenCalledTimes(3)
+  })
+
+  it('only clicks without a drag reporter', () => {
+    render(<PetCharacter state="IDLE" label="pet" />)
+    const character = screen.getByRole('button', { name: 'pet' })
+    fireEvent.pointerDown(character, { button: 0 })
+    fireEvent.click(character)
+    expect(character).toBeDefined()
   })
 })
 

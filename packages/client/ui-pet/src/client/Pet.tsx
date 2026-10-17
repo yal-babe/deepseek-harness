@@ -1,5 +1,5 @@
 /** Studio Pet character, bubble, approval card, and quick ask. */
-import { useEffect, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { PetAgentState, PetPendingApproval, PetSessionView } from '@deepseek-ai/dsh-pet/types'
@@ -8,11 +8,15 @@ import type { PetController, QuickAskChoice } from './controller.ts'
 import { petAnswerable, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
 import { clipFor, PET_FPS, PET_FRAMES } from './frames.ts'
 import { isSnoozed, type PetPreferences } from './preferences.ts'
+import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import css from './Pet.module.css'
 
 /** Milliseconds the approval buttons stay disabled after a card appears, against accidental clicks. */
 export const APPROVAL_ARM_DELAY_MS = 800
+
+/** Pointer travel in CSS pixels before pressing the character becomes a window drag instead of a click. */
+export const PET_DRAG_THRESHOLD_PX = 4
 
 /** Values the pet registrations inject. */
 export interface PetInjected {
@@ -40,16 +44,64 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * Animated character for one state; reduced motion shows the first frame only.
- * @param props - state and accessible label.
+ * Pointer handlers that turn a primary-button press moved past the threshold into a drag,
+ * and swallow the click that ends it.
+ * @param onDrag - drag reporter; `undefined` disables dragging.
+ * @param onClick - click action for presses that did not drag.
+ * @returns props for the character button.
  */
-export function PetCharacter({ state, label, onClick, onMenu }: {
+function useCharacterDrag(onDrag: ((phase: PetDragPhase) => void) | undefined, onClick: (() => void) | undefined) {
+  const press = useRef<{ readonly x: number; readonly y: number; dragging: boolean } | undefined>(undefined)
+  const dragged = useRef(false)
+  const finish = (): void => {
+    const current = press.current
+    press.current = undefined
+    if (current?.dragging !== true) return
+    dragged.current = true
+    onDrag?.('end')
+  }
+  return {
+    onClick: () => {
+      if (dragged.current) dragged.current = false
+      else onClick?.()
+    },
+    ...onDrag === undefined ? {} : {
+      onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+        dragged.current = false
+        if (event.button !== 0) return
+        press.current = { x: event.screenX, y: event.screenY, dragging: false }
+        event.currentTarget.setPointerCapture(event.pointerId)
+      },
+      onPointerMove: (event: PointerEvent<HTMLButtonElement>) => {
+        const current = press.current
+        if (current === undefined) return
+        if (!current.dragging) {
+          if (Math.hypot(event.screenX - current.x, event.screenY - current.y) < PET_DRAG_THRESHOLD_PX) return
+          current.dragging = true
+          onDrag('start')
+        }
+        onDrag('move')
+      },
+      onPointerUp: finish,
+      onPointerCancel: finish,
+    },
+  }
+}
+
+/**
+ * Animated character for one state; reduced motion shows the first frame only.
+ * @param props - state, accessible label, and the click, menu, and drag actions.
+ */
+export function PetCharacter({ state, label, onClick, onMenu, onDrag }: {
   readonly state: PetAgentState
   readonly label: string
   readonly onClick?: () => void
   readonly onMenu?: () => void
+  /** Desktop pet window only: dragging the character moves the window. */
+  readonly onDrag?: (phase: PetDragPhase) => void
 }): ReactNode {
   const frames = PET_FRAMES[clipFor(state)]
+  const pointer = useCharacterDrag(onDrag, onClick)
   const [index, setIndex] = useState(0)
   useEffect(() => {
     setIndex(0)
@@ -58,7 +110,7 @@ export function PetCharacter({ state, label, onClick, onMenu }: {
     return () => { clearInterval(timer) }
   }, [frames])
   return (
-    <button type="button" className={css.character} data-state={state} aria-label={label} title={label} onClick={onClick}
+    <button type="button" className={css.character} data-state={state} aria-label={label} title={label} {...pointer}
       aria-haspopup={onMenu === undefined ? undefined : 'menu'}
       onContextMenu={onMenu === undefined ? undefined : (event) => { event.preventDefault(); onMenu() }}>
       <img src={frames[index % frames.length]} alt="" draggable={false} />
@@ -457,7 +509,8 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         {(open || forced) && <PetPanel {...props} focusRequest={focusRequest + menuFocus} />}
         {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} onClose={() => { setMenu(false) }} />}
         <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })}
-          onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }} />
+          onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }}
+          onDrag={(phase) => { controller.drag(phase) }} />
       </div>
     </div>
   )

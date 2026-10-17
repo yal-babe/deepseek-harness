@@ -5,6 +5,7 @@ import { desktopPetBridge, detectPetSurface, type DesktopPetBridge } from '../sr
 const bridge = (role: 'pet' | 'main'): DesktopPetBridge => ({
   protocolVersion: 1, role, setInteractive: () => {}, setVisible: () => {}, openMain: () => {}, onQuickAsk: () => () => {},
   onOpenSession: () => () => {},
+  onVisibleRequest: () => () => {}, drag: () => {},
 })
 
 describe('desktopPetBridge', () => {

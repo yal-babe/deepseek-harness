@@ -41,7 +41,22 @@ export interface DesktopPetBridge {
    * @returns unsubscribe.
    */
   readonly onQuickAsk: (listener: () => void) => () => void
+  /**
+   * Observe requests to change the Host "show desktop pet" value, sent by the
+   * Desktop tray to the pet window. Present in both roles; only the pet window receives them.
+   * @param listener - called with the wanted visibility.
+   * @returns unsubscribe.
+   */
+  readonly onVisibleRequest: (listener: (visible: boolean) => void) => () => void
+  /**
+   * Report a character drag; the main process moves the window with the cursor and remembers where it ends.
+   * @param phase - drag phase.
+   */
+  readonly drag: (phase: PetDragPhase) => void
 }
+
+/** Phase of a character drag that moves the Desktop pet window. */
+export type PetDragPhase = 'start' | 'move' | 'end'
 
 /** Pet surface of this document. */
 export type PetSurface = 'window' | 'page' | 'none'

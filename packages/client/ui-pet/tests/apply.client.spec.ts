@@ -120,11 +120,20 @@ describe('ui-pet apply', () => {
   })
 
   it('renders only the pet in the Desktop pet window and follows Host visibility', async () => {
+    let request: ((visible: boolean) => void) | undefined
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'pet', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
       onOpenSession: vi.fn(() => () => {}),
+      onVisibleRequest: (listener) => { request = listener; return () => {} }, drag: vi.fn(),
     }
-    const { registrations, fiber } = await bench('?dsh-pet-window=1', bridge)
+    const { registrations, fiber, remote } = await bench('?dsh-pet-window=1', bridge)
+    request?.(true)
+    expect(remote.pet.setVisible).toHaveBeenLastCalledWith(true)
+    request?.(false)
+    expect(remote.pet.setVisible).toHaveBeenLastCalledWith(false)
+    remote.pet.setVisible.mockRejectedValueOnce(new Error('offline'))
+    request?.(true)
+    await Promise.resolve()
     expect(registrations.map(entry => [entry.options.name, entry.options.priority])).toEqual([['root', -1]])
     expect(document.documentElement.style.getPropertyValue('background')).toBe('transparent')
     await vi.waitFor(() => { expect(bridge.setVisible).toHaveBeenCalledWith(false) })
@@ -147,6 +156,7 @@ describe('ui-pet apply', () => {
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
       onOpenSession: vi.fn(() => () => {}),
+      onVisibleRequest: () => () => {}, drag: vi.fn(),
     }
     const { registrations, remote } = await bench('', bridge)
     expect(registrations).toEqual([])
@@ -158,6 +168,7 @@ describe('ui-pet apply', () => {
     const main: DesktopPetBridge = {
       protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
       onOpenSession: vi.fn((listener: (sessionId: string) => void) => { forward = listener; return () => {} }),
+      onVisibleRequest: () => () => {}, drag: vi.fn(),
     }
     const uiWorkspace = { openSession: vi.fn() }
     await bench('', main, undefined, undefined, uiWorkspace)
@@ -205,6 +216,7 @@ describe('ui-pet apply', () => {
     const main: DesktopPetBridge = {
       protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
       onOpenSession: vi.fn(() => () => {}),
+      onVisibleRequest: () => () => {}, drag: vi.fn(),
     }
     const second = await bench('', main, undefined, fakeConfigForms(true))
     expect(second.registrations.map(entry => entry.options.name)).toEqual(['settings.section'])

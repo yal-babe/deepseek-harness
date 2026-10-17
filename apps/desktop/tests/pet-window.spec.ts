@@ -3,11 +3,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DesktopPetWindow, PET_IPC, PET_QUICK_ASK_ACCELERATOR, PET_SESSION_ID_MAX_LENGTH, petSessionId, petWindowUrl, sessionDeepLink,
 } from '../src/pet-window.ts'
+import type { PetPositionStore } from '../src/pet-position.ts'
 
 const native = await vi.hoisted(async () => {
   const { EventEmitter } = await import('node:events')
   const windows: FakeWindow[] = []
-  const state = { failLoad: false }
+  const primary = {
+    id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 }, scaleFactor: 1,
+  }
+  const state = { failLoad: false, cursor: { x: 0, y: 0 }, displays: [primary] }
+  const screenEvents = new EventEmitter()
   let nextId = 1
   class FakeWindow extends EventEmitter {
     destroyed = false
@@ -27,13 +32,24 @@ const native = await vi.hoisted(async () => {
     readonly hide = vi.fn(() => { this.visible = false })
     readonly focus = vi.fn()
     readonly destroy = vi.fn(() => { this.destroyed = true; this.emit('closed') })
-    constructor(readonly options: Record<string, unknown>) { super(); windows.push(this) }
+    readonly setBounds = vi.fn((bounds: { x: number; y: number }) => { this.x = bounds.x; this.y = bounds.y })
+    x: number
+    y: number
+    constructor(readonly options: Record<string, unknown>) {
+      super()
+      this.x = options.x as number
+      this.y = options.y as number
+      windows.push(this)
+    }
+    getPosition(): number[] { return [this.x, this.y] }
     isDestroyed(): boolean { return this.destroyed }
     isVisible(): boolean { return this.visible }
   }
   return {
     windows,
     state,
+    primary,
+    screenEvents,
     FakeWindow,
     register: vi.fn((_accelerator: string, _callback: () => void) => true),
     unregister: vi.fn(),
@@ -42,19 +58,38 @@ const native = await vi.hoisted(async () => {
 vi.mock('electron', () => ({
   BrowserWindow: native.FakeWindow,
   globalShortcut: { register: native.register, unregister: native.unregister },
-  screen: { getPrimaryDisplay: () => ({ workArea: { x: 0, y: 0, width: 1920, height: 1080 } }) },
+  screen: {
+    getPrimaryDisplay: () => native.state.displays[0],
+    getAllDisplays: () => native.state.displays,
+    getCursorScreenPoint: () => native.state.cursor,
+    on: (event: string, listener: () => void) => native.screenEvents.on(event, listener),
+    removeListener: (event: string, listener: () => void) => native.screenEvents.removeListener(event, listener),
+  },
 }))
+
+const LAYOUT = '1@0,0,1920x1080*1'
 
 afterEach(() => {
   native.windows.length = 0
+  native.state.displays = [native.primary]
+  native.state.cursor = { x: 0, y: 0 }
+  native.screenEvents.removeAllListeners()
   vi.clearAllMocks()
   native.register.mockImplementation(() => true)
 })
 
-function setup() {
+function setup(saved: Record<string, { x: number; y: number }> = {}) {
   const openMain = vi.fn()
-  const pet = new DesktopPetWindow({ preload: '/app/preload-app.cjs', applicationUrl: 'dsh-app://app/', openMain })
-  return { pet, openMain }
+  const onVisibleChange = vi.fn()
+  const positions = {
+    get: vi.fn((layout: string) => saved[layout]),
+    set: vi.fn(async (layout: string, point: { x: number; y: number }) => { saved[layout] = point }),
+  }
+  const pet = new DesktopPetWindow({
+    preload: '/app/preload-app.cjs', applicationUrl: 'dsh-app://app/', openMain,
+    positions: positions as unknown as PetPositionStore, onVisibleChange,
+  })
+  return { pet, openMain, positions, onVisibleChange }
 }
 
 function ipcBench(pet: DesktopPetWindow) {
@@ -107,7 +142,7 @@ describe('DesktopPetWindow', () => {
     expect(pet.open()).toBe(window)
     const fake = native.windows[0]!
     expect(fake.options).toMatchObject({
-      frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, show: false, x: 1564, y: 504,
+      frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, show: false, x: 1564, y: 464,
     })
     expect(fake.options.webPreferences).toMatchObject({ preload: '/app/preload-app.cjs', contextIsolation: true, sandbox: true, nodeIntegration: false })
     expect(fake.setIgnoreMouseEvents).toHaveBeenCalledWith(true, { forward: true })
@@ -218,5 +253,111 @@ describe('DesktopPetWindow', () => {
     expect(openMain).toHaveBeenLastCalledWith(undefined)
     remove()
     expect(handlers.size).toBe(0)
+  })
+
+  it('opens at the remembered position for this display layout when it still fits', () => {
+    const { pet } = setup({ [LAYOUT]: { x: 100, y: 200 } })
+    pet.open()
+    expect(native.windows[0]!.options).toMatchObject({ x: 100, y: 200 })
+    const plain = new DesktopPetWindow({ preload: '', applicationUrl: 'dsh-app://app/', openMain: () => {} })
+    expect(plain.position()).toEqual({ x: 1564, y: 464 })
+  })
+
+  it('clamps a remembered position into the work area and ignores one on a missing display', () => {
+    const near = setup({ [LAYOUT]: { x: 1700, y: -100 } })
+    expect(near.pet.position()).toEqual({ x: 1580, y: 0 })
+    const gone = setup({ [LAYOUT]: { x: 5000, y: 100 } })
+    expect(gone.pet.position()).toEqual({ x: 1564, y: 464 })
+  })
+
+  it('moves with the cursor during a drag and remembers the fitted end position', async () => {
+    const { pet, positions } = setup()
+    pet.dragStart()
+    pet.dragMove()
+    pet.dragEnd()
+    pet.open()
+    const fake = native.windows[0]!
+    pet.dragMove()
+    pet.dragEnd()
+    expect(fake.setBounds).not.toHaveBeenCalled()
+    native.state.cursor = { x: 1600, y: 600 }
+    pet.dragStart()
+    native.state.cursor = { x: 1500, y: 650 }
+    pet.dragMove()
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1464, y: 514, width: 340, height: 560 })
+    pet.dragEnd()
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1464, y: 480, width: 340, height: 560 })
+    expect(positions.set).toHaveBeenCalledWith(LAYOUT, { x: 1464, y: 480 })
+    pet.dragStart()
+    native.state.cursor = { x: 9000, y: 650 }
+    pet.dragMove()
+    pet.dragEnd()
+    expect(positions.set).toHaveBeenLastCalledWith(LAYOUT, { x: 1464, y: 480 })
+    await Promise.resolve()
+  })
+
+  it('reports Host visibility changes and re-places the window when it shows again', () => {
+    const saved: Record<string, { x: number; y: number }> = {}
+    const { pet, onVisibleChange } = setup(saved)
+    expect(pet.visible).toBeUndefined()
+    pet.open()
+    const fake = native.windows[0]!
+    pet.setVisible(true)
+    expect(pet.visible).toBe(true)
+    expect(onVisibleChange).toHaveBeenCalledOnce()
+    pet.setVisible(false)
+    saved[LAYOUT] = { x: 10, y: 20 }
+    pet.setVisible(true)
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 10, y: 20, width: 340, height: 560 })
+    expect(onVisibleChange).toHaveBeenCalledTimes(3)
+    const quiet = new DesktopPetWindow({ preload: '', applicationUrl: 'dsh-app://app/', openMain: () => {} })
+    quiet.open()
+    quiet.setVisible(false)
+    expect(quiet.visible).toBe(false)
+  })
+
+  it('asks the renderer to change visibility only while the window lives', () => {
+    const { pet } = setup()
+    pet.requestVisible(false)
+    pet.open()
+    const fake = native.windows[0]!
+    pet.requestVisible(false)
+    expect(fake.webContents.send).toHaveBeenCalledWith(PET_IPC.requestVisible, false)
+    fake.destroy()
+    pet.requestVisible(true)
+    expect(fake.webContents.send).toHaveBeenCalledOnce()
+  })
+
+  it('follows display changes between start and dispose, except during a drag', () => {
+    const saved: Record<string, { x: number; y: number }> = {}
+    const { pet } = setup(saved)
+    pet.start()
+    const fake = native.windows[0]!
+    const area = { x: 1920, y: 0, width: 1280, height: 1024 }
+    const second = { id: 2, bounds: area, workArea: area, scaleFactor: 1 }
+    native.state.displays = [native.primary, second]
+    saved[`${LAYOUT}|2@1920,0,1280x1024*1`] = { x: 2000, y: 100 }
+    native.screenEvents.emit('display-added')
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 2000, y: 100, width: 340, height: 560 })
+    pet.dragStart()
+    native.screenEvents.emit('display-metrics-changed')
+    expect(fake.setBounds).toHaveBeenCalledOnce()
+    pet.dispose()
+    expect(native.screenEvents.listenerCount('display-removed')).toBe(0)
+    native.screenEvents.emit('display-removed')
+    expect(fake.setBounds).toHaveBeenCalledOnce()
+  })
+
+  it('routes drag messages from the pet window', () => {
+    const { pet, positions } = setup()
+    pet.open()
+    const fake = native.windows[0]!
+    const { send } = ipcBench(pet)
+    send(PET_IPC.dragStart, undefined, fake.webContents)
+    native.state.cursor = { x: -100, y: 0 }
+    send(PET_IPC.dragMove, undefined, fake.webContents)
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1464, y: 464, width: 340, height: 560 })
+    send(PET_IPC.dragEnd, undefined, fake.webContents)
+    expect(positions.set).toHaveBeenCalledWith(LAYOUT, { x: 1464, y: 464 })
   })
 })
