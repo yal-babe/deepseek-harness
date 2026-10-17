@@ -191,3 +191,18 @@
 .menu button:focus-visible {
   background: var(--dsw-alias-bg-secondary, #f2f2f2);
 }
+
+.restore {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-primary, #ddd);
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-primary, #fff);
+  opacity: 0.6;
+}
+
+.restore:hover,
+.restore:focus-visible {
+  opacity: 1;
+}

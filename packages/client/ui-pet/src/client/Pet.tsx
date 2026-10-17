@@ -402,7 +402,15 @@ function usePanel(props: PetProps): PanelState {
  */
 export function PetOverlay(props: PetProps): ReactNode {
   const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions } = usePanel(props)
-  if (!visible) return null
+  if (!visible) {
+    // Only a Host snapshot can hide the pet. Web has no tray or global shortcut, so leave a small handle to bring it back.
+    return (
+      <div className={css.overlay} data-surface="page">
+        <button type="button" className={css.restore} aria-label={props.t('showPet')} title={props.t('showPet')}
+          onClick={() => { void props.controller.show() }}>🐋</button>
+      </div>
+    )
+  }
   return (
     <div className={css.overlay} data-surface="page">
       {open && <PetPanel {...props} focusRequest={focusRequest} />}

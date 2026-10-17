@@ -69,7 +69,7 @@ None; a quick ask is an ordinary user prompt.
 
 - **Phase 0 scope** — no drag, touch reactions, sounds, talking state, or character packs; the frame set is a small embedded subset.
 - **One approval per Session** — Session status exposes the highest-precedence pending interaction, so a second parallel approval in the same Session is answered in the main window.
-- **No in-page "show again" on Web** — after hiding, Web needs the Host setting reset; Desktop uses the global shortcut.
+- **Re-show entry points are minimal** — hiding leaves a small whale handle in the Web page corner; Desktop has only the global shortcut until a tray toggle exists.
 
 <a id="dev-note"></a>
 ### Dev Note

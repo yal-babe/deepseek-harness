@@ -107,10 +107,12 @@ describe('PetCharacter', () => {
 })
 
 describe('PetOverlay', () => {
-  it('stays hidden when the Host hides the pet', () => {
-    const { props } = setup({ connected: true, snapshot: snapshot({ visible: false }) })
-    const { container } = render(<PetOverlay {...props} />)
-    expect(container.innerHTML).toBe('')
+  it('leaves only a restore handle when the Host hides the pet', () => {
+    const { props, controller } = setup({ connected: true, snapshot: snapshot({ visible: false }) })
+    render(<PetOverlay {...props} />)
+    expect(screen.queryByRole('button', { name: /characterLabel/u })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'showPet' }))
+    expect(controller.show).toHaveBeenCalled()
   })
 
   it('opens the bubble on click and acknowledges an unseen result', () => {
