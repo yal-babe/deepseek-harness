@@ -72,12 +72,14 @@ Phase 0 提交完成后，MVP 工作在后续分支 `studio/pet-mvp` 上进行�
 
 | §9 MVP 项 | 状态 |
 | --- | --- |
-| 提问卡（`user-questions/request`） | **已完成（部分）**：单选选项题可在桌宠中回答（800 ms 防误触；单题一次点击，多题逐题选择后提交）；自由文本与多选题显示"打开主窗口"。实现：`packages/client/ui-pet/src/client/questions.ts`（`collectQuestions`、`petAnswerable`、`PetQuestionBridge`）、`Pet.tsx` 的 `QuestionCard`、控制器 `questions` / `answerQuestion`。单测覆盖率 100%（ui-pet 51 个用例）。与审批相同，未做运行时验证 |
+| 提问卡（`user-questions/request`） | **已完成（部分）**：单选选项题可在桌宠中回答（800 ms 防误触；单题一次点击，多题逐题选择后提交）；自由文本与多选题显示"打开主窗口"。实现：`packages/client/ui-pet/src/client/questions.ts`（`collectQuestions`、`petAnswerable`、`PetQuestionBridge`）、`Pet.tsx` 的 `QuestionCard`、控制器 `questions` / `answerQuestion`。单测覆盖率 100%。与审批相同，未做运行时验证 |
 | 审批卡、拖文件发任务、全局快捷键快问、浏览器页内宠物、"关闭=隐藏"、随 Studio 启停 | Phase 0 已有基础版 |
 | TS Reducer 扩展（`agent/status`、`api-session/*`、questions 等待态） | 未做 |
-| 右键菜单、提示音、系统通知、基础勿扰 | 未做 |
+| 右键菜单 | **已完成**：右键角色弹出菜单（快速提问、打开主窗口〔仅 Desktop〕、通知开关、勿扰 1 小时、隐藏），Escape 关闭，首项获得焦点（`Pet.tsx` 的 `PetMenu`） |
+| 系统通知 + 基础勿扰 | **已完成（基础版）**：默认关闭，从菜单开启并申请权限；新审批请求、会话完成/出错时通知（文档未聚焦时、不在勿扰时段内）；点击通知把应用切到前台。偏好按设备存 `localStorage`（`dsh-pet:preferences`），不同步。实现：`notifier.ts`（`diffNotices`、`mayNotify`、`watchNotices`、`browserNotifications`）、`preferences.ts`。未做：全屏/会议自动降级、按类别开关、提示音 |
+| Web 重新显示入口 | **已完成**：隐藏后页面角落留一个小鲸鱼按钮，点击即 `setVisible(true)` |
 | `dsh://session/<id>` 跳转（`openMain` 导航到会话） | 未做 |
-| 设置页 zh/en、可见状态与窗口位置持久化、托盘开关、Web 重新显示入口 | 未做 |
+| 设置页 zh/en（含"限制在宠物中审批的工具"）、窗口位置持久化、托盘开关 | 未做。可见状态已由 Host `pet` 模块的 Config/`setVisible` 保存在 Host 内存中（Host 重启后回到 `visible` 配置值） |
 | 内置宠物包 v2 目录结构（`whaletail-maid@1.0.0`）与开发开关加载本地包 | 未做 |
 | 删除原生 Helper 构建链 | 不适用（本仓库没有引入 Helper） |
 
@@ -86,13 +88,13 @@ Phase 0 提交完成后，MVP 工作在后续分支 `studio/pet-mvp` 上进行�
 ## 下一步（按顺序）
 
 1. 在真机上运行 Desktop 与 Web，逐项完成上表"还需要做"，把结论笔记从 proposed 推进。
-2. MVP（§9，在 `studio/pet-mvp` 上继续）：提问卡补自由文本输入、右键菜单、`dsh://session/<id>` 跳转、完成/错误/等待提醒与系统通知、基础勿扰、设置页 zh/en、内置宠物包 v2 目录结构与加载、托盘/菜单显示开关、可见状态持久化。
+2. MVP（§9，在 `studio/pet-mvp` 上继续），建议顺序：设置页（限制可在桌宠中审批的工具〔默认不限制，D3〕、通知类别、可见状态持久化到 Host settings）→ `openMain` 跳转到会话（Desktop 用 `dsh://` 或 IPC 携带 sessionId，主窗口切换活动会话）→ Desktop 托盘"显示/隐藏桌宠"与窗口位置记忆 → 内置宠物包 v2 目录结构与加载；另外：提问卡补自由文本输入、`dsh://session/<id>` 跳转、完成/错误/等待提醒与系统通知、基础勿扰、设置页 zh/en、内置宠物包 v2 目录结构与加载、托盘/菜单显示开关、可见状态持久化。
 3. 修复基础分支上的生成器失败后，重新运行 `gen-doc-graphs`、`gen-cordis-catalog`、`gen-module-graph` 并提交 pet 相关输出。
 4. 让 THIRD_PARTY_NOTICES 覆盖资源许可证。
 
 ## 推送状态
 
-- MVP 分支 `studio/pet-mvp` 同样无法推送（无凭据）。替代交付：`/workspace/deliverables/pet-mvp.bundle`（`origin/studio/main..studio/pet-mvp`，包含 Phase 0 提交）与 `/workspace/deliverables/pet-mvp-patches/`（仅 `studio/pet-phase0..studio/pet-mvp` 的增量补丁）。
+- MVP 分支 `studio/pet-mvp` 同样无法推送（无凭据）。替代交付：`/workspace/deliverables/pet-mvp.bundle`（`origin/studio/main..studio/pet-mvp`，包含 Phase 0 提交）与 `/workspace/deliverables/pet-mvp-patches/`（同一范围的完整补丁序列，可直接在 `origin/studio/main` 上 `git am`）。每个检查点都会重新生成。
 
 - 2026-10-17 16:0x（Asia/Shanghai）尝试 `git push -u origin studio/pet-phase0`：失败，`fatal: could not read Username for 'https://github.com'`——box 上没有 GitHub 推送凭据。按要求没有绕过认证，也没有用 `--no-verify`。pre-push 钩子（完整类型检查）因此也没有运行。
 - 替代交付：`/workspace/deliverables/pet-phase0.bundle`（`git bundle create ... origin/studio/main..studio/pet-phase0`）与 `/workspace/deliverables/pet-phase0-patches/`（`git format-patch`）。在有凭据的机器上：`git fetch /path/pet-phase0.bundle studio/pet-phase0:studio/pet-phase0 && git push -u origin studio/pet-phase0`，或 `git am pet-phase0-patches/*.patch`。
