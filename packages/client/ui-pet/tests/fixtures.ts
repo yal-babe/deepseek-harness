@@ -2,7 +2,7 @@
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PetSessionView, PetSnapshot } from '@deepseek-ai/dsh-pet/types'
 import { ApprovalRequestId } from '@deepseek-ai/dsh-user-approval/types'
-import type { PetPendingApproval } from '@deepseek-ai/dsh-pet/types'
+import type { PetPendingApproval, PetSettingsView } from '@deepseek-ai/dsh-pet/types'
 import { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 
 export const S1 = SessionId('s1')
@@ -16,12 +16,17 @@ export function sessionView(sessionId: SessionId, extra: Partial<PetSessionView>
 /** One Host pending approval. */
 export function hostPending(id: string, sessionId: SessionId, toolName: string, callId?: string): PetPendingApproval {
   return {
-    id: ApprovalRequestId(id), sessionId, toolName, askedAt: 1,
+    id: ApprovalRequestId(id), sessionId, toolName, askedAt: 1, restrictedInPet: false,
     ...(callId === undefined ? {} : { callId: ToolCallId(callId) }),
   }
 }
 
+/** Host settings with every default: no tool restriction, every notification category on. */
+export const SETTINGS: PetSettingsView = {
+  restrictTools: false, restrictedTools: [], notify: { waiting: true, success: true, error: true },
+}
+
 /** One Host snapshot. */
 export function snapshot(extra: Partial<PetSnapshot> = {}): PetSnapshot {
-  return { revision: 1, primary: 'IDLE', sessions: [], pending: [], jobs: [], visible: true, ...extra }
+  return { revision: 1, primary: 'IDLE', sessions: [], pending: [], jobs: [], visible: true, settings: SETTINGS, ...extra }
 }

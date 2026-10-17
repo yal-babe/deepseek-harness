@@ -1,0 +1,80 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.group {
+  margin: 20px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.title {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.description,
+.note {
+  margin-top: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.note {
+  padding: 8px 0;
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.toolList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toolList li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.addTool {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.error {
+  margin-top: 12px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+}

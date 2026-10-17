@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { browserNotifications, diffNotices, mayNotify, watchNotices, type NotificationSink } from '../src/client/notifier.ts'
-import type { PetPreferences } from '../src/client/preferences.ts'
+import { browserNotifications, diffNotices, mayNotify, setDeviceNotify, watchNotices, type NotificationSink } from '../src/client/notifier.ts'
+import { PetPreferenceStore, type PetPreferences } from '../src/client/preferences.ts'
 import type { PetViewState } from '../src/client/store.ts'
-import { hostPending, S1, S2, sessionView, snapshot } from './fixtures.ts'
+import { hostPending, S1, S2, sessionView, SETTINGS, snapshot } from './fixtures.ts'
 
 describe('diffNotices', () => {
   it('reports new approvals and fresh results, never on the first frame', () => {
@@ -23,6 +23,28 @@ describe('diffNotices', () => {
     ])
     const failed = snapshot({ pending: after.pending, sessions: [sessionView(S1, { state: 'ERROR' }), sessionView(S2, { state: 'IDLE' })] })
     expect(diffNotices(after, failed)).toEqual([{ kind: 'error', sessionId: S1, title: undefined, tag: `pet-error-${S1}` }])
+  })
+
+  it('leaves out categories the Host settings turn off', () => {
+    const before = snapshot({ sessions: [sessionView(S1, { state: 'WORKING' })] })
+    const quiet = { ...SETTINGS, notify: { waiting: false, success: false, error: true } }
+    const after = snapshot({ pending: [hostPending('r1', S1, 'bash')], sessions: [sessionView(S1, { state: 'SUCCESS' })], settings: quiet })
+    expect(diffNotices(before, after)).toEqual([])
+  })
+})
+
+describe('setDeviceNotify', () => {
+  it('asks for permission before turning on and stays off when refused or unsupported', async () => {
+    const preferences = new PetPreferenceStore(undefined)
+    let permission: 'default' | 'granted' | 'denied' = 'default'
+    const sink: NotificationSink = { permission: () => permission, request: vi.fn(async () => 'denied' as const), show: vi.fn() }
+    expect(await setDeviceNotify(sink, preferences, true)).toBe(false)
+    expect(preferences.snapshot.getSnapshot().notify).toBe(false)
+    permission = 'granted'
+    expect(await setDeviceNotify(sink, preferences, true)).toBe(true)
+    expect(preferences.snapshot.getSnapshot().notify).toBe(true)
+    expect(await setDeviceNotify(sink, preferences, false)).toBe(false)
+    expect(await setDeviceNotify(undefined, preferences, true)).toBe(false)
   })
 })
 

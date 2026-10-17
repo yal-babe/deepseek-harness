@@ -5,7 +5,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { collectApprovals, PetApprovalBridge, type AnswerableApproval, type PendingInteractionLike, type PetDecisionResult } from './approvals.ts'
 import { collectQuestions, PetQuestionBridge, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
 import { sendQuickAsk, type QuickAskDeps, type QuickAskOutcome, type QuickAskTarget } from './quick-ask.ts'
-import type { NotificationSink } from './notifier.ts'
+import { setDeviceNotify, type NotificationSink } from './notifier.ts'
 import { PET_SNOOZE_MS, type PetPreferences, type PetPreferenceStore } from './preferences.ts'
 import type { PetViewState } from './store.ts'
 import type { DesktopPetBridge } from './surface.ts'
@@ -159,12 +159,8 @@ export class PetController {
    * @param on - requested value.
    * @returns the resulting value.
    */
-  async setNotify(on: boolean): Promise<boolean> {
-    const sink = this.deps.notifications
-    if (on && sink !== undefined && sink.permission() !== 'granted' && await sink.request() !== 'granted') return false
-    const value = on && sink !== undefined
-    this.deps.preferences.update({ notify: value })
-    return value
+  setNotify(on: boolean): Promise<boolean> {
+    return setDeviceNotify(this.deps.notifications, this.deps.preferences, on)
   }
 
   /** Snooze notifications for one hour. */

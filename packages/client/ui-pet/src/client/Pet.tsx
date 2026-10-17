@@ -72,15 +72,17 @@ function stateLine(t: T, state: PetAgentState, focus: PetSessionView | undefined
 }
 
 /**
- * One approval with a delayed arm; Enter never approves.
- * @param props - Host approval, local presentation, and decision callback.
+ * One approval with a delayed arm; Enter never approves. A tool the pet
+ * settings restrict points to the main window instead of offering buttons.
+ * @param props - Host approval, local presentation, decision callback, and main-window action.
  */
-export function ApprovalCard({ t, pending, local, more, decide }: {
+export function ApprovalCard({ t, pending, local, more, decide, openMain }: {
   readonly t: T
   readonly pending: PetPendingApproval
   readonly local: AnswerableApproval | undefined
   readonly more: number
   readonly decide: (approval: AnswerableApproval, outcome: 'allowed-once' | 'rejected') => Promise<PetDecisionResult>
+  readonly openMain: () => void
 }): ReactNode {
   const [armed, setArmed] = useState(false)
   const [result, setResult] = useState<PetDecisionResult | undefined>(undefined)
@@ -100,14 +102,21 @@ export function ApprovalCard({ t, pending, local, more, decide }: {
     <div className={css.approval} role="alertdialog" aria-label={t('approvalTitle', { toolName: pending.toolName })}>
       <div className={css.approvalTitle}>{t('approvalTitle', { toolName: pending.toolName })}</div>
       {pending.reason !== undefined && <div className={css.approvalReason}>{pending.reason}</div>}
-      {local === undefined
-        ? <div className={css.note}>{t('approvalElsewhere')}</div>
-        : (
+      {pending.restrictedInPet
+        ? (
           <div className={css.actions}>
-            <button type="button" disabled={!armed} onClick={() => { answer(local, 'rejected') }} onKeyDown={swallowEnter}>{t('reject')}</button>
-            <button type="button" className={css.primary} disabled={!armed} onClick={() => { answer(local, 'allowed-once') }} onKeyDown={swallowEnter}>{t('allowOnce')}</button>
+            <span className={css.note}>{t('approvalRestricted')}</span>
+            <button type="button" onClick={openMain}>{t('openMain')}</button>
           </div>
-        )}
+        )
+        : local === undefined
+          ? <div className={css.note}>{t('approvalElsewhere')}</div>
+          : (
+            <div className={css.actions}>
+              <button type="button" disabled={!armed} onClick={() => { answer(local, 'rejected') }} onKeyDown={swallowEnter}>{t('reject')}</button>
+              <button type="button" className={css.primary} disabled={!armed} onClick={() => { answer(local, 'allowed-once') }} onKeyDown={swallowEnter}>{t('allowOnce')}</button>
+            </div>
+          )}
       {result === 'already-settled' && <div className={css.note}>{t('alreadySettled')}</div>}
       {result === 'failed' && <div className={css.note}>{t('decisionFailed')}</div>}
       {more > 0 && <div className={css.note}>{t('pendingMore', { count: String(more) })}</div>}
@@ -297,7 +306,7 @@ export function PetPanel(
       </div>
       {first !== undefined && (
         <ApprovalCard t={t} pending={first} local={matchApproval(first, approvals)} more={pending.length - 1}
-          decide={(approval, outcome) => controller.decide(approval, outcome)} />
+          decide={(approval, outcome) => controller.decide(approval, outcome)} openMain={() => { controller.openMain() }} />
       )}
       {first === undefined && question !== undefined && (
         <QuestionCard t={t} question={question} openMain={() => { controller.openMain() }}

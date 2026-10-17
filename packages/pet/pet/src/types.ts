@@ -83,6 +83,8 @@ export interface PetPendingApproval {
   readonly reason?: string
   /** Unix epoch milliseconds of the ask. */
   readonly askedAt: number
+  /** Whether the pet settings route this tool to the main window instead of the pet approval card. */
+  readonly restrictedInPet: boolean
 }
 
 /** One background job registered and not yet settled. */
@@ -97,6 +99,19 @@ export interface PetJobView {
   readonly kind: string
   /** Unix epoch milliseconds of registration. */
   readonly startedAt: number
+}
+
+/** Snapshot change that can raise a system notification: a new approval, a finished turn, or a failed turn. */
+export type PetNoticeKind = 'waiting' | 'success' | 'error'
+
+/** Pet settings stored in the Host `pet` profile entry that every pet surface applies. */
+export interface PetSettingsView {
+  /** Whether only tools outside {@link restrictedTools} can be approved from the pet. */
+  readonly restrictTools: boolean
+  /** Tool names that must be approved in the main window while {@link restrictTools} is on. */
+  readonly restrictedTools: readonly string[]
+  /** System notification categories; the device-local master switch and snooze still apply. */
+  readonly notify: Readonly<Record<PetNoticeKind, boolean>>
 }
 
 /** Complete pet state streamed by `pet.watch()`. Each frame replaces the previous one. */
@@ -117,4 +132,6 @@ export interface PetSnapshot {
   readonly jobs: readonly PetJobView[]
   /** "Show desktop pet" setting; hiding keeps the Host service and this stream running. */
   readonly visible: boolean
+  /** Shared pet settings. */
+  readonly settings: PetSettingsView
 }

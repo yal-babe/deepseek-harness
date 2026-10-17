@@ -2,7 +2,9 @@
  * Studio Pet browser plugin. On Web it adds the character to `shell.overlay`;
  * inside the Desktop pet window (`?dsh-pet-window=1`) it shadows `root` so the
  * whole document is the pet. Both surfaces read the Host `pet` Remote and
- * answer approvals through ui-approval's pending interactions.
+ * answer approvals through ui-approval's pending interactions. Every document
+ * except the pet window also registers the pet settings page while ui-settings
+ * and the Host `pet` entry are present.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
@@ -12,11 +14,14 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-approval/client'
 import type {} from '@deepseek-ai/dsh-client-file-upload/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { PetController } from './controller.ts'
-import { browserNotifications, watchNotices } from './notifier.ts'
+import { browserNotifications, setDeviceNotify, watchNotices, type NotificationSink } from './notifier.ts'
+import { PetSettingsSection, type PetSettingsInjected } from './PetSettingsSection.tsx'
+import { PET_SETTINGS_NAMESPACE, PetSettingsEditor, type PetSettingsFields } from './settings.ts'
 import { PetPreferenceStore, type PreferenceStorage } from './preferences.ts'
 import { en, zh, type PetLocaleKey } from './locales.ts'
 import { PetOverlay, PetWindowRoot, type PetInjected } from './Pet.tsx'
@@ -29,9 +34,13 @@ export { collectApprovals, matchApproval, PetApprovalBridge } from './approvals.
 export type { AnswerableQuestion, PetAnswerResult, PetQuestionAnswer, PetQuestionItem, PetQuestionOption } from './questions.ts'
 export { collectQuestions, petAnswerable, PetQuestionBridge } from './questions.ts'
 export type { PetControllerDeps, QuickAskChoice } from './controller.ts'
-export type { NoticeWatch, NotificationSink, PetNotice } from './notifier.ts'
-export { browserNotifications, diffNotices, mayNotify, watchNotices } from './notifier.ts'
-export type { PetPreferences, PreferenceStorage } from './preferences.ts'
+export type { NoticeWatch, NotificationSink, NotifyPreferenceWriter, PetNotice } from './notifier.ts'
+export { browserNotifications, diffNotices, mayNotify, setDeviceNotify, watchNotices } from './notifier.ts'
+export type { PetPreferences, PreferenceEventSource, PreferenceStorage, PreferenceStorageEvent } from './preferences.ts'
+export type { PetSettingsInjected, PetSettingsProps } from './PetSettingsSection.tsx'
+export { PetSettingsSection } from './PetSettingsSection.tsx'
+export type { PetSettingsFields, PetSettingsSwitch, PetSettingsWriteState } from './settings.ts'
+export { addRestrictedTool, PET_SETTINGS_NAMESPACE, PetSettingsEditor, removeRestrictedTool } from './settings.ts'
 export { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PET_SNOOZE_MS, PetPreferenceStore } from './preferences.ts'
 export { PetController } from './controller.ts'
 export type { PetLocaleKey } from './locales.ts'
@@ -82,23 +91,50 @@ function makeTransparent(): () => void {
   return () => { for (const element of targets) element.style.removeProperty('background') }
 }
 
+function registerSettings(ctx: ClientContext, deps: {
+  readonly desktop: boolean
+  readonly preferences: PetPreferenceStore
+  readonly notifications: NotificationSink | undefined
+}): void {
+  // Optional: a composition without ui-settings keeps the pet and has no settings page.
+  ctx.inject(['configForms'], (scope: ClientContext) => {
+    const form = scope.configForms.get<PetSettingsFields>(PET_SETTINGS_NAMESPACE)
+    const editor = new PetSettingsEditor(form)
+    const t = scope.locale.bind(NS)
+    const injected = (): PetSettingsInjected => ({
+      hooks: { form, write: editor.state, preferences: deps.preferences.snapshot },
+      desktop: deps.desktop,
+      canNotify: deps.notifications !== undefined,
+      setSwitch: (field, value) => editor.setSwitch(field, value),
+      setRestrictedTools: tools => editor.setRestrictedTools(tools),
+      setDeviceNotify: on => setDeviceNotify(deps.notifications, deps.preferences, on),
+    })
+    scope.effect(() => scope.configForms.whileServed([PET_SETTINGS_NAMESPACE], () => scope.slots.inject('settings.section', () =>
+      scope.slots.register({
+        name: 'settings.section', id: 'pet', order: 30, label: () => t('settings.nav'), locale: NS, inject: injected,
+      }, PetSettingsSection))), 'ui-pet: settings page')
+  })
+}
+
 /**
- * Install pet copy, the snapshot stream, and the surface registration.
+ * Install pet copy, the snapshot stream, the surface registration, and the settings page.
  * @param ctx - Client root context.
  */
 export function apply(ctx: ClientContext): void {
   const bridge: DesktopPetBridge | undefined = desktopPetBridge(globalThis)
   const surface = detectPetSurface(window.location.search, bridge)
-  if (surface === 'none') return
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-pet: dictionaries')
+  const preferences = new PetPreferenceStore(storageOf(globalThis))
+  ctx.effect(() => preferences.follow(window), 'ui-pet: preferences of other documents')
+  const notifications = browserNotifications(globalThis)
+  if (surface !== 'window') registerSettings(ctx, { desktop: bridge !== undefined, preferences, notifications })
+  if (surface === 'none') return
   const pet = new PetStore(ctx.remote, signal => ctx.remote.pet.watch(signal))
   ctx.effect(() => {
     void pet.run()
     return () => pet.dispose()
   }, 'ui-pet: snapshot stream')
   const now = (): number => Date.now()
-  const preferences = new PetPreferenceStore(storageOf(globalThis))
-  const notifications = browserNotifications(globalThis)
   const controller = new PetController({
     view: pet.store,
     sessionStatus: ctx.uiSession.sessionStatus,

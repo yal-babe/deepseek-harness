@@ -18,6 +18,7 @@ import type {
   PetPendingApproval,
   PetProgress,
   PetSessionView,
+  PetSettingsView,
   PetSnapshot,
   PetWorkActivity,
 } from './types.ts'
@@ -54,6 +55,18 @@ export interface PetSnapshotInputs {
   readonly visible: boolean
   /** Pinned Session, when one is set. */
   readonly pinnedSessionId: SessionId | undefined
+  /** Shared pet settings; they also decide `restrictedInPet` of each pending approval. */
+  readonly settings: PetSettingsView
+}
+
+/**
+ * Whether the settings route one tool to the main window instead of the pet approval card.
+ * @param settings - shared pet settings.
+ * @param toolName - tool that asked for approval.
+ * @returns true only while the restriction is on and lists the tool.
+ */
+export function isRestrictedInPet(settings: PetSettingsView, toolName: string): boolean {
+  return settings.restrictTools && settings.restrictedTools.includes(toolName)
 }
 
 type TurnState = 'IDLE' | 'THINKING' | 'WORKING' | 'SUCCESS' | 'ERROR'
@@ -114,7 +127,7 @@ function projectOf(cwd: string | undefined): string | undefined {
 /** Incremental Studio Pet state over all live Sessions. */
 export class PetReducer {
   private readonly records = new Map<SessionId, SessionRecord>()
-  private readonly approvals = new Map<PetApprovalRequestId, PetPendingApproval>()
+  private readonly approvals = new Map<PetApprovalRequestId, Omit<PetPendingApproval, 'restrictedInPet'>>()
   private readonly jobs = new Map<JobId, PetJobView>()
 
   /** @param options - resolved fold options. */
@@ -230,7 +243,9 @@ export class PetReducer {
       PET_STATE_PRIORITY[right.state] - PET_STATE_PRIORITY[left.state]
       || right.updatedAt - left.updatedAt
       || left.sessionId.localeCompare(right.sessionId))
-    const pending = [...this.approvals.values()].sort((left, right) => left.askedAt - right.askedAt)
+    const pending: PetPendingApproval[] = [...this.approvals.values()]
+      .sort((left, right) => left.askedAt - right.askedAt)
+      .map(approval => ({ ...approval, restrictedInPet: isRestrictedInPet(inputs.settings, approval.toolName) }))
     const pinned = inputs.pinnedSessionId === undefined
       ? undefined
       : views.find(view => view.sessionId === inputs.pinnedSessionId)
@@ -249,6 +264,7 @@ export class PetReducer {
       pending,
       jobs: [...this.jobs.values()].sort((left, right) => left.startedAt - right.startedAt),
       visible: inputs.visible,
+      settings: inputs.settings,
     }
   }
 

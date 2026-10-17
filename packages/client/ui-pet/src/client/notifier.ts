@@ -1,10 +1,12 @@
 /**
  * System notifications for moments that need the user: a new approval, or a
  * Session finishing or failing. Only state changes between two Host frames
- * notify; the first frame after connecting never does.
+ * notify; the first frame after connecting never does. Each category follows
+ * the Host pet settings (`snapshot.settings.notify`); the device-local switch
+ * and snooze gate all of them.
  */
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import type { PetSnapshot } from '@deepseek-ai/dsh-pet/types'
+import type { PetNoticeKind, PetSnapshot } from '@deepseek-ai/dsh-pet/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { isSnoozed, type PetPreferences } from './preferences.ts'
 import type { PetViewState } from './store.ts'
@@ -12,7 +14,7 @@ import type { PetViewState } from './store.ts'
 /** One notification-worthy change. */
 export interface PetNotice {
   /** What happened. */
-  readonly kind: 'waiting' | 'success' | 'error'
+  readonly kind: PetNoticeKind
   /** Session it concerns. */
   readonly sessionId: SessionId
   /** Session title, when known. */
@@ -27,7 +29,7 @@ export interface PetNotice {
  * Compute notices between two snapshots.
  * @param previous - last frame, or `undefined` before the first one.
  * @param next - new frame.
- * @returns notices in a stable order: approvals first, then results.
+ * @returns notices in a stable order: approvals first, then results; categories turned off in `next.settings` are left out.
  */
 export function diffNotices(previous: PetSnapshot | undefined, next: PetSnapshot): PetNotice[] {
   if (previous === undefined) return []
@@ -46,7 +48,7 @@ export function diffNotices(previous: PetSnapshot | undefined, next: PetSnapshot
     const kind = view.state === 'SUCCESS' ? 'success' : 'error'
     notices.push({ kind, sessionId: view.sessionId, title: view.title, tag: `pet-${kind}-${view.sessionId}` })
   }
-  return notices
+  return notices.filter(notice => next.settings.notify[notice.kind])
 }
 
 /**
@@ -74,6 +76,32 @@ export interface NotificationSink {
    * @param onClick - called when the user clicks it.
    */
   readonly show: (title: string, body: string, tag: string, onClick: () => void) => void
+}
+
+/** Writable device preference consumed by {@link setDeviceNotify}. */
+export interface NotifyPreferenceWriter {
+  /**
+   * Merge a preference change.
+   * @param patch - changed fields.
+   */
+  readonly update: (patch: { notify: boolean }) => void
+}
+
+/**
+ * Turn the device-local notification switch on or off. Turning it on asks for
+ * permission first (call from a user gesture) and stays off when it is refused.
+ * @param sink - platform notifications, or `undefined` without support.
+ * @param preferences - device preference writer.
+ * @param on - requested value.
+ * @returns the resulting value.
+ */
+export async function setDeviceNotify(
+  sink: NotificationSink | undefined, preferences: NotifyPreferenceWriter, on: boolean,
+): Promise<boolean> {
+  if (on && sink !== undefined && sink.permission() !== 'granted' && await sink.request() !== 'granted') return false
+  const value = on && sink !== undefined
+  preferences.update({ notify: value })
+  return value
 }
 
 /** Constructor face of the Web Notification API. */

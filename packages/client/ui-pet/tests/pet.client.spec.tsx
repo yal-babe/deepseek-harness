@@ -171,6 +171,16 @@ describe('PetOverlay', () => {
     expect(controller.acknowledge).not.toHaveBeenCalled()
   })
 
+  it('routes a tool restricted by the pet settings to the main window', () => {
+    const pending = { ...hostPending('r', S1, 'bash', 'c1'), restrictedInPet: true }
+    const { props, controller } = setup({ connected: true, snapshot: snapshot({ pending: [pending] }) }, [local])
+    render(<PetOverlay {...props} />)
+    expect(screen.getByText('approvalRestricted')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'allowOnce' })).toBeNull()
+    fireEvent.click(screen.getAllByRole('button', { name: 'openMain' })[0]!)
+    expect(controller.openMain).toHaveBeenCalled()
+  })
+
   it('points to the main window when this Client cannot answer', () => {
     const { props } = setup({ connected: true, snapshot: snapshot({ pending: [hostPending('r', S1, 'bash', 'zz')] }) }, [local])
     render(<PetOverlay {...props} />)

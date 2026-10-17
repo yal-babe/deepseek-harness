@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-内置桌宠 Host 模块：把运行中的会话事件汇总成一份桌宠快照，经 `pet` Remote 提供。快照包含一个聚合后的角色状态、逐会话视图、待审批项、运行中的作业，以及"显示桌宠"开关。快照不含消息正文、工具参数或凭据。本模块从不回答审批；审批由 Client 通过现有审批流程回答。
+内置桌宠 Host 模块：把运行中的会话事件汇总成一份桌宠快照，经 `pet` Remote 提供。快照包含一个聚合后的角色状态、逐会话视图、待审批项、运行中的作业、"显示桌宠"开关以及共享的桌宠设置。快照不含消息正文、工具参数或凭据。本模块从不回答审批；审批由 Client 通过现有审批流程回答。
 
 ## 目录
 
@@ -25,7 +25,16 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 [ui-pet](../../client/ui-pet/README.zh.md) Client 插件。Client 调用 `pet.watch()` 获取完整 `PetSnapshot` 帧流，调用 `pet.getSnapshot()` 读取一次。`pet.setVisible(boolean)` 切换所有桌宠界面，但不停止汇总。`pet.pin(sessionId | null)` 选择气泡跟随的会话。`pet.acknowledge(sessionId)` 在用户看过结果后结束 `SUCCESS` 或 `ERROR` 停留。默认 remote-access 策略下所有方法仅限 owner。
+web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 [ui-pet](../../client/ui-pet/README.zh.md) Client 插件。Client 调用 `pet.watch()` 获取完整 `PetSnapshot` 帧流，调用 `pet.getSnapshot()` 读取一次。`pet.setVisible(boolean)` 切换所有桌宠界面，但不停止汇总；它通过 [settings](../../settings/settings/README.zh.md) 服务写入本条目的 `visible` 字段，因此 Host 重启后仍保留；没有 Settings 或 profile 条目时只在本次 Host 运行期间有效。`pet.pin(sessionId | null)` 选择气泡跟随的会话。`pet.acknowledge(sessionId)` 在用户看过结果后结束 `SUCCESS` 或 `ERROR` 停留。默认 remote-access 策略下所有方法仅限 owner。
+
+可变（volatile）Config 字段就是共享的桌宠设置。ui-pet 设置页通过 `pet` 条目的通用设置表单编辑它们，本模块在 `loader/volatile-update` 时应用，无需重新挂载：
+
+| 字段 | 默认值 | 作用 |
+| --- | --- | --- |
+| `visible` | `true` | “显示桌宠”；隐藏时汇总与数据流照常运行 |
+| `restrictTools` | `false` | 开启后，`restrictedTools` 中工具的审批带 `restrictedInPet: true`，桌宠改为引导到主窗口 |
+| `restrictedTools` | `[]` | 需要在主窗口审批的工具名 |
+| `notifyWaiting` / `notifySuccess` / `notifyError` | `true` | 系统通知类别，以 `snapshot.settings.notify` 发布；每台设备仍需自行开启 |
 
 -----
 
@@ -70,7 +79,7 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Phase 0 范围** — 未实现 `TALKING`、压缩与重试状态以及持久化设置；Host 重启后 `visible` 恢复为配置值。
+- **MVP 范围** — 未实现 `TALKING`、压缩与重试状态。除可见性、工具限制与通知类别以外的设置（气泡、性格、快捷键、更新）未实现。
 - **Host 侧不做审批决定** — 从 Host 决定需要 user-approval 能取消已转发给 Client 的请求；因此改由 Client 回答。
 
 <a id="dev-note"></a>

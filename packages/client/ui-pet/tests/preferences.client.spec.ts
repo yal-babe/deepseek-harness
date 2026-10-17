@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PetPreferenceStore, type PreferenceStorage } from '../src/client/preferences.ts'
+import { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PetPreferenceStore, type PreferenceStorage, type PreferenceStorageEvent } from '../src/client/preferences.ts'
 
 describe('parsePreferences', () => {
   it('falls back to defaults field by field', () => {
@@ -22,6 +22,24 @@ describe('PetPreferenceStore', () => {
     store.update({ snoozeUntil: 10 })
     expect(listener).toHaveBeenCalled()
     expect(JSON.parse(data.get(PET_PREFERENCES_KEY)!)).toEqual({ notify: true, snoozeUntil: 10 })
+  })
+
+  it('follows writes of other documents to its own key', () => {
+    const store = new PetPreferenceStore(undefined)
+    const target = new EventTarget()
+    const source = {
+      addEventListener: (type: 'storage', listener: (event: { key: string | null; newValue: string | null }) => void) => {
+        target.addEventListener(type, (event) => { listener((event as CustomEvent<PreferenceStorageEvent>).detail) })
+      },
+      removeEventListener: vi.fn(),
+    }
+    const stop = store.follow(source)
+    target.dispatchEvent(new CustomEvent('storage', { detail: { key: 'other', newValue: '{"notify":true}' } }))
+    expect(store.snapshot.getSnapshot().notify).toBe(false)
+    target.dispatchEvent(new CustomEvent('storage', { detail: { key: PET_PREFERENCES_KEY, newValue: '{"notify":true}' } }))
+    expect(store.snapshot.getSnapshot().notify).toBe(true)
+    stop()
+    expect(source.removeEventListener).toHaveBeenCalledWith('storage', expect.any(Function))
   })
 
   it('keeps working in memory when storage throws', () => {

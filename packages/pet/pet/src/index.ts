@@ -4,39 +4,62 @@
  * approvals itself; Clients answer the existing `approval/request` waterfall
  * (see the package README).
  */
-import { Context } from '@deepseek-ai/cordis'
+import type { Context, Volatile } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { PetReducer } from './reducer.ts'
 import type { PetSessionMeta } from './reducer.ts'
-import type { PetSnapshot } from './types.ts'
+import type { PetSettingsView, PetSnapshot } from './types.ts'
+// Type-only: the `settings` service (`settings.update`) and the Loader's `loader/volatile-update` event.
+import type {} from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/cordis-plugin-loader'
 
 export type * from './types.ts'
-export { PetReducer, PET_STATE_PRIORITY, classifyTool } from './reducer.ts'
+export { PetReducer, PET_STATE_PRIORITY, classifyTool, isRestrictedInPet } from './reducer.ts'
 export type { PetReducerOptions, PetSessionMeta, PetSnapshotInputs } from './reducer.ts'
 
-/** Deployment options of the Studio Pet Host module. */
+/**
+ * Resolved options of the Studio Pet Host module. `Volatile` fields are the
+ * shared pet settings: the Settings page and `pet.setVisible()` write them
+ * through the `settings` service into the profile patch, and the module reads
+ * them live without remounting.
+ */
 export interface Config {
-  /** Initial "show desktop pet" value; hiding never stops the Host module. */
-  visible?: boolean
+  /** "Show desktop pet"; hiding never stops the Host module. */
+  visible: Volatile<boolean>
+  /** Whether tools listed in `restrictedTools` must be approved in the main window. Off by default: the pet may approve every tool. */
+  restrictTools: Volatile<boolean>
+  /** Tool names routed to the main window while `restrictTools` is on. */
+  restrictedTools: Volatile<string[]>
+  /** System notification for a new approval request. */
+  notifyWaiting: Volatile<boolean>
+  /** System notification when a turn finishes. */
+  notifySuccess: Volatile<boolean>
+  /** System notification when a turn fails. */
+  notifyError: Volatile<boolean>
   /** Track subagent Sessions as their own entries. */
-  includeSubagents?: boolean
+  includeSubagents: boolean
   /** Milliseconds a completed turn shows `SUCCESS` before reading as `IDLE`. */
-  successHoldMs?: number
+  successHoldMs: number
   /** Milliseconds a failed turn shows `ERROR` before reading as `IDLE`. */
-  errorHoldMs?: number
+  errorHoldMs: number
   /** Maximum Session entries per snapshot. */
-  maxSessions?: number
+  maxSessions: number
   /** Minimum milliseconds between two `watch()` frames. */
-  snapshotDebounceMs?: number
+  snapshotDebounceMs: number
   /** Whether a `WAITING` Session takes focus from a pinned Session. */
-  waitingPreempts?: boolean
+  waitingPreempts: boolean
 }
 
 /** Validated at plugin load. */
 export const Config = Schema.object({
-  visible: Schema.boolean().default(true),
+  visible: Schema.boolean().default(true).volatile(),
+  restrictTools: Schema.boolean().default(false).volatile(),
+  restrictedTools: Schema.array(Schema.string().min(1)).default([]).volatile(),
+  notifyWaiting: Schema.boolean().default(true).volatile(),
+  notifySuccess: Schema.boolean().default(true).volatile(),
+  notifyError: Schema.boolean().default(true).volatile(),
   includeSubagents: Schema.boolean().default(false),
   successHoldMs: Schema.number().min(0).max(600000).step(1).default(8000),
   errorHoldMs: Schema.number().min(0).max(3600000).step(1).default(60000),
@@ -65,7 +88,9 @@ export class PetService extends TypertRemoteService {
   private readonly reducer: PetReducer
   private readonly listeners = new Set<() => void>()
   private readonly debounceMs: number
-  private visible: boolean
+  private readonly entryId: string | undefined
+  /** Visibility set through `setVisible()` in a composition without Settings or a profile entry. */
+  private visibleOverride: boolean | undefined
   private pinned: SessionId | undefined
   private revision = 0
   private expiryTimer: ReturnType<typeof setTimeout> | undefined
@@ -73,20 +98,23 @@ export class PetService extends TypertRemoteService {
 
   /**
    * @param ctx - Host root Context; listeners receive events from every Session.
-   * @param config - validated deployment options.
+   * @param config - options resolved by the Loader against {@link Config}.
    */
-  constructor(ctx: Context, config: Config) {
+  constructor(ctx: Context, private readonly config: Config) {
     super(ctx, 'pet')
-    const resolved = Config(config)
     this.reducer = new PetReducer({
-      includeSubagents: resolved.includeSubagents,
-      successHoldMs: resolved.successHoldMs,
-      errorHoldMs: resolved.errorHoldMs,
-      maxSessions: resolved.maxSessions,
-      waitingPreempts: resolved.waitingPreempts,
+      includeSubagents: config.includeSubagents,
+      successHoldMs: config.successHoldMs,
+      errorHoldMs: config.errorHoldMs,
+      maxSessions: config.maxSessions,
+      waitingPreempts: config.waitingPreempts,
     })
-    this.debounceMs = resolved.snapshotDebounceMs
-    this.visible = resolved.visible
+    this.debounceMs = config.snapshotDebounceMs
+    this.entryId = ctx.fiber.entry?.options.id
+    ctx.on('loader/volatile-update', () => {
+      this.visibleOverride = undefined
+      this.changed()
+    })
     ctx.on('session/event', (session: Session, event: SessionEvent) => {
       // A fold failure must not reach the Session append path; the pet degrades alone.
       try {
@@ -130,7 +158,20 @@ export class PetService extends TypertRemoteService {
     const now = Date.now()
     this.revision += 1
     this.armExpiry(now)
-    return this.reducer.snapshot(now, { revision: this.revision, visible: this.visible, pinnedSessionId: this.pinned })
+    return this.reducer.snapshot(now, {
+      revision: this.revision,
+      visible: this.visibleOverride ?? this.config.visible.get(),
+      pinnedSessionId: this.pinned,
+      settings: this.settings(),
+    })
+  }
+
+  private settings(): PetSettingsView {
+    return {
+      restrictTools: this.config.restrictTools.get(),
+      restrictedTools: this.config.restrictedTools.get(),
+      notify: { waiting: this.config.notifyWaiting.get(), success: this.config.notifySuccess.get(), error: this.config.notifyError.get() },
+    }
   }
 
   /**
@@ -167,14 +208,25 @@ export class PetService extends TypertRemoteService {
 
   /**
    * Show or hide the pet on every surface. Hiding keeps event folding and this stream running.
+   * The value is written to the `visible` field of this module's profile entry through the
+   * `settings` service, so it survives Host restarts; the next frame follows the Loader's
+   * `loader/volatile-update`. Without Settings or a profile entry the value lasts for this
+   * Host lifetime only.
    * @param visible - new "show desktop pet" value.
+   * @returns completion after the write is accepted.
+   * @throws RemoteError `gateway/bad-request` for a non-boolean; the Settings refusal when the write is rejected.
    */
   @Remote
-  setVisible(visible: boolean): void {
+  async setVisible(visible: boolean): Promise<void> {
     if (typeof visible !== 'boolean') throw new RemoteError('gateway/bad-request', 'visible must be a boolean', {})
-    if (this.visible === visible) return
-    this.visible = visible
-    this.changed()
+    if ((this.visibleOverride ?? this.config.visible.get()) === visible) return
+    const settings = this.ctx.get('settings')
+    if (settings === undefined || this.entryId === undefined) {
+      this.visibleOverride = visible
+      this.changed()
+      return
+    }
+    await settings.update(this.entryId, { visible })
   }
 
   /**

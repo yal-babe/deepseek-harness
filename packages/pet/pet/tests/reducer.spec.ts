@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { classifyTool, PetReducer } from '../src/reducer.ts'
+import { classifyTool, isRestrictedInPet, PetReducer } from '../src/reducer.ts'
 import type { PetReducerOptions } from '../src/reducer.ts'
+import type { PetSettingsView } from '../src/types.ts'
 import {
   approvalId, asked, child, decided, ev, jobRegistered, jobSettled, S1, S2, stepStart, SUB, toolCall, toolResult, top, turnEnd, turnStart,
 } from './fixtures.ts'
@@ -12,7 +13,8 @@ const OPTIONS: PetReducerOptions = {
   maxSessions: 8,
   waitingPreempts: true,
 }
-const INPUTS = { revision: 1, visible: true, pinnedSessionId: undefined }
+const SETTINGS: PetSettingsView = { restrictTools: false, restrictedTools: [], notify: { waiting: true, success: true, error: true } }
+const INPUTS = { revision: 1, visible: true, pinnedSessionId: undefined, settings: SETTINGS }
 
 function reducer(options: Partial<PetReducerOptions> = {}): PetReducer {
   return new PetReducer({ ...OPTIONS, ...options })
@@ -21,7 +23,7 @@ function reducer(options: Partial<PetReducerOptions> = {}): PetReducer {
 describe('PetReducer turn lifecycle', () => {
   it('starts empty and idle', () => {
     const snapshot = reducer().snapshot(0, INPUTS)
-    expect(snapshot).toEqual({ revision: 1, primary: 'IDLE', sessions: [], pending: [], jobs: [], visible: true })
+    expect(snapshot).toEqual({ revision: 1, primary: 'IDLE', sessions: [], pending: [], jobs: [], visible: true, settings: SETTINGS })
   })
 
   it('moves THINKING -> WORKING -> THINKING -> SUCCESS -> IDLE after the hold', () => {
@@ -114,12 +116,23 @@ describe('PetReducer approvals and focus', () => {
     const waiting = fold.snapshot(5, INPUTS)
     expect(waiting.primary).toBe('WAITING')
     expect(waiting.focusSessionId).toBe(S2)
-    expect(waiting.pending).toEqual([{ id: 'r1', sessionId: S2, toolName: 'bash', callId: 'c1', askedAt: 5 }])
+    expect(waiting.pending).toEqual([{ id: 'r1', sessionId: S2, toolName: 'bash', callId: 'c1', askedAt: 5, restrictedInPet: false }])
     expect(fold.apply(top(S2), decided(6, 'r1'))).toBe(true)
     expect(fold.apply(top(S2), decided(7, 'r1'))).toBe(false)
     const after = fold.snapshot(7, INPUTS)
     expect(after.pending).toEqual([])
     expect(after.primary).toBe('ERROR')
+  })
+
+  it('marks approvals of restricted tools only while the restriction is on', () => {
+    const fold = reducer()
+    fold.apply(top(S1), asked(1, 'r1', 'bash'))
+    fold.apply(top(S1), asked(2, 'r2', 'write_file'))
+    const restricted = { ...SETTINGS, restrictTools: true, restrictedTools: ['bash'] }
+    expect(fold.snapshot(2, { ...INPUTS, settings: restricted }).pending.map(item => item.restrictedInPet)).toEqual([true, false])
+    expect(fold.snapshot(2, { ...INPUTS, settings: { ...restricted, restrictTools: false } }).pending.map(item => item.restrictedInPet))
+      .toEqual([false, false])
+    expect(isRestrictedInPet(restricted, 'bash')).toBe(true)
   })
 
   it('surfaces approvals of untracked subagents without tracking their turns', () => {

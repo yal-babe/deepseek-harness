@@ -1,6 +1,7 @@
 /**
  * Per-device pet preferences kept in `localStorage`: system notifications and
- * do-not-disturb. They never leave the browser profile.
+ * do-not-disturb. They never leave the browser profile; documents of the same
+ * profile (the Desktop pet window and main window) follow each other's writes.
  */
 import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 
@@ -45,6 +46,28 @@ export function parsePreferences(raw: string | null): PetPreferences {
   return { notify, snoozeUntil }
 }
 
+/** `storage` event fields read by {@link PetPreferenceStore.follow}. */
+export interface PreferenceStorageEvent {
+  /** Changed key, or `null` when storage was cleared. */
+  readonly key: string | null
+  /** New stored value, or `null` when removed. */
+  readonly newValue: string | null
+}
+
+/** Event target delivering `storage` events, satisfied by `window`. */
+export interface PreferenceEventSource {
+  /**
+   * @param type - `storage`.
+   * @param listener - receives writes made by other documents.
+   */
+  addEventListener(type: 'storage', listener: (event: PreferenceStorageEvent) => void): void
+  /**
+   * @param type - `storage`.
+   * @param listener - listener added earlier.
+   */
+  removeEventListener(type: 'storage', listener: (event: PreferenceStorageEvent) => void): void
+}
+
 /** Observable preference record with write-through storage. */
 export class PetPreferenceStore {
   private readonly store
@@ -61,6 +84,19 @@ export class PetPreferenceStore {
     }
     this.store = createSnapshotStore<PetPreferences>(initial, { flush: 'sync' })
     this.snapshot = this.store
+  }
+
+  /**
+   * Follow preference writes made by other documents of this browser profile.
+   * @param source - `storage` event target, normally `window`.
+   * @returns stops following.
+   */
+  follow(source: PreferenceEventSource): () => void {
+    const listener = (event: PreferenceStorageEvent): void => {
+      if (event.key === PET_PREFERENCES_KEY) this.store.set(parsePreferences(event.newValue))
+    }
+    source.addEventListener('storage', listener)
+    return () => { source.removeEventListener('storage', listener) }
   }
 
   /**

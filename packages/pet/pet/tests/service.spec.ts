@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
+import { Context, Service } from '@deepseek-ai/cordis'
+import type { Volatile } from '@deepseek-ai/cordis'
+import { updateVolatile } from '@deepseek-ai/cosmokit'
 import { Session, SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
@@ -12,11 +14,53 @@ function session(id: SessionId, extra: { origin?: 'subagent'; cwd?: string } = {
   return Session.create(id, [], { version: SESSION_FORMAT_VERSION, id, createdAt: 0, isSeeded: false, ...extra })
 }
 
-async function setup(config: Config = {}): Promise<{ ctx: Context; pet: PetService; dispose: () => Promise<void> }> {
+type ConfigInput = Partial<{
+  [K in keyof Config]: Config[K] extends Volatile<infer V> ? V : Config[K]
+}>
+
+interface Setup {
+  ctx: Context
+  pet: PetService
+  config: Config
+  dispose: () => Promise<void>
+}
+
+/**
+ * Mount the service. `settings` mounts a fake Settings service and names the profile entry `pet`.
+ */
+async function setup(input: ConfigInput = {}, settings?: (ns: string, patch: object) => Promise<void>): Promise<Setup> {
   const ctx = new Context()
-  const fiber = ctx.plugin(PetService, Object.assign({ snapshotDebounceMs: 0 }, config))
+  if (settings !== undefined) {
+    const write = settings
+    class Settings extends Service {
+      constructor(inner: Context) { super(inner, 'settings') }
+      update(ns: string, patch: object): Promise<void> { return write(ns, patch) }
+    }
+    await ctx.plugin(Settings)
+  }
+  let captured: Config | undefined
+  class Capturing extends PetService {
+    constructor(inner: Context, resolved: Config) {
+      if (settings !== undefined) Object.defineProperty(inner.fiber, 'entry', { value: { options: { id: 'pet' } } })
+      super(inner, resolved)
+      captured = resolved
+    }
+  }
+  const fiber = ctx.plugin(Capturing, { snapshotDebounceMs: 0, ...input })
   await fiber
-  return { ctx, pet: ctx.pet, dispose: async () => { await fiber.dispose() } }
+  if (captured === undefined) throw new Error('pet did not mount')
+  return { ctx, pet: ctx.pet, config: captured, dispose: async () => { await fiber.dispose() } }
+}
+
+/** Commit new volatile values the way the Loader does, then announce them. */
+function reconfigure(ctx: Context, config: Config, input: ConfigInput): void {
+  const next = PetService.Config(input) as Config
+  for (const key of Object.keys(input) as (keyof Config)[]) {
+    const target = config[key]
+    const source = next[key]
+    if (typeof target === 'object' && typeof source === 'object') updateVolatile(target, source)
+  }
+  ctx.emit('loader/volatile-update', Object.keys(input).map(key => [key]))
 }
 
 function emit(ctx: Context, target: Session, event: SessionEvent): void {
@@ -131,18 +175,52 @@ describe('PetService', () => {
     ctx.emit('session/disposed', session(S2))
   })
 
-  it('validates setVisible and pin input', async () => {
+  it('keeps setVisible in memory without Settings and validates input', async () => {
     const { ctx, pet } = await setup()
-    pet.setVisible(false)
-    pet.setVisible(false)
+    await pet.setVisible(false)
+    await pet.setVisible(false)
     expect(pet.getSnapshot().visible).toBe(false)
-    expect(() => { pet.setVisible(JSON.parse('"yes"') as boolean) }).toThrow(RemoteError)
+    await expect(pet.setVisible(JSON.parse('"yes"') as boolean)).rejects.toThrow(RemoteError)
     expect(() => { pet.pin(S2) }).toThrow(RemoteError)
     emit(ctx, session(S2), turnStart(Date.now()))
     pet.pin(S2)
     pet.pin(S2)
     pet.pin(null)
     expect(pet.getSnapshot().pinnedSessionId).toBeUndefined()
+  })
+
+  it('persists setVisible through Settings and follows the committed value', async () => {
+    const update = vi.fn((_ns: string, _patch: object) => Promise.resolve())
+    const { ctx, pet, config } = await setup({}, update)
+    await pet.setVisible(true)
+    expect(update).not.toHaveBeenCalled()
+    await pet.setVisible(false)
+    expect(update).toHaveBeenCalledWith('pet', { visible: false })
+    expect(pet.getSnapshot().visible).toBe(true)
+    reconfigure(ctx, config, { visible: false })
+    expect(pet.getSnapshot().visible).toBe(false)
+  })
+
+  it('publishes shared settings and re-emits when they change', async () => {
+    const { ctx, pet, config } = await setup({ restrictTools: true, restrictedTools: ['bash'], notifySuccess: false })
+    emit(ctx, session(S1), asked(Date.now(), 'r1', 'bash'))
+    const first = pet.getSnapshot()
+    expect(first.settings).toEqual({ restrictTools: true, restrictedTools: ['bash'], notify: { waiting: true, success: false, error: true } })
+    expect(first.pending[0]?.restrictedInPet).toBe(true)
+    const iterator = pet.watch(new AbortController().signal)[Symbol.asyncIterator]()
+    await iterator.next()
+    const next = iterator.next()
+    reconfigure(ctx, config, { restrictTools: false })
+    const frame = await next
+    if (frame.done === true) throw new Error('stream ended early')
+    expect(frame.value.pending[0]?.restrictedInPet).toBe(false)
+  })
+
+  it('drops an in-memory visibility once the Loader commits configuration', async () => {
+    const { ctx, pet, config } = await setup()
+    await pet.setVisible(false)
+    reconfigure(ctx, config, { visible: true })
+    expect(pet.getSnapshot().visible).toBe(true)
   })
 
   it('acknowledges unseen results', async () => {

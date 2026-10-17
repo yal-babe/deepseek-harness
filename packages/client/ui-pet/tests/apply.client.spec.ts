@@ -6,15 +6,36 @@ import type { PetSnapshot } from '@deepseek-ai/dsh-pet/types'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as nodeApply } from '../src/index.ts'
 import type { PetInjected } from '../src/client/Pet.tsx'
+import type { PetSettingsInjected } from '../src/client/PetSettingsSection.tsx'
 import type { DesktopPetBridge } from '../src/client/surface.ts'
 import { hostPending, S1, sessionView, snapshot } from './fixtures.ts'
 
 interface Registration {
-  readonly options: { name: string; priority?: number; inject: () => PetInjected & { onQuickAsk?: (listener: () => void) => () => void } }
+  readonly options: {
+    name: string
+    id?: string
+    priority?: number
+    label?: () => string
+    inject: () => PetInjected & { onQuickAsk?: (listener: () => void) => () => void }
+  }
   readonly component: unknown
 }
 
-async function bench(search: string, bridge?: DesktopPetBridge, extraFrames?: PetSnapshot[]) {
+/** ui-settings' configForms face with one served namespace and a recording `set`. */
+function fakeConfigForms(served: boolean) {
+  const set = vi.fn(async (_field: string, _value: unknown) => true)
+  const initial = { status: 'ready', value: undefined, base: undefined, user: undefined, revision: 1, writable: true }
+  const form = { ...createSnapshotStore(initial), set }
+  return {
+    set,
+    get: vi.fn(() => form),
+    whileServed: vi.fn((namespaces: readonly string[], register: () => () => void) => served && namespaces.includes('pet') ? register() : () => {}),
+  }
+}
+
+async function bench(
+  search: string, bridge?: DesktopPetBridge, extraFrames?: PetSnapshot[], configForms?: ReturnType<typeof fakeConfigForms>,
+) {
   window.history.replaceState(null, '', `/${search}`)
   if (bridge === undefined) Reflect.deleteProperty(globalThis, 'dshDesktopPet')
   else Reflect.set(globalThis, 'dshDesktopPet', bridge)
@@ -51,6 +72,7 @@ async function bench(search: string, bridge?: DesktopPetBridge, extraFrames?: Pe
     inject: (_name: string, mount: () => () => void) => { const dispose = ctx.effect(() => mount()); return () => { void dispose() } },
     register: (options: Registration['options'], component: unknown) => { registrations.push({ options, component }); return () => {} },
   } as never)
+  if (configForms !== undefined) ctx.provide('configForms', configForms as never)
   const fiber = ctx.plugin({ inject, apply })
   await fiber.await()
   await vi.waitFor(() => { expect(remote.$stream).toHaveBeenCalled() }, { timeout: 100 }).catch(() => {})
@@ -122,9 +144,34 @@ describe('ui-pet apply', () => {
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
     }
-    const { registrations, locale } = await bench('', bridge)
+    const { registrations, remote } = await bench('', bridge)
     expect(registrations).toEqual([])
-    expect(locale.register).not.toHaveBeenCalled()
+    expect(remote.$stream).not.toHaveBeenCalled()
+  })
+
+  it('registers the settings page on Web and in the Desktop main window while the Host serves the pet entry', async () => {
+    const web = fakeConfigForms(true)
+    const first = await bench('', undefined, undefined, web)
+    expect(first.registrations.map(entry => [entry.options.name, entry.options.id]).sort()).toEqual([['settings.section', 'pet'], ['shell.overlay', 'pet.character']])
+    const section = first.registrations.find(entry => entry.options.name === 'settings.section')!
+    expect(section.options.label?.()).toBe('settings.nav')
+    const page = section.options.inject() as unknown as PetSettingsInjected
+    expect(page.desktop).toBe(false)
+    expect(await page.setSwitch('restrictTools', true)).toBe(true)
+    expect(await page.setRestrictedTools(['bash'])).toBe(true)
+    expect(web.set.mock.calls).toEqual([['restrictTools', true], ['restrictedTools', ['bash']]])
+    expect(await page.setDeviceNotify(true)).toBe(false)
+    await first.fiber.dispose()
+    const main: DesktopPetBridge = {
+      protocolVersion: 1, role: 'main', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
+    }
+    const second = await bench('', main, undefined, fakeConfigForms(true))
+    expect(second.registrations.map(entry => entry.options.name)).toEqual(['settings.section'])
+    expect((second.registrations[0]!.options.inject() as unknown as PetSettingsInjected).desktop).toBe(true)
+    const unserved = await bench('', undefined, undefined, fakeConfigForms(false))
+    expect(unserved.registrations.map(entry => entry.options.name)).toEqual(['shell.overlay'])
+    const window = await bench('?dsh-pet-window=1', undefined, undefined, fakeConfigForms(true))
+    expect(window.registrations.map(entry => entry.options.name)).toEqual(['root'])
   })
 
   it('shows system notifications when the user opted in, and tolerates blocked storage', async () => {
