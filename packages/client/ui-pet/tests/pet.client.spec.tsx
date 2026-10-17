@@ -70,11 +70,12 @@ function setup(
   const questionStore = createSnapshotStore<readonly AnswerableQuestion[]>(questions, { flush: 'sync' })
   const controller = controllerStub(viewStore, preferences, notifications)
   const packStore = createSnapshotStore<PetFrameSet>(BUILTIN_FRAME_SET, { flush: 'sync' })
+  const movementStore = createSnapshotStore<{ moving: boolean; direction: 'left' | 'right' }>({ moving: false, direction: 'right' }, { flush: 'sync' })
   const props: PetProps = {
     t, controller, renderSlot: () => null, useView: hook(viewStore), useApprovals: hook(approvalStore), useQuestions: hook(questionStore),
-    usePreferences: hook(preferences.snapshot), usePack: hook(packStore),
+    usePreferences: hook(preferences.snapshot), usePack: hook(packStore), useMovement: hook(movementStore),
   }
-  return { props, controller, viewStore, approvalStore, questionStore, preferences, packStore }
+  return { props, controller, viewStore, approvalStore, questionStore, preferences, packStore, movementStore }
 }
 
 function asked(questions: AnswerableQuestion['questions'], key = 'q'): AnswerableQuestion {
@@ -568,16 +569,11 @@ describe('pet panel and personalisation regressions', () => {
   })
 })
 
-it('follows native movement direction and releases the movement subscription', () => {
-  const { props } = setup({ connected: true, snapshot: snapshot() })
-  let movement: ((value: { moving: boolean; direction: 'left' | 'right' }) => void) | undefined
-  const stop = vi.fn(() => { movement = undefined })
-  const view = render(<PetWindowRoot {...props} onQuickAsk={() => () => {}}
-    onMovement={(listener) => { movement = listener; return stop }} />)
-  act(() => { movement?.({ moving: true, direction: 'left' }) })
+it('follows the injected native movement snapshot', () => {
+  const { props, movementStore } = setup({ connected: true, snapshot: snapshot() })
+  const view = render(<PetWindowRoot {...props} onQuickAsk={() => () => {}} />)
+  act(() => { movementStore.set({ moving: true, direction: 'left' }) })
   expect(view.container.querySelector('[data-moving="true"][data-direction="left"]')).toBeTruthy()
-  act(() => { movement?.({ moving: false, direction: 'left' }) })
+  act(() => { movementStore.set({ moving: false, direction: 'left' }) })
   expect(view.container.querySelector('[data-moving="true"]')).toBeNull()
-  view.unmount()
-  expect(stop).toHaveBeenCalledOnce()
 })

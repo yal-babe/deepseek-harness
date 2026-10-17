@@ -162,8 +162,11 @@ describe('ui-pet apply', () => {
 
   it('renders only the pet in the Desktop pet window and follows Host visibility', async () => {
     let request: ((visible: boolean) => void) | undefined
+    let movement: ((value: { moving: boolean; direction: 'left' | 'right' }) => void) | undefined
+    const stopMovement = vi.fn(() => { movement = undefined })
     const bridge: DesktopPetBridge = {
       protocolVersion: 1, role: 'pet', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(), onQuickAsk: vi.fn(() => () => {}),
+      onMovement: (listener) => { movement = listener; return stopMovement },
       onOpenSession: vi.fn(() => () => {}),
       onVisibleRequest: (listener) => { request = listener; return () => {} }, drag: vi.fn(),
     }
@@ -179,9 +182,13 @@ describe('ui-pet apply', () => {
     expect(document.documentElement.style.getPropertyValue('background')).toBe('transparent')
     await vi.waitFor(() => { expect(bridge.setVisible).toHaveBeenCalledWith(false) })
     const injected = registrations[0]!.options.inject()
+    movement?.({ moving: true, direction: 'left' })
+    expect(injected.hooks.movement.getSnapshot()).toEqual({ moving: true, direction: 'left' })
     injected.onQuickAsk?.(() => {})
     expect(bridge.onQuickAsk).toHaveBeenCalled()
     await fiber.dispose()
+    expect(stopMovement).toHaveBeenCalledOnce()
+    expect(movement).toBeUndefined()
     expect(document.documentElement.style.getPropertyValue('background')).toBe('')
   })
 

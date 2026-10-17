@@ -35,6 +35,8 @@ export interface PetInjected {
     questions: ObservableSnapshot<readonly AnswerableQuestion[]>
     /** Device-local preferences. */
     preferences: ObservableSnapshot<PetPreferences>
+    /** Native autonomous movement, owned by the surface registration. */
+    movement: ObservableSnapshot<{ moving: boolean; direction: 'left' | 'right' }>
     /** Character pack being rendered: the built-in pack or a Host-offered development pack. */
     pack: ObservableSnapshot<PetFrameSet>
   }
@@ -645,11 +647,10 @@ export function PetOverlay(props: PetProps): ReactNode {
  * outside the character and bubble, and synced to the Host visibility.
  * @param props - pet props plus the Desktop quick-ask subscription.
  */
-export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void; readonly onMovement?: (listener: (value: { moving: boolean; direction: 'left' | 'right' }) => void) => () => void }): ReactNode {
+export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
   const { open, toggle, close, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, action, interact } = usePanel(props)
-  const { controller, onQuickAsk, onMovement } = props
-  const [movement, setMovement] = useState<{ moving: boolean; direction: 'left' | 'right' }>({ moving: false, direction: 'right' })
-  useEffect(() => onMovement?.(setMovement), [onMovement])
+  const { controller, onQuickAsk } = props
+  const movement = props.useMovement(value => value)
   const pack = props.usePack(current => current)
   const preferences = props.usePreferences(current => current)
   const activity = props.useView(view =>

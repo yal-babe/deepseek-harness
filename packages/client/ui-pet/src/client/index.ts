@@ -185,6 +185,13 @@ function mountSurface(ctx: ClientContext, deps: {
     }, () => {})
     return () => { live = false }
   }, 'ui-pet: character pack')
+  const movement = createSnapshotStore<{ moving: boolean; direction: 'left' | 'right' }>(
+    { moving: false, direction: 'right' }, { flush: 'sync' },
+  )
+  if (bridge?.onMovement !== undefined) {
+    const observeMovement = bridge.onMovement
+    ctx.effect(() => observeMovement((value) => { movement.set(value) }), 'ui-pet: native movement')
+  }
   const now = (): number => Date.now()
   const controller = new PetController({
     view: pet.store,
@@ -219,7 +226,7 @@ function mountSurface(ctx: ClientContext, deps: {
   const injected = (): PetInjected => ({
     controller,
     hooks: {
-      view: pet.store, approvals: controller.approvals, questions: controller.questions, preferences: preferences.snapshot, pack,
+      view: pet.store, approvals: controller.approvals, questions: controller.questions, preferences: preferences.snapshot, pack, movement,
     },
   })
   if (surface === 'window') {
@@ -234,10 +241,9 @@ function mountSurface(ctx: ClientContext, deps: {
       }), 'ui-pet: Desktop tray visibility requests')
     }
     const onQuickAsk = (listener: () => void): (() => void) => bridge?.onQuickAsk(listener) ?? (() => {})
-    const onMovement = (listener: (value: { moving: boolean; direction: 'left' | 'right' }) => void): (() => void) => bridge?.onMovement?.(listener) ?? (() => {})
     // Lower priority than ui-layout's AppFrame (0): this document renders only the pet.
     ctx.slots.inject('root', () => ctx.slots.register({
-      name: 'root', priority: -1, children: { 'pet.panel.metrics': { kind: 'list', scope: 'root' } }, locale: NS, inject: () => ({ ...injected(), onQuickAsk, onMovement }),
+      name: 'root', priority: -1, children: { 'pet.panel.metrics': { kind: 'list', scope: 'root' } }, locale: NS, inject: () => ({ ...injected(), onQuickAsk }),
     }, PetWindowRoot))
     return
   }
