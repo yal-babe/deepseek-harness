@@ -7,6 +7,7 @@ import { matchApproval, type AnswerableApproval, type PetDecisionResult } from '
 import type { PetController, QuickAskChoice } from './controller.ts'
 import { petAnswerable, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
 import { clipFor, PET_FPS, PET_FRAMES } from './frames.ts'
+import { isSnoozed, type PetPreferences } from './preferences.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import css from './Pet.module.css'
 
@@ -24,6 +25,8 @@ export interface PetInjected {
     approvals: ObservableSnapshot<readonly AnswerableApproval[]>
     /** Unanswered questions of this Client. */
     questions: ObservableSnapshot<readonly AnswerableQuestion[]>
+    /** Device-local preferences. */
+    preferences: ObservableSnapshot<PetPreferences>
   }
 }
 
@@ -310,21 +313,20 @@ export function PetPanel(
 }
 
 /** One right-click menu action. */
-export type PetMenuAction = 'quickAsk' | 'openMain' | 'hide'
+export type PetMenuAction = 'quickAsk' | 'openMain' | 'notifyOn' | 'notifyOff' | 'snooze' | 'resume' | 'hide'
 
 /**
  * Right-click menu of the character. Escape or a click on an item closes it.
  * @param props - copy, action handler, and close callback.
  */
-export function PetMenu({ t, onAction, onClose, desktop }: {
+export function PetMenu({ t, actions, onAction, onClose }: {
   readonly t: T
+  readonly actions: readonly PetMenuAction[]
   readonly onAction: (action: PetMenuAction) => void
   readonly onClose: () => void
-  readonly desktop: boolean
 }): ReactNode {
   const first = useRef<HTMLButtonElement>(null)
   useEffect(() => { first.current?.focus() }, [])
-  const actions: readonly PetMenuAction[] = desktop ? ['quickAsk', 'openMain', 'hide'] : ['quickAsk', 'hide']
   return (
     <div className={css.menu} role="menu" aria-label={t('menuLabel')}
       onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
@@ -346,9 +348,11 @@ interface PanelState {
   readonly menu: boolean
   readonly setMenu: (open: boolean) => void
   readonly act: (action: PetMenuAction) => void
+  readonly actions: (desktop: boolean) => readonly PetMenuAction[]
 }
 
 function usePanel(props: PetProps): PanelState {
+  const preferences = props.usePreferences(value => value)
   const view = props.useView(value => value)
   const [open, setOpen] = useState(false)
   const [focusRequest, setFocusRequest] = useState(0)
@@ -369,11 +373,27 @@ function usePanel(props: PetProps): PanelState {
       setFocusRequest(current => current + 1)
     } else if (action === 'openMain') {
       props.controller.openMain()
+    } else if (action === 'notifyOn' || action === 'notifyOff') {
+      void props.controller.setNotify(action === 'notifyOn')
+    } else if (action === 'snooze') {
+      props.controller.snooze()
+    } else if (action === 'resume') {
+      props.controller.resume()
     } else {
       void props.controller.hide()
     }
   }
-  return { open: open || waiting, toggle, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act }
+  const actions = (desktop: boolean): readonly PetMenuAction[] => {
+    const list: PetMenuAction[] = ['quickAsk']
+    if (desktop) list.push('openMain')
+    if (props.controller.canNotify) {
+      list.push(preferences.notify ? 'notifyOff' : 'notifyOn')
+      if (preferences.notify) list.push(isSnoozed(preferences, Date.now()) ? 'resume' : 'snooze')
+    }
+    list.push('hide')
+    return list
+  }
+  return { open: open || waiting, toggle, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions }
 }
 
 /**
@@ -381,12 +401,12 @@ function usePanel(props: PetProps): PanelState {
  * @param props - pet props.
  */
 export function PetOverlay(props: PetProps): ReactNode {
-  const { open, toggle, state, visible, focusRequest, menu, setMenu, act } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest, menu, setMenu, act, actions } = usePanel(props)
   if (!visible) return null
   return (
     <div className={css.overlay} data-surface="page">
       {open && <PetPanel {...props} focusRequest={focusRequest} />}
-      {menu && <PetMenu t={props.t} desktop={false} onAction={act} onClose={() => { setMenu(false) }} />}
+      {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
       <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })} onClick={toggle}
         onMenu={() => { setMenu(!menu) }} />
     </div>
@@ -399,7 +419,7 @@ export function PetOverlay(props: PetProps): ReactNode {
  * @param props - pet props plus the Desktop quick-ask subscription.
  */
 export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
-  const { open, toggle, state, visible, focusRequest: menuFocus, menu, setMenu, act } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions } = usePanel(props)
   const [focusRequest, setFocusRequest] = useState(0)
   const [forced, setForced] = useState(false)
   const { controller, onQuickAsk } = props
@@ -418,7 +438,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
     <div className={css.window} data-surface="window">
       <div className={css.windowStack} onMouseEnter={() => { interactive(true) }} onMouseLeave={() => { interactive(false) }}>
         {(open || forced) && <PetPanel {...props} focusRequest={focusRequest + menuFocus} />}
-        {menu && <PetMenu t={props.t} desktop onAction={act} onClose={() => { setMenu(false) }} />}
+        {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} onClose={() => { setMenu(false) }} />}
         <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })}
           onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }} />
       </div>

@@ -5,6 +5,8 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { collectApprovals, PetApprovalBridge, type AnswerableApproval, type PendingInteractionLike, type PetDecisionResult } from './approvals.ts'
 import { collectQuestions, PetQuestionBridge, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
 import { sendQuickAsk, type QuickAskDeps, type QuickAskOutcome, type QuickAskTarget } from './quick-ask.ts'
+import type { NotificationSink } from './notifier.ts'
+import { PET_SNOOZE_MS, type PetPreferences, type PetPreferenceStore } from './preferences.ts'
 import type { PetViewState } from './store.ts'
 import type { DesktopPetBridge } from './surface.ts'
 
@@ -33,6 +35,12 @@ export interface PetControllerDeps {
   readonly acknowledge: (sessionId: SessionId) => Promise<void>
   /** Desktop pet-window bridge, when present. */
   readonly bridge: DesktopPetBridge | undefined
+  /** Device-local preferences. */
+  readonly preferences: PetPreferenceStore
+  /** System notifications, when the platform has them. */
+  readonly notifications: NotificationSink | undefined
+  /** Current epoch milliseconds. */
+  readonly now: () => number
 }
 
 /** Where the quick ask goes, as chosen in the pet. */
@@ -133,6 +141,40 @@ export class PetController {
    */
   acknowledge(sessionId: SessionId): Promise<void> {
     return this.deps.acknowledge(sessionId)
+  }
+
+  /** Device-local preferences. */
+  get preferences(): ObservableSnapshot<PetPreferences> {
+    return this.deps.preferences.snapshot
+  }
+
+  /** Whether this platform can show system notifications. */
+  get canNotify(): boolean {
+    return this.deps.notifications !== undefined
+  }
+
+  /**
+   * Turn system notifications on or off. Turning them on asks for permission
+   * first (call from a user gesture) and stays off when it is refused.
+   * @param on - requested value.
+   * @returns the resulting value.
+   */
+  async setNotify(on: boolean): Promise<boolean> {
+    const sink = this.deps.notifications
+    if (on && sink !== undefined && sink.permission() !== 'granted' && await sink.request() !== 'granted') return false
+    const value = on && sink !== undefined
+    this.deps.preferences.update({ notify: value })
+    return value
+  }
+
+  /** Snooze notifications for one hour. */
+  snooze(): void {
+    this.deps.preferences.update({ snoozeUntil: this.deps.now() + PET_SNOOZE_MS })
+  }
+
+  /** End a snooze early. */
+  resume(): void {
+    this.deps.preferences.update({ snoozeUntil: undefined })
   }
 
   /** Bring the Desktop main window forward; no-op on Web. */

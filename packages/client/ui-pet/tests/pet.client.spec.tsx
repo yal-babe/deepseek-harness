@@ -9,6 +9,8 @@ import { PetController } from '../src/client/controller.ts'
 import type { AnswerableQuestion } from '../src/client/questions.ts'
 import { APPROVAL_ARM_DELAY_MS, PetCharacter, PetOverlay, PetWindowRoot, type PetProps } from '../src/client/Pet.tsx'
 import type { PetViewState } from '../src/client/store.ts'
+import type { NotificationSink } from '../src/client/notifier.ts'
+import { PetPreferenceStore } from '../src/client/preferences.ts'
 import { hostPending, S1, sessionView, snapshot } from './fixtures.ts'
 import { JobId } from '@deepseek-ai/dsh-jobs/brand'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -21,7 +23,7 @@ function hook<T>(source: ObservableSnapshot<T>): SnapshotSelectorHook<T> {
 
 const t: PetProps['t'] = (key, params) => params === undefined ? key : `${key}:${Object.values(params).join(',')}`
 
-function controllerStub(view: ObservableSnapshot<PetViewState>) {
+function controllerStub(view: ObservableSnapshot<PetViewState>, preferences: PetPreferenceStore, notifications?: NotificationSink) {
   const controller = new PetController({
     view,
     sessionStatus: createSnapshotStore(new Map(), { flush: 'sync' }),
@@ -34,6 +36,9 @@ function controllerStub(view: ObservableSnapshot<PetViewState>) {
     setVisible: async () => {},
     acknowledge: async () => {},
     bridge: undefined,
+    preferences,
+    notifications,
+    now: () => Date.now(),
   })
   return Object.assign(controller, {
     decide: vi.spyOn(controller, 'decide').mockResolvedValue('decided'),
@@ -44,16 +49,28 @@ function controllerStub(view: ObservableSnapshot<PetViewState>) {
     openMain: vi.spyOn(controller, 'openMain').mockImplementation(() => {}),
     setInteractive: vi.spyOn(controller, 'setInteractive').mockImplementation(() => {}),
     show: vi.spyOn(controller, 'show').mockResolvedValue(undefined),
+    setNotify: vi.spyOn(controller, 'setNotify').mockResolvedValue(true),
+    snooze: vi.spyOn(controller, 'snooze'),
+    resume: vi.spyOn(controller, 'resume'),
   })
 }
 
-function setup(view: PetViewState, approvals: readonly AnswerableApproval[] = [], questions: readonly AnswerableQuestion[] = []) {
+function setup(
+  view: PetViewState,
+  approvals: readonly AnswerableApproval[] = [],
+  questions: readonly AnswerableQuestion[] = [],
+  notifications?: NotificationSink,
+) {
+  const preferences = new PetPreferenceStore(undefined)
   const viewStore = createSnapshotStore<PetViewState>(view, { flush: 'sync' })
   const approvalStore = createSnapshotStore<readonly AnswerableApproval[]>(approvals, { flush: 'sync' })
   const questionStore = createSnapshotStore<readonly AnswerableQuestion[]>(questions, { flush: 'sync' })
-  const controller = controllerStub(viewStore)
-  const props: PetProps = { t, controller, useView: hook(viewStore), useApprovals: hook(approvalStore), useQuestions: hook(questionStore) }
-  return { props, controller, viewStore, approvalStore, questionStore }
+  const controller = controllerStub(viewStore, preferences, notifications)
+  const props: PetProps = {
+    t, controller, useView: hook(viewStore), useApprovals: hook(approvalStore), useQuestions: hook(questionStore),
+    usePreferences: hook(preferences.snapshot),
+  }
+  return { props, controller, viewStore, approvalStore, questionStore, preferences }
 }
 
 function asked(questions: AnswerableQuestion['questions'], key = 'q'): AnswerableQuestion {
@@ -286,6 +303,29 @@ describe('PetMenu', () => {
     fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
     fireEvent.click(screen.getByText('menu.openMain'))
     expect(controller.openMain).toHaveBeenCalled()
+  })
+})
+
+describe('PetMenu notifications', () => {
+  it('offers notification and do-not-disturb toggles when the platform can notify', () => {
+    const sink: NotificationSink = { permission: () => 'granted', request: async () => 'granted', show: vi.fn() }
+    const { props, controller, preferences } = setup({ connected: true, snapshot: snapshot() }, [], [], sink)
+    render(<PetOverlay {...props} />)
+    const character = screen.getByRole('button', { name: /characterLabel/u })
+    fireEvent.contextMenu(character)
+    expect(screen.queryByText('menu.snooze')).toBeNull()
+    fireEvent.click(screen.getByText('menu.notifyOn'))
+    expect(controller.setNotify).toHaveBeenLastCalledWith(true)
+    act(() => { preferences.update({ notify: true }) })
+    fireEvent.contextMenu(character)
+    fireEvent.click(screen.getByText('menu.snooze'))
+    expect(controller.snooze).toHaveBeenCalled()
+    fireEvent.contextMenu(character)
+    fireEvent.click(screen.getByText('menu.resume'))
+    expect(controller.resume).toHaveBeenCalled()
+    fireEvent.contextMenu(character)
+    fireEvent.click(screen.getByText('menu.notifyOff'))
+    expect(controller.setNotify).toHaveBeenLastCalledWith(false)
   })
 })
 

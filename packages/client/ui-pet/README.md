@@ -26,7 +26,9 @@ Browser half of the built-in Studio Pet. It mirrors the Host [`pet`](../../pet/p
 
 The web-app bundle mounts this plugin with the Host `pet` module. Opening any Web page shows the character in the bottom-right corner. Append `?dsh-pet-window=1` to preview the pet-window surface in a browser. Desktop opens a separate transparent always-on-top window on that URL. The Desktop main window then shows no in-page character. `CommandOrControl+Shift+Space` opens the quick ask from anywhere and shows the pet again after it was hidden.
 
-Right-click the character for its menu: Quick ask, Open main window (Desktop only), and Hide pet. Escape closes the menu.
+Right-click the character for its menu: Quick ask, Open main window (Desktop only), notifications on or off, do not disturb for one hour, and Hide pet. Escape closes the menu.
+
+System notifications are off until you turn them on from the menu, which also asks the browser or Desktop for permission. When on, the pet notifies about a new approval request and about a Session that finishes or fails, but only while you are not looking at the pet's document and no do-not-disturb hour is running. Clicking a notification brings the app forward. Both settings are stored per device in `localStorage` (`dsh-pet:preferences`) and are not synced.
 
 Approval cards keep both buttons disabled for 800 ms after they appear, and Enter never approves. Deciding in the pet and deciding in the main window answer the same Host request; the first answer wins and the other surface closes its card.
 
@@ -43,6 +45,7 @@ When the agent asks a question (`ask_user_question`) and no approval is waiting,
 - `PetStore` consumes `pet.watch()` through `ctx.remote.$stream`; a carrier loss or terminal failure makes the character `DISCONNECTED` until the next frame.
 - Approvals are not decided through the Host. Each Client already answers the forwarded `approval/request` waterfall with ui-approval's `PendingApproval`. The pet reads those objects from `uiSession.sessionStatus`, matches them to Host pending entries by Session and tool call, and answers them through `PetApprovalBridge`, which rejects a second submission from the same surface. The Gateway settles the waterfall with the first result and cancels the other Clients, so the main window and pet window cannot both decide.
 - Questions follow the same path: ui-user-questions publishes each request as a `PendingQuestion` in `uiSession.sessionStatus`, and `PetQuestionBridge` answers that object once. Settled review cards and plan reviews are skipped.
+- Notifications compare two consecutive Host frames (`diffNotices`); the first frame after connecting never notifies, and subagent Sessions are skipped. In Desktop only the pet window runs ui-pet, so each change notifies once; several Web tabs each notify.
 - Quick ask runs `session.create` (for a new Session), `fileUpload.upload` for each dropped file, then `session.prompt` in queue mode.
 - The Desktop bridge (`window.dshDesktopPet`) toggles click-through when the pointer enters or leaves the character and bubble, follows Host visibility, and forwards the global shortcut.
 - Frames: six frames each of the idle, thinking, working, waiting, success, and error clips of the whale-tail maid character, cropped and scaled to 160 px. The frames are MIT licensed, Copyright (c) 2026 PC2005-cloud; the license is in `src/client/assets/whaletail-maid/LICENSE.txt`.

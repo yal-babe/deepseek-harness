@@ -9,6 +9,8 @@ import { PetController, type PetControllerDeps } from '../src/client/controller.
 import type { AnswerableQuestion } from '../src/client/questions.ts'
 import type { PetViewState } from '../src/client/store.ts'
 import type { DesktopPetBridge } from '../src/client/surface.ts'
+import type { NotificationSink } from '../src/client/notifier.ts'
+import { PET_SNOOZE_MS, PetPreferenceStore } from '../src/client/preferences.ts'
 import { S1, S2, sessionView, snapshot } from './fixtures.ts'
 
 function approval(key: string): AnswerableApproval & PendingInteractionLike {
@@ -18,7 +20,7 @@ function approval(key: string): AnswerableApproval & PendingInteractionLike {
   return value
 }
 
-function bench(bridge?: DesktopPetBridge) {
+function bench(bridge?: DesktopPetBridge, sink?: NotificationSink) {
   const view = createSnapshotStore<PetViewState>({ snapshot: undefined, connected: true }, { flush: 'sync' })
   const status = createSnapshotStore<ReadonlyMap<SessionId, { pendingInteraction: PendingInteractionLike | undefined }>>(new Map(), { flush: 'sync' })
   const deps: PetControllerDeps = {
@@ -33,6 +35,9 @@ function bench(bridge?: DesktopPetBridge) {
     setVisible: vi.fn(async () => {}),
     acknowledge: vi.fn(async () => {}),
     bridge,
+    preferences: new PetPreferenceStore(undefined),
+    notifications: sink,
+    now: () => 1000,
   }
   return { view, status, deps, controller: new PetController(deps) }
 }
@@ -98,5 +103,29 @@ describe('PetController', () => {
     const web = bench().controller
     web.openMain()
     web.setInteractive(false)
+  })
+
+  it('turns notifications on only after permission and manages the snooze', async () => {
+    const none = bench()
+    expect(none.controller.canNotify).toBe(false)
+    expect(await none.controller.setNotify(true)).toBe(false)
+    let permission: 'default' | 'granted' | 'denied' = 'default'
+    const request = vi.fn(async () => permission)
+    const sink: NotificationSink = { permission: () => permission, request, show: vi.fn() }
+    const { controller } = bench(undefined, sink)
+    expect(controller.canNotify).toBe(true)
+    expect(await controller.setNotify(true)).toBe(false)
+    expect(controller.preferences.getSnapshot().notify).toBe(false)
+    permission = 'granted'
+    expect(await controller.setNotify(true)).toBe(true)
+    expect(request).toHaveBeenCalledOnce()
+    expect(await controller.setNotify(true)).toBe(true)
+    expect(request).toHaveBeenCalledOnce()
+    controller.snooze()
+    expect(controller.preferences.getSnapshot().snoozeUntil).toBe(1000 + PET_SNOOZE_MS)
+    controller.resume()
+    expect(controller.preferences.getSnapshot().snoozeUntil).toBeUndefined()
+    expect(await controller.setNotify(false)).toBe(false)
+    expect(controller.preferences.getSnapshot().notify).toBe(false)
   })
 })

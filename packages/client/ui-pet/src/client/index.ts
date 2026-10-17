@@ -16,6 +16,8 @@ import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/t
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { PetController } from './controller.ts'
+import { browserNotifications, watchNotices } from './notifier.ts'
+import { PetPreferenceStore, type PreferenceStorage } from './preferences.ts'
 import { en, zh, type PetLocaleKey } from './locales.ts'
 import { PetOverlay, PetWindowRoot, type PetInjected } from './Pet.tsx'
 import type { QuickAskDeps } from './quick-ask.ts'
@@ -27,9 +29,13 @@ export { collectApprovals, matchApproval, PetApprovalBridge } from './approvals.
 export type { AnswerableQuestion, PetAnswerResult, PetQuestionAnswer, PetQuestionItem, PetQuestionOption } from './questions.ts'
 export { collectQuestions, petAnswerable, PetQuestionBridge } from './questions.ts'
 export type { PetControllerDeps, QuickAskChoice } from './controller.ts'
+export type { NoticeWatch, NotificationSink, PetNotice } from './notifier.ts'
+export { browserNotifications, diffNotices, mayNotify, watchNotices } from './notifier.ts'
+export type { PetPreferences, PreferenceStorage } from './preferences.ts'
+export { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PET_SNOOZE_MS, PetPreferenceStore } from './preferences.ts'
 export { PetController } from './controller.ts'
 export type { PetLocaleKey } from './locales.ts'
-export type { PetInjected, PetProps } from './Pet.tsx'
+export type { PetInjected, PetMenuAction, PetProps } from './Pet.tsx'
 export type { QuickAskDeps, QuickAskOutcome, QuickAskRequest, QuickAskTarget } from './quick-ask.ts'
 export { sendQuickAsk } from './quick-ask.ts'
 export type { PetViewState } from './store.ts'
@@ -61,6 +67,15 @@ function quickAskDeps(ctx: ClientContext): QuickAskDeps {
   }
 }
 
+function storageOf(scope: { readonly localStorage?: PreferenceStorage }): PreferenceStorage | undefined {
+  try {
+    return scope.localStorage
+  } catch {
+    // Reading localStorage throws when the profile blocks storage.
+    return undefined
+  }
+}
+
 function makeTransparent(): () => void {
   const targets = [document.documentElement, document.body]
   for (const element of targets) element.style.setProperty('background', 'transparent', 'important')
@@ -81,6 +96,9 @@ export function apply(ctx: ClientContext): void {
     void pet.run()
     return () => pet.dispose()
   }, 'ui-pet: snapshot stream')
+  const now = (): number => Date.now()
+  const preferences = new PetPreferenceStore(storageOf(globalThis))
+  const notifications = browserNotifications(globalThis)
   const controller = new PetController({
     view: pet.store,
     sessionStatus: ctx.uiSession.sessionStatus,
@@ -88,10 +106,33 @@ export function apply(ctx: ClientContext): void {
     setVisible: async (visible) => { await ctx.remote.pet.setVisible(visible) },
     acknowledge: async (sessionId: SessionId) => { await ctx.remote.pet.acknowledge(sessionId) },
     bridge,
+    preferences,
+    notifications,
+    now,
   })
+  if (notifications !== undefined) {
+    const t = ctx.locale.bind(NS)
+    ctx.effect(() => watchNotices({
+      view: pet.store,
+      preferences: preferences.snapshot,
+      sink: notifications,
+      focused: () => !document.hidden && document.hasFocus(),
+      now,
+      text: notice => ({
+        title: t(`notify.${notice.kind}`, { toolName: notice.toolName ?? '' }),
+        body: notice.title ?? t('notify.untitled'),
+      }),
+      open: () => {
+        controller.openMain()
+        window.focus()
+      },
+    }), 'ui-pet: system notifications')
+  }
   const injected = (): PetInjected => ({
     controller,
-    hooks: { view: pet.store, approvals: controller.approvals, questions: controller.questions },
+    hooks: {
+      view: pet.store, approvals: controller.approvals, questions: controller.questions, preferences: preferences.snapshot,
+    },
   })
   if (surface === 'window') {
     ctx.effect(makeTransparent, 'ui-pet: transparent pet window')

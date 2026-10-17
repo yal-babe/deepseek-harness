@@ -7,20 +7,20 @@ import { apply, inject } from '../src/client/index.ts'
 import { apply as nodeApply } from '../src/index.ts'
 import type { PetInjected } from '../src/client/Pet.tsx'
 import type { DesktopPetBridge } from '../src/client/surface.ts'
-import { S1, snapshot } from './fixtures.ts'
+import { hostPending, S1, sessionView, snapshot } from './fixtures.ts'
 
 interface Registration {
   readonly options: { name: string; priority?: number; inject: () => PetInjected & { onQuickAsk?: (listener: () => void) => () => void } }
   readonly component: unknown
 }
 
-async function bench(search: string, bridge?: DesktopPetBridge) {
+async function bench(search: string, bridge?: DesktopPetBridge, extraFrames?: PetSnapshot[]) {
   window.history.replaceState(null, '', `/${search}`)
   if (bridge === undefined) Reflect.deleteProperty(globalThis, 'dshDesktopPet')
   else Reflect.set(globalThis, 'dshDesktopPet', bridge)
   const ctx = new Context()
   const registrations: Registration[] = []
-  const frames: PetSnapshot[] = [snapshot({ primary: 'WORKING', visible: false })]
+  const frames: PetSnapshot[] = extraFrames ?? [snapshot({ primary: 'WORKING', visible: false })]
   const remote = {
     $stream: vi.fn((options: { open: (signal: AbortSignal) => AsyncIterable<PetSnapshot> }) => {
       void options.open(new AbortController().signal)
@@ -42,7 +42,7 @@ async function bench(search: string, bridge?: DesktopPetBridge) {
   const fileUpload = {
     upload: vi.fn(async () => ({ ok: true, value: { receiptId: 'rcpt', file: {} } })),
   }
-  const locale = { register: vi.fn(() => () => {}) }
+  const locale = { register: vi.fn(() => () => {}), bind: vi.fn(() => (key: string, params?: Record<string, string>) => `${key}${params?.toolName ?? ''}`) }
   ctx.provide('remote', remote as never)
   ctx.provide('uiSession', { sessionStatus: createSnapshotStore(new Map(), { flush: 'sync' }) } as never)
   ctx.provide('fileUpload', fileUpload as never)
@@ -125,5 +125,36 @@ describe('ui-pet apply', () => {
     const { registrations, locale } = await bench('', bridge)
     expect(registrations).toEqual([])
     expect(locale.register).not.toHaveBeenCalled()
+  })
+
+  it('shows system notifications when the user opted in, and tolerates blocked storage', async () => {
+    const shown: { title: string; options: { body: string }; onclick: ((event: Event) => unknown) | null }[] = []
+    class FakeNotification {
+      static permission = 'granted' as const
+      static requestPermission = async () => 'granted' as const
+      onclick: ((event: Event) => unknown) | null = null
+      constructor(readonly title: string, readonly options: { body: string; tag: string }) { shown.push(this) }
+    }
+    vi.stubGlobal('Notification', FakeNotification)
+    window.localStorage.setItem('dsh-pet:preferences', '{"notify":true}')
+    const focus = vi.spyOn(window, 'focus').mockImplementation(() => {})
+    const frames = [
+      snapshot({ sessions: [sessionView(S1, { state: 'WORKING' })] }),
+      snapshot({ pending: [hostPending('r', S1, 'bash')], sessions: [sessionView(S1, { state: 'WAITING' })] }),
+      snapshot({ pending: [hostPending('r', S1, 'bash')], sessions: [sessionView(S1, { state: 'SUCCESS', title: 'Fix' })] }),
+    ]
+    const { fiber } = await bench('', undefined, frames)
+    await vi.waitFor(() => { expect(shown.length).toBe(2) })
+    expect(shown.map(entry => [entry.title, entry.options.body])).toEqual([['notify.waitingbash', 'notify.untitled'], ['notify.success', 'Fix']])
+    shown[0]!.onclick?.(new Event('click'))
+    expect(focus).toHaveBeenCalled()
+    await fiber.dispose()
+    window.localStorage.removeItem('dsh-pet:preferences')
+    vi.unstubAllGlobals()
+    const blocked = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => { throw new Error('blocked') })
+    const second = await bench('')
+    expect(second.registrations.length).toBe(1)
+    await second.fiber.dispose()
+    blocked.mockRestore()
   })
 })

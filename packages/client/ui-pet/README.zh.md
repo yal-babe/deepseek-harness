@@ -26,7 +26,9 @@ kind: "package-reference"
 
 web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 页面，右下角即显示角色。在 URL 后加 `?dsh-pet-window=1` 可在浏览器中预览桌宠窗口界面。Desktop 在该 URL 上打开一个独立的透明置顶窗口，此时 Desktop 主窗口不再显示页内角色。`CommandOrControl+Shift+Space` 可在任何地方打开快速提问，并在桌宠被隐藏后重新显示它。
 
-右键点击角色打开菜单：快速提问、打开主窗口（仅 Desktop）、隐藏桌宠。按 Escape 关闭菜单。
+右键点击角色打开菜单：快速提问、打开主窗口（仅 Desktop）、开关系统通知、勿扰 1 小时、隐藏桌宠。按 Escape 关闭菜单。
+
+系统通知默认关闭，需要从菜单开启，开启时会向浏览器或 Desktop 申请权限。开启后，出现新的审批请求、会话完成或出错时桌宠会发通知，但仅在你没有看着桌宠所在文档、且不在勿扰时段内时发送。点击通知会把应用切到前台。两项设置按设备保存在 `localStorage`（`dsh-pet:preferences`），不同步。
 
 审批卡片出现后两个按钮会禁用 800 ms，回车从不批准。在桌宠中决定与在主窗口中决定回答的是同一个 Host 请求；先到的回答生效，另一处界面关闭卡片。
 
@@ -43,6 +45,7 @@ web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 
 - `PetStore` 通过 `ctx.remote.$stream` 消费 `pet.watch()`；载体断开或终止性失败会让角色显示 `DISCONNECTED`，直到下一帧到来。
 - 审批不经 Host 决定。每个 Client 本来就用 ui-approval 的 `PendingApproval` 回答转发来的 `approval/request` waterfall。桌宠从 `uiSession.sessionStatus` 读取这些对象，按会话与工具调用与 Host 待审批项匹配，并通过 `PetApprovalBridge` 回答；它会拒绝同一界面的第二次提交。Gateway 以第一个结果结束 waterfall 并取消其他 Client，因此主窗口与桌宠窗口不可能都做出决定。
 - 提问走同一路径：ui-user-questions 把每个请求作为 `PendingQuestion` 发布到 `uiSession.sessionStatus`，`PetQuestionBridge` 对该对象只回答一次。已结束的回顾卡片与计划评审会被跳过。
+- 通知比较 Host 的相邻两帧（`diffNotices`）；连接后的第一帧从不通知，子 Agent 会话会被跳过。Desktop 中只有桌宠窗口运行 ui-pet，所以每次变化只通知一次；多个 Web 标签页会各自通知。
 - 快速提问依次执行 `session.create`（新会话时）、对每个拖入的文件执行 `fileUpload.upload`，再以 queue 模式执行 `session.prompt`。
 - Desktop bridge（`window.dshDesktopPet`）在指针进入或离开角色与气泡时切换点击穿透，跟随 Host 可见性，并转发全局快捷键。
 - 帧：鲸尾女仆角色的 idle、thinking、working、waiting、success、error 片段各取六帧，裁剪并缩放到 160 px。这些帧以 MIT 许可发布，Copyright (c) 2026 PC2005-cloud；许可证见 `src/client/assets/whaletail-maid/LICENSE.txt`。
