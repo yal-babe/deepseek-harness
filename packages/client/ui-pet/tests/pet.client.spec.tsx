@@ -256,6 +256,39 @@ describe('QuickAsk', () => {
   })
 })
 
+describe('PetMenu', () => {
+  it('opens on right-click in the page, offers quick ask and hide, and closes on Escape', () => {
+    const { props, controller } = setup({ connected: true, snapshot: snapshot() })
+    render(<PetOverlay {...props} />)
+    const character = screen.getByRole('button', { name: /characterLabel/u })
+    expect(fireEvent.contextMenu(character)).toBe(false)
+    expect(screen.queryByText('menu.openMain')).toBeNull()
+    expect(document.activeElement).toBe(screen.getByText('menu.quickAsk'))
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'a' })
+    expect(screen.getByRole('menu')).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+    fireEvent.contextMenu(character)
+    fireEvent.contextMenu(character)
+    expect(screen.queryByRole('menu')).toBeNull()
+    fireEvent.contextMenu(character)
+    fireEvent.click(screen.getByText('menu.quickAsk'))
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(document.activeElement).toBe(screen.getAllByLabelText('quickAskLabel')[1])
+    fireEvent.contextMenu(character)
+    fireEvent.click(screen.getByText('menu.hide'))
+    expect(controller.hide).toHaveBeenCalled()
+  })
+
+  it('offers the main window inside the Desktop pet window', () => {
+    const { props, controller } = setup({ connected: true, snapshot: snapshot() })
+    render(<PetWindowRoot {...props} onQuickAsk={() => () => {}} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    fireEvent.click(screen.getByText('menu.openMain'))
+    expect(controller.openMain).toHaveBeenCalled()
+  })
+})
+
 describe('PetWindowRoot', () => {
   it('passes clicks through outside the pet and opens on the global shortcut', () => {
     const { props, controller } = setup({ connected: false, snapshot: undefined })

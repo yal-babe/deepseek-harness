@@ -166,3 +166,28 @@
   gap: 4px;
   justify-content: space-between;
 }
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-end;
+  min-width: 140px;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-primary, #ddd);
+  border-radius: var(--dsw-radius-l, 8px);
+  background: var(--dsw-alias-bg-primary, #fff);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
+  pointer-events: auto;
+}
+
+.menu button {
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  text-align: start;
+}
+
+.menu button:hover,
+.menu button:focus-visible {
+  background: var(--dsw-alias-bg-secondary, #f2f2f2);
+}

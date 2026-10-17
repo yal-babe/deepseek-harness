@@ -26,6 +26,8 @@ Browser half of the built-in Studio Pet. It mirrors the Host [`pet`](../../pet/p
 
 The web-app bundle mounts this plugin with the Host `pet` module. Opening any Web page shows the character in the bottom-right corner. Append `?dsh-pet-window=1` to preview the pet-window surface in a browser. Desktop opens a separate transparent always-on-top window on that URL. The Desktop main window then shows no in-page character. `CommandOrControl+Shift+Space` opens the quick ask from anywhere and shows the pet again after it was hidden.
 
+Right-click the character for its menu: Quick ask, Open main window (Desktop only), and Hide pet. Escape closes the menu.
+
 Approval cards keep both buttons disabled for 800 ms after they appear, and Enter never approves. Deciding in the pet and deciding in the main window answer the same Host request; the first answer wins and the other surface closes its card.
 
 When the agent asks a question (`ask_user_question`) and no approval is waiting, the bubble shows a question card. Questions that only offer single-choice options are answered in the pet, after the same 800 ms delay: one click for a single question, or one choice per question and then Submit. Free-text and multi-select questions show a button that opens the main window.

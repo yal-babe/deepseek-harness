@@ -40,10 +40,11 @@ function prefersReducedMotion(): boolean {
  * Animated character for one state; reduced motion shows the first frame only.
  * @param props - state and accessible label.
  */
-export function PetCharacter({ state, label, onClick }: {
+export function PetCharacter({ state, label, onClick, onMenu }: {
   readonly state: PetAgentState
   readonly label: string
   readonly onClick?: () => void
+  readonly onMenu?: () => void
 }): ReactNode {
   const frames = PET_FRAMES[clipFor(state)]
   const [index, setIndex] = useState(0)
@@ -54,7 +55,9 @@ export function PetCharacter({ state, label, onClick }: {
     return () => { clearInterval(timer) }
   }, [frames])
   return (
-    <button type="button" className={css.character} data-state={state} aria-label={label} title={label} onClick={onClick}>
+    <button type="button" className={css.character} data-state={state} aria-label={label} title={label} onClick={onClick}
+      aria-haspopup={onMenu === undefined ? undefined : 'menu'}
+      onContextMenu={onMenu === undefined ? undefined : (event) => { event.preventDefault(); onMenu() }}>
       <img src={frames[index % frames.length]} alt="" draggable={false} />
     </button>
   )
@@ -306,9 +309,50 @@ export function PetPanel(
   )
 }
 
-function usePanel(props: PetProps): { open: boolean; toggle: () => void; state: PetAgentState; visible: boolean; waiting: boolean } {
+/** One right-click menu action. */
+export type PetMenuAction = 'quickAsk' | 'openMain' | 'hide'
+
+/**
+ * Right-click menu of the character. Escape or a click on an item closes it.
+ * @param props - copy, action handler, and close callback.
+ */
+export function PetMenu({ t, onAction, onClose, desktop }: {
+  readonly t: T
+  readonly onAction: (action: PetMenuAction) => void
+  readonly onClose: () => void
+  readonly desktop: boolean
+}): ReactNode {
+  const first = useRef<HTMLButtonElement>(null)
+  useEffect(() => { first.current?.focus() }, [])
+  const actions: readonly PetMenuAction[] = desktop ? ['quickAsk', 'openMain', 'hide'] : ['quickAsk', 'hide']
+  return (
+    <div className={css.menu} role="menu" aria-label={t('menuLabel')}
+      onKeyDown={(event) => { if (event.key === 'Escape') onClose() }}>
+      {actions.map((action, index) => (
+        <button key={action} ref={index === 0 ? first : undefined} type="button" role="menuitem"
+          onClick={() => { onClose(); onAction(action) }}>{t(`menu.${action}`)}</button>
+      ))}
+    </div>
+  )
+}
+
+interface PanelState {
+  readonly open: boolean
+  readonly toggle: () => void
+  readonly state: PetAgentState
+  readonly visible: boolean
+  readonly waiting: boolean
+  readonly focusRequest: number
+  readonly menu: boolean
+  readonly setMenu: (open: boolean) => void
+  readonly act: (action: PetMenuAction) => void
+}
+
+function usePanel(props: PetProps): PanelState {
   const view = props.useView(value => value)
   const [open, setOpen] = useState(false)
+  const [focusRequest, setFocusRequest] = useState(0)
+  const [menu, setMenu] = useState(false)
   const state = displayedState(view)
   const asking = props.useQuestions(value => value.length > 0)
   const waiting = (view.snapshot?.pending.length ?? 0) > 0 || asking
@@ -319,7 +363,17 @@ function usePanel(props: PetProps): { open: boolean; toggle: () => void; state: 
       void props.controller.acknowledge(focus)
     }
   }
-  return { open: open || waiting, toggle, state, visible: isPetVisible(view), waiting }
+  const act = (action: PetMenuAction): void => {
+    if (action === 'quickAsk') {
+      setOpen(true)
+      setFocusRequest(current => current + 1)
+    } else if (action === 'openMain') {
+      props.controller.openMain()
+    } else {
+      void props.controller.hide()
+    }
+  }
+  return { open: open || waiting, toggle, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act }
 }
 
 /**
@@ -327,12 +381,14 @@ function usePanel(props: PetProps): { open: boolean; toggle: () => void; state: 
  * @param props - pet props.
  */
 export function PetOverlay(props: PetProps): ReactNode {
-  const { open, toggle, state, visible } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest, menu, setMenu, act } = usePanel(props)
   if (!visible) return null
   return (
     <div className={css.overlay} data-surface="page">
-      {open && <PetPanel {...props} focusRequest={0} />}
-      <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })} onClick={toggle} />
+      {open && <PetPanel {...props} focusRequest={focusRequest} />}
+      {menu && <PetMenu t={props.t} desktop={false} onAction={act} onClose={() => { setMenu(false) }} />}
+      <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })} onClick={toggle}
+        onMenu={() => { setMenu(!menu) }} />
     </div>
   )
 }
@@ -343,7 +399,7 @@ export function PetOverlay(props: PetProps): ReactNode {
  * @param props - pet props plus the Desktop quick-ask subscription.
  */
 export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
-  const { open, toggle, state, visible } = usePanel(props)
+  const { open, toggle, state, visible, focusRequest: menuFocus, menu, setMenu, act } = usePanel(props)
   const [focusRequest, setFocusRequest] = useState(0)
   const [forced, setForced] = useState(false)
   const { controller, onQuickAsk } = props
@@ -361,9 +417,10 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
   return (
     <div className={css.window} data-surface="window">
       <div className={css.windowStack} onMouseEnter={() => { interactive(true) }} onMouseLeave={() => { interactive(false) }}>
-        {(open || forced) && <PetPanel {...props} focusRequest={focusRequest} />}
+        {(open || forced) && <PetPanel {...props} focusRequest={focusRequest + menuFocus} />}
+        {menu && <PetMenu t={props.t} desktop onAction={act} onClose={() => { setMenu(false) }} />}
         <PetCharacter state={state} label={props.t('characterLabel', { state: props.t(`state.${state}`) })}
-          onClick={() => { if (forced) setForced(false); else toggle() }} />
+          onClick={() => { if (forced) setForced(false); else toggle() }} onMenu={() => { setMenu(!menu) }} />
       </div>
     </div>
   )
