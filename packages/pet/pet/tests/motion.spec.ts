@@ -34,10 +34,13 @@ describe('built-in motion.json', () => {
 
   it('records the pinned upstream commit, source digest, and generation of every dsh-pet clip', () => {
     const imported = Object.entries(builtin().clips).filter(([, clip]) => clip.source.kind === 'dsh-pet-webm')
-    expect(imported.map(([name]) => name).sort())
-      .toEqual(['balance_empty', 'balance_frown', 'balance_full', 'balance_jingle', 'balance_low', 'balance_steady',
-        'click_bounce', 'click_huff', 'click_shy', 'crab_walk', 'doze_enter', 'doze_loop', 'doze_startle', 'doze_wake', 'float_step',
-        'look_around', 'thinking_deep', 'turn_run', 'whisper_daydream'])
+    // Every upstream clip ships once: 92 through this importer (the nap split into four), the other 14 through import-motion.py.
+    expect(imported).toHaveLength(94)
+    const upstream = new Set(imported.map(([, clip]) => clip.source.file.split('/').at(-1)))
+    const earlier = new Set(Object.values(builtin().clips).filter(clip => clip.source.kind === undefined).map(clip => clip.source.file))
+    expect(upstream.size).toBe(92)
+    expect(earlier.size).toBe(14)
+    expect([...earlier].filter(file => upstream.has(file))).toEqual([])
     for (const [name, clip] of imported) {
       expect(clip.source, name).toMatchObject({
         repository: 'https://github.com/PC2005-cloud/dsh-pet', commit: UPSTREAM_COMMIT, crop: [100, 0, 412, 344], fps: 24,
@@ -82,7 +85,7 @@ describe('built-in motion.json', () => {
     const { events, clicks, categories } = builtin()
     expect(events?.balance).toEqual([['balance_full'], ['balance_jingle'], ['balance_steady'], ['balance_frown'], ['balance_low'], ['balance_empty']])
     expect(events?.workStatus).toEqual([['thinking'], ['working'], ['working_command'], ['waiting'], ['success'], ['error']])
-    expect(events?.whisper).toEqual(['whisper_daydream'])
+    expect(events?.whisper).toEqual(['whisper_wipe_desk', 'whisper_daydream', 'whisper_screen'])
     expect(clicks).toEqual({ head: ['head_pat', 'click_shy'], body: ['poke', 'click_bounce', 'click_huff'], tail: ['tail'] })
     // Event clips play on events only; the autonomous chain and the menu never draw them.
     const members = new Set(categories.flatMap(category => category.clips))
@@ -91,15 +94,48 @@ describe('built-in motion.json', () => {
 
   it('puts every menu action into one category and keeps the autonomous chain to idle and play', () => {
     const { categories } = builtin()
-    expect(categories.map(category => category.id)).toEqual(['small', 'play', 'interact', 'eat', 'move'])
+    expect(categories.map(category => category.id)).toEqual(['small', 'play', 'dance', 'talent', 'games', 'interact', 'eat', 'festival', 'move'])
     expect(categories.find(category => category.id === 'move')?.clips).toEqual(['crab_walk', 'float_step'])
-    expect(categories.find(category => category.id === 'small')?.clips).toEqual(['idle_stretch', 'idle_yawn', 'look_around', 'whisper_daydream'])
+    expect(categories.find(category => category.id === 'small')?.clips.slice(0, 4)).toEqual(['idle_stretch', 'idle_yawn', 'look_around', 'whisper_daydream'])
     // Play draws the in-place video clips until AI-video play clips are added to the category.
     expect(categories.find(category => category.id === 'play')?.clips).toEqual(['click_bounce', 'click_huff', 'turn_run'])
-    expect(categories.filter(category => category.life.length > 0).map(category => [category.id, category.life]))
-      .toEqual([['small', ['idle']], ['play', ['play']]])
+    expect(categories.filter(category => category.life.length > 0).map(category => [category.id, category.life])).toEqual([
+      ['small', ['idle']], ['play', ['play']], ['dance', ['idle', 'play']], ['talent', ['idle', 'play']], ['games', ['idle', 'play']],
+      ['eat', ['idle', 'play']], ['festival', ['idle', 'play']],
+    ])
+    // Dances, talents, and games share one pause; meals and festivals have their own.
+    const cooled = categories.filter(category => category.cooldown !== undefined)
+    expect(Object.fromEntries(cooled.map(category => [category.id, category.cooldown])))
+      .toEqual({
+        dance: { group: 'fun', ms: 180000 }, talent: { group: 'fun', ms: 180000 }, games: { group: 'fun', ms: 180000 },
+        eat: { group: 'eat', ms: 1200000 }, festival: { group: 'festival', ms: 600000 },
+      })
     const members = categories.flatMap(category => category.clips)
     expect(new Set(members).size).toBe(members.length)
+  })
+
+  it('schedules every meal, snack, and festival clip, with the lunar festivals in their own rules', () => {
+    const { categories, schedule, clips } = builtin()
+    const scheduled = new Set(schedule?.rules.flatMap(rule => rule.clips))
+    for (const id of ['eat', 'festival']) {
+      expect(categories.find(category => category.id === id)?.clips.filter(clip => !scheduled.has(clip)), id).toEqual([])
+    }
+    const festivalOf = (clip: string): string[] =>
+      schedule!.rules.filter(rule => rule.clips.includes(clip)).flatMap(rule => rule.festivals ?? [])
+    expect(festivalOf('red_envelope')).toEqual(['spring-festival-eve', 'spring-festival'])
+    expect(festivalOf('tangyuan')).toEqual(['lantern-festival'])
+    expect(festivalOf('zongzi')).toEqual(['dragon-boat'])
+    expect(festivalOf('needle_threading')).toEqual(['qixi'])
+    expect(festivalOf('mooncake')).toEqual(['mid-autumn'])
+    expect(festivalOf('chongyang_cake')).toEqual(['double-ninth'])
+    expect(festivalOf('laba_porridge')).toEqual(['laba'])
+    const hoursOf = (clip: string): unknown[] => schedule!.rules.filter(rule => rule.clips.includes(clip)).map(rule => rule.hours)
+    expect(hoursOf('breakfast')).toEqual([[[7, 9]]])
+    expect(hoursOf('lunch')).toEqual([[[11, 13]]])
+    expect(hoursOf('dinner')).toEqual([[[17, 19]]])
+    expect(hoursOf('snack_munch')).toEqual([[[15, 17], [21, 23]]])
+    // Text in the artwork must not mirror.
+    expect(['what_to_eat', 'write_fu', 'thinking_deep'].map(name => clips[name]?.mirror)).toEqual([false, false, false])
   })
 })
 

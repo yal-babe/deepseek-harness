@@ -62,11 +62,32 @@ window as source.frames. whisper_daydream joins the small-actions category and
 the whisper event; thinking_deep joins the thinking rotation. These names stay
 clear of the AI-video slots below, which take precedence when present.
 
+The fifth batch adds the 75 remaining upstream clips, cut the same way
+(122,903,599 bytes together): 15 small actions, among them the whisper
+variants whisper_wipe_desk and whisper_screen, which join the whisper event;
+3 dances, 8 talents and 15 games (categories dance, talent and games, which
+share the "fun" cooldown of 3 minutes); 13 meals and snacks (category eat,
+with eat_token; 20-minute cooldown); and 21 seasons and festivals (category
+festival; 10-minute cooldown). The 14 upstream clips imported earlier through
+dsh-dafeiyu are not imported again, so every one of the 106 upstream clips
+ships exactly once. The "schedule" entry of motion.json lists when time-bound
+clips may play autonomously: meals at local 7-9, 11-13 and 17-19, snacks at
+15-17 and 21-23, toothbrushing at 5-9, seasonal clips in their months, and
+festival clips while the festival window of src/time-context.ts (adapted
+from upstream) covers the date. what_to_eat and write_fu carry text and never
+mirror; thinking_deep (upstream category 文字) no longer mirrors either.
+19 of the sources draw outside the shared crop window (x 100-511, y 0-343 of
+the 640x360 source), so the crop cuts their props, effects or text there; by
+opaque pixels outside the window, most first: mooncake, what_to_eat,
+rocking_horse, fireworks, butterfly_bloom, water_gun, balloon,
+needle_threading, falling_leaves, animal_friends, snack_munch, christmas_tree,
+flute, brush_teeth, hotpot, conjure_flower, dinner, jump_grab, dove_magic.
+
 Fourteen generated PNG sprite sheets (bubbles, celebrate, nuzzle, sleep,
 idle_daydream, idle_observe, swim, idle_groom, play_bubbles, play_ball,
 play_tailspin, work_read, thinking_chin, rest_pillow) and their 24 clip entries
 were removed from this pack, together with their import tool and recipe. The
-pack now ships only the 35 transparent .webm clips above plus the fallback
+pack now ships only the 110 transparent .webm clips above plus the fallback
 frames. Without those clips the client falls back: rest plays the doze clips;
 play draws from click_bounce, click_huff and turn_run; wandering moves only with
 the crab_walk and float_step walking clips (no glide); a finished task plays

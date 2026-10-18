@@ -1430,6 +1430,7 @@
       "durationMs": 10042,
       "frames": 241,
       "sha256": "8179b1de5f87e88c953127b8f86fd9fa7b2a1e7c707acf438ef9e32d4ca9df85",
+      "mirror": false,
       "label": {
         "zh": "深度思考",
         "en": "Deep thought"
@@ -1459,6 +1460,2708 @@
           "statedIn": "README.md, section 从零生成你自己的宠物"
         }
       }
+    },
+    "hum_tune": {
+      "file": "assets/motion/hum_tune.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "0b0cbad07b4aae9af01bd609859f1cbe637ddf446068e31f79aee0560eca7fad",
+      "label": {
+        "zh": "悠闲哼歌",
+        "en": "Humming a tune"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/悠闲哼歌.webm",
+        "sha256": "358905afc2c81a9ed478bcf121a8f2f19276766b1d382d0067456bd57d1d7dbb",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "悠闲哼歌",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "desk_tap": {
+      "file": "assets/motion/desk_tap.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "1f03f88cc38d0b64c50ef4ec4fabcb8fcdf4e36dd736c49041cd5b66a2945007",
+      "label": {
+        "zh": "敲敲桌面",
+        "en": "Tapping the desk"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地敲击桌面互动.webm",
+        "sha256": "a40f481e89abcc726c89f30b01d085ca8c17a090e71facdd5e7f747e771093eb",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地敲击桌面互动",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "squat_squish": {
+      "file": "assets/motion/squat_squish.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "112dde004082154a00711aa420b9e4d47af51f15d32b748d6632be691f9efdbf",
+      "label": {
+        "zh": "下蹲压缩",
+        "en": "Squat squish"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地重力下蹲压缩.webm",
+        "sha256": "1c8972478a7f347818165db62b468f1624ec11d0862f38aec3078e3870831d24",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地重力下蹲压缩",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "curtsy": {
+      "file": "assets/motion/curtsy.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "21e5eed1f1d3248d5c0ee55b2254dedf4f777227cc26c7911b3fd4439ace5382",
+      "label": {
+        "zh": "屈膝礼",
+        "en": "Maid curtsy"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/女仆屈膝礼仪.webm",
+        "sha256": "6536fb519ba73bbc338d30cf7286b14ffde1278b6d469c64573536dc0f896918",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "女仆屈膝礼仪",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "startled_jump": {
+      "file": "assets/motion/startled_jump.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "1fe332eadfa2749af3f3f28c13f9a1d71fb674ef2aa3e384a050fcd9eff65ac9",
+      "label": {
+        "zh": "被吓一跳",
+        "en": "Startled jump"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/被吓一跳.webm",
+        "sha256": "537dde496e0f776e775dec1bb7bfe3fbc5eebf89112469a1a910ad0433ccde66",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "被吓一跳",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "twirl_show": {
+      "file": "assets/motion/twirl_show.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "fdde0a4d06684d633a5b0e6431c91f7d20a54100bfd254f61541b782adcaa4eb",
+      "label": {
+        "zh": "原地转圈",
+        "en": "Little twirl"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/小幅度原地360度旋转展示.webm",
+        "sha256": "9f1a927f63c73e3c35ee5f4d2eb58f4a46ac7eca2af69388f320d10cdef8d29c",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "小幅度原地360度旋转展示",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "tail_slap": {
+      "file": "assets/motion/tail_slap.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "a8d2873489925775e2ca98675d12a5409856108dfcbe3ddb62513176ea48ca3c",
+      "label": {
+        "zh": "尾巴拍地",
+        "en": "Tail slap"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/用鲸鱼尾巴拍打地面.webm",
+        "sha256": "e3f92df2cf182fdcb109ad0a865689d66e0a0d10db14c1528e5b3cb2f0bf090d",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "用鲸鱼尾巴拍打地面",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "mirror_check": {
+      "file": "assets/motion/mirror_check.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "2726edde5fbbbc378ae2460dc68fecbc174cda44c385462e69cd961f51115f20",
+      "label": {
+        "zh": "照镜子",
+        "en": "Mirror check"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/照镜子.webm",
+        "sha256": "13dc61c003e500d906b6526765072b7a78c0709491a397d4e70a88ec7ea63310",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "照镜子",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "outfit_swap": {
+      "file": "assets/motion/outfit_swap.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "eaa223690b64d8e5e04d63a56ecbd835cbbe3a2995d73040a78d797bdcbaa958",
+      "label": {
+        "zh": "换装试色",
+        "en": "Outfit swap"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/整体换装试色.webm",
+        "sha256": "e8e599b12da7f3437c98425f6b192dd0c81a6b63bbba5e7927f53c22f757b094",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "整体换装试色",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "jot_notes": {
+      "file": "assets/motion/jot_notes.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "77e89caced9a5fc5227e63a39bf6d1e4656483dd88e83af1e1684754bfbce214",
+      "label": {
+        "zh": "轻快记录",
+        "en": "Jotting notes"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/轻快记录.webm",
+        "sha256": "1da04162fed5cd52bd4a6a6027a6902f50bda0969d34465bc2d332cf3679bbd5",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "轻快记录",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "write_code": {
+      "file": "assets/motion/write_code.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "02027715951208d5f3ae5e948544e8faad6756a41a0ce5ee367eaca75ca7d842",
+      "label": {
+        "zh": "写代码",
+        "en": "Writing code"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/写代码.webm",
+        "sha256": "0441287737cdbb993ce90dfa74c67ea4ea3549d8c8ea98946604668464589ed7",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "写代码",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "brush_teeth": {
+      "file": "assets/motion/brush_teeth.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "4ea81105664adc75d3fff31f79bb919aae3deab54be6cccaa3a53c7330e0266b",
+      "label": {
+        "zh": "晨间刷牙",
+        "en": "Morning toothbrushing"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/晨间刷牙.webm",
+        "sha256": "017e384e7e13732fb12428d024ef686e79df5b79bfab0d83faa7fa50653d1bc4",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "晨间刷牙",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "fan_cool": {
+      "file": "assets/motion/fan_cool.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "2d445f8f173c42d53d42f8a28e6ca6cd487bf77e44de1bd61340c38a1aa484ff",
+      "label": {
+        "zh": "摇扇纳凉",
+        "en": "Fanning to cool off"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/摇扇纳凉.webm",
+        "sha256": "87d4b9454692484e4809b45071751b2144fc82fd8696fafabb32e19af98350f2",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "摇扇纳凉",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "whisper_wipe_desk": {
+      "file": "assets/motion/whisper_wipe_desk.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "aef7f5f7466a747f2ca47c28bbc7623b7d4db6ad3534b827fc2894508245311b",
+      "label": {
+        "zh": "擦桌碎碎念",
+        "en": "Desk-wiping mumbling"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/碎碎念-擦桌碎碎念.webm",
+        "sha256": "bfb616a3e6ed7375826d8fd00b41b9476d2e4bd65e10abddfb98f04c734e30e6",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "碎碎念-擦桌碎碎念",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "whisper_screen": {
+      "file": "assets/motion/whisper_screen.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "342a47eb59abf8a9d00e9171b40408d3403f699b1730fbf4221a972ae93a4952",
+      "label": {
+        "zh": "对屏碎碎念",
+        "en": "Mumbling at the screen"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/碎碎念-对屏碎碎念.webm",
+        "sha256": "fda85ca286e173b7cf868c91829c3445e55c395e0c788b6be310a855b9b37973",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "碎碎念-对屏碎碎念",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "maid_dance": {
+      "file": "assets/motion/maid_dance.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "11d3bae4f0b2e98d5ee82d13d2ff354b3c2e3df49d4e5b89a1b2c0863d4d0114",
+      "label": {
+        "zh": "优雅女仆舞",
+        "en": "Elegant maid dance"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/优雅女仆舞.webm",
+        "sha256": "74209c4c668545ab1e2366e0d1c0709b7bea0312eeba7e89b553d5b977bfe649",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "优雅女仆舞",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "otaku_dance": {
+      "file": "assets/motion/otaku_dance.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "bc5da6a2bf5d5b531d663134a45c5955b625622e9a9ae089217e465a6cd9799a",
+      "label": {
+        "zh": "可爱宅舞",
+        "en": "Cute otaku dance"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/可爱宅舞.webm",
+        "sha256": "4f737e44ea67c20368bdce474b951902c87c37991fb0750da8ed7794df6ec55c",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "可爱宅舞",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "sway_dance": {
+      "file": "assets/motion/sway_dance.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "01ed119d8f89b4b5fd94e7091b106ab8987d891beb57da115ae22077122a6c27",
+      "label": {
+        "zh": "轻快摇摆舞",
+        "en": "Lively sway dance"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/轻快摇摆舞.webm",
+        "sha256": "c621d00e1b959b991df8fc420e409b569e768fad7f75d1fb489375d101fee630",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "轻快摇摆舞",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "violin": {
+      "file": "assets/motion/violin.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "8455a77f4fdb5b8beed257378dcb15fe644c942601f9631f9856b0ca885f1748",
+      "label": {
+        "zh": "小提琴演奏",
+        "en": "Violin solo"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/小提琴演奏.webm",
+        "sha256": "03816be0fcd499b63ed667e8b87c234094e64c59f1cd222455cf6a27ac832d1c",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "小提琴演奏",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "flute": {
+      "file": "assets/motion/flute.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "a378a6bb7e9429e7327b53a1fbd18493e623aa038337769211d3c941817f16b0",
+      "label": {
+        "zh": "吹笛子",
+        "en": "Playing the flute"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吹笛子.webm",
+        "sha256": "9c8b754a3256778cddd88fbb073b649d5b1d2e5f96e70231bc2c3bee06fa7c78",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吹笛子",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "card_magic": {
+      "file": "assets/motion/card_magic.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "c5833456fd25408b1e8433b89a877c30bbe4cc07e246d775b4c87a4045382252",
+      "label": {
+        "zh": "扑克魔术",
+        "en": "Card magic"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/扑克魔术.webm",
+        "sha256": "1d44a7624fb027e5f615c747014ab040ddc497f6bdbcb67194a23a53a5dba78c",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "扑克魔术",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "dove_magic": {
+      "file": "assets/motion/dove_magic.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "683f93e5e4a6764c35fa449ccdca91bc322e31c6e1ed9f15ba4da067fbdbd85f",
+      "label": {
+        "zh": "变鸽子",
+        "en": "Dove trick"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/变鸽子.webm",
+        "sha256": "796eba8ebe705e9339035e533e4f913fb8b9810432dcd6e7ae4fc1602e9ce3cf",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "变鸽子",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "juggling": {
+      "file": "assets/motion/juggling.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "7579befa2f3d32c95f17f8a2f37ace4b609e8eca8f396d954f0586a0a4125c36",
+      "label": {
+        "zh": "三球抛接",
+        "en": "Three-ball juggling"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/三球抛接.webm",
+        "sha256": "a64c08a4b7e5c3549616faf9dcd418e17f156b4b72d906646e4d57067df70d23",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "三球抛接",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "conjure_flower": {
+      "file": "assets/motion/conjure_flower.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "160574756230351abb964623c7c2a8958fbec9aed39ec29e7d058099d7422df8",
+      "label": {
+        "zh": "凭空生花",
+        "en": "Conjured flower"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/凭空生花.webm",
+        "sha256": "d1c336bc54c57a282bec180859c7b7b58912b70b5bca7b2f49495cd30cc7d5d6",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "凭空生花",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "blue_whale": {
+      "file": "assets/motion/blue_whale.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "f15c7715f14bddafb681c3258729f6207ada59584b5b31fabad7f2a9f3847887",
+      "label": {
+        "zh": "蓝鲸现世",
+        "en": "A blue whale appears"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/蓝鲸现世.webm",
+        "sha256": "ed72f0ede7c6cd9482d44aa31002214d461b833c456f3ea40a52c3a0ddc20230",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "蓝鲸现世",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "butterfly_bloom": {
+      "file": "assets/motion/butterfly_bloom.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "175eaca0bf31c547cf76b78088b5a5648230c12f3df7b172599d77e9d7f1cdfd",
+      "label": {
+        "zh": "蝶蜂绕花",
+        "en": "Butterflies and blossoms"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/蝴蝶蜜蜂环绕头顶开花.webm",
+        "sha256": "fd286c78001fe57fc093c06a4b79ef077ade2dacd2a77e011d3f393f587707ec",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "蝴蝶蜜蜂环绕头顶开花",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "rubiks_cube": {
+      "file": "assets/motion/rubiks_cube.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "39a4e0ec6da9bccb898cba25f08ecedc0e4bb0b5005c53be0682ff9a76ab560e",
+      "label": {
+        "zh": "玩魔方",
+        "en": "Rubik's cube"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地专心玩魔方.webm",
+        "sha256": "ad54da175ba86b19a84b73b3169fb418b2df016560bb274283f200aca351e712",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地专心玩魔方",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "toy_car": {
+      "file": "assets/motion/toy_car.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "6286c31e261c62b56db0deb431da83a2c4900ca367d6540fbe6c41b76ba4bab8",
+      "label": {
+        "zh": "玩玩具汽车",
+        "en": "Toy car"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地蹲下玩玩具汽车.webm",
+        "sha256": "3ec9978ce3663d9bc4bfe5f5223f0a4e3d9ea6fcd0a6acdbaa802e0cfba36bf2",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地蹲下玩玩具汽车",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "game_rage": {
+      "file": "assets/motion/game_rage.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "a38504e5a7a51f9564b17903a338ad45794eb11fde04af7e7cc48ef213d5a8fb",
+      "label": {
+        "zh": "玩游戏气急败坏",
+        "en": "Gaming rage"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/玩游戏气急败坏.webm",
+        "sha256": "8e406bc52cf2a20c9d288867367c4df7c45a5dc78443bc5c2fdc83835ac0b4c3",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "玩游戏气急败坏",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "water_gun": {
+      "file": "assets/motion/water_gun.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "00db5bd3b285fff27f0a6fccccebd65b7cc466a09fa720ac89ee0c17c1639aa9",
+      "label": {
+        "zh": "玩水枪",
+        "en": "Water gun"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/玩水枪.webm",
+        "sha256": "448f732417ac4dcb6ca140cd3d73896aaea7f5dac2876a9a0f7c0776478d7128",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "玩水枪",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "balloon": {
+      "file": "assets/motion/balloon.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "5433c60ad0b3f6aab626abc3eb4bc24c40ccd92cab215831d54641a6c2dd48bf",
+      "label": {
+        "zh": "吹气球",
+        "en": "Blowing a balloon"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吹气球.webm",
+        "sha256": "3258f91b2000d949ba38f34c1f161b0d5fa148ecffb5a95eb8a3e10b5df7fc87",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吹气球",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "kite": {
+      "file": "assets/motion/kite.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "5d214411d12956e1584aae5e07f8f4e8ee692715cd86e8cdefc09cab17c96b9d",
+      "label": {
+        "zh": "放风筝",
+        "en": "Flying a kite"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/放风筝.webm",
+        "sha256": "9d9ac75871b1c70a77fc4aaa63dd24778d79cbf492c2c5df42167199c7dd2132",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "放风筝",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "unwrap_gift": {
+      "file": "assets/motion/unwrap_gift.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "b478c83517917780180fb864a64e315b6be2c96b1037119c9a804f14d2a2a47f",
+      "label": {
+        "zh": "拆礼物",
+        "en": "Unwrapping a gift"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/拆礼物.webm",
+        "sha256": "6f781e7eac2b295417c80ff9468902280fdcf3ae5921d59977daa8dab537940c",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "拆礼物",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "spin_top": {
+      "file": "assets/motion/spin_top.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "53757064374108efea1c012bcb884c768a89c2e12076f16a839650d395f581ed",
+      "label": {
+        "zh": "抽陀螺",
+        "en": "Whipping a top"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/抽陀螺.webm",
+        "sha256": "693689d7b4d02ae8cda53f8d580de5087287fc339360dd20909342f566e969ba",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "抽陀螺",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "pet_cat": {
+      "file": "assets/motion/pet_cat.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "5601c258bbf0c2962c611a6e877c84965b9cd8df18ba6a5ef01c55fb160139d4",
+      "label": {
+        "zh": "撸猫",
+        "en": "Petting a cat"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/撸猫.webm",
+        "sha256": "068d84e944dfce17de1c5a2ee2a4bc391e2848dad88a7df4877ebf23cf38bcec",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "撸猫",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "rocking_horse": {
+      "file": "assets/motion/rocking_horse.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "c5a4a70d81bb894d07865de051008359437d7c3534f85cb8c1bdebe178d6c8ae",
+      "label": {
+        "zh": "骑木马",
+        "en": "Rocking horse"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/骑木马.webm",
+        "sha256": "5f54a98ccac97eac000d799043411f4fc0732096dc51a2ad766552737578f313",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "骑木马",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "shuttlecock": {
+      "file": "assets/motion/shuttlecock.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "50afd8d9509aff86a1958de0f15dfca9ae8d1ce7def91c19575541b8e92fc933",
+      "label": {
+        "zh": "踢毽子",
+        "en": "Shuttlecock kicks"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/踢毽子.webm",
+        "sha256": "68937b619a44e9ca7ccdfe77e5657f7a9bfa238beb33768378b6f254a16f3dbd",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "踢毽子",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "gomoku": {
+      "file": "assets/motion/gomoku.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "13eefadf6e4a6734ddfda108306ab6068bf2149a7c8c7f89210e055292c1963a",
+      "label": {
+        "zh": "下五子棋",
+        "en": "Gomoku"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/下五子棋.webm",
+        "sha256": "0802b6b808f44846b3d194a857fb0ffd38bdea2d7cdb91c9e5e6f311e44f1953",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "下五子棋",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "swing_ride": {
+      "file": "assets/motion/swing_ride.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "4fbeac215123db9a66916fe22e63dd8564d0b50bb509f9483e7113062199da35",
+      "label": {
+        "zh": "荡秋千",
+        "en": "On a swing"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/荡秋千.webm",
+        "sha256": "f32ea98e9c04553ae39939cd76c469192ebc19d98b90ebf93ec4b88bf95b25c9",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "荡秋千",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "jump_grab": {
+      "file": "assets/motion/jump_grab.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "426703e0dfeab905c53c7805d76d2699bb77b320bf498fa04f716f375a0b3862",
+      "label": {
+        "zh": "跳起抓东西",
+        "en": "Jump and grab"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地跳跃抓碎头顶物品.webm",
+        "sha256": "ccb906c677c7b739eb0dbf5307160e66583562c2a6caec72a9d3d14a202fcccd",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地跳跃抓碎头顶物品",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "animal_friends": {
+      "file": "assets/motion/animal_friends.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "1954936281bb5478dac3e86627e4f2b245fb6aaa31e005e42b3151dfbe0c05b9",
+      "label": {
+        "zh": "动物环绕",
+        "en": "Animal friends"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/动物环绕.webm",
+        "sha256": "814d41e7d619f9a61f38e5494a0cfd703f8bcfd829a14fa921e1c59acf3ce872",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "动物环绕",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "breakfast": {
+      "file": "assets/motion/breakfast.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "a81d0e1990cba7c167d312d6f4e15563f6a4fc40ea93839c42ac72f9b39e27f1",
+      "label": {
+        "zh": "吃早餐",
+        "en": "Breakfast"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃早餐.webm",
+        "sha256": "893b61587aeda8ca146e32b596b00903461aab04684a146d84b31965968d60e4",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃早餐",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "lunch": {
+      "file": "assets/motion/lunch.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "6f88018edf338a996cb0307f7644c43c0cd0d31c6060eeda520f274e23cd34f9",
+      "label": {
+        "zh": "吃午餐",
+        "en": "Lunch"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃午餐.webm",
+        "sha256": "e48a70e61d93195c611c2d4041be32a26a114f78c835ff6b2345459ae39a90ce",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃午餐",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "dinner": {
+      "file": "assets/motion/dinner.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "23f09bc7bdb32e6dd786adff87189e9f928ca89abcce084e919ab9eebd51665e",
+      "label": {
+        "zh": "吃晚餐",
+        "en": "Dinner"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃晚餐.webm",
+        "sha256": "8902602fb012c29d33392822ab534ed119a136610f6bc2e8c0c51d60afec673a",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃晚餐",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "plain_rice": {
+      "file": "assets/motion/plain_rice.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "e4c681887e37a9db5a2386045af33f839941c445d9e038d31c77ab7a99f558a7",
+      "label": {
+        "zh": "吃白饭",
+        "en": "Plain rice"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃白饭.webm",
+        "sha256": "b620413d6fa303a0ed9168dc71453c3bddc10141a0b7edeff87dc2e6e054d502",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃白饭",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "snack_munch": {
+      "file": "assets/motion/snack_munch.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "047c772cee74f34c074aa3a7fe94c8adef860b311679be6aae53afcc7a4c98e8",
+      "label": {
+        "zh": "大口吃零食",
+        "en": "Snack munching"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/大口吃零食.webm",
+        "sha256": "fdacb534a828b0c669f22a54e8da9bb9b5d731e0132dd5ea946f7badc9229a39",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "大口吃零食",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "snack_caught": {
+      "file": "assets/motion/snack_caught.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "7271c38c2bab2f8510cb10b73085a2938ad7d52779918ac033a9577c5d570f2e",
+      "label": {
+        "zh": "偷吃零食被抓住",
+        "en": "Caught snacking"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/偷吃零食被抓住.webm",
+        "sha256": "c3b783351ad38fdd931e80b188ecb12d273f21e4794aed2c41f267bdb75ff897",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "偷吃零食被抓住",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "ice_cream": {
+      "file": "assets/motion/ice_cream.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "e346a6b7a42463ecdd08597b371bf23fae29b67c703f0369ce4b0d5bf50c0dd2",
+      "label": {
+        "zh": "吃冰淇淋",
+        "en": "Melting ice cream"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃冰淇淋融化.webm",
+        "sha256": "17d73682926d6ce4203ad12d9049527e604d448bcc5c82ac5b12950b4ceb0447",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃冰淇淋融化",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "hairy_crab": {
+      "file": "assets/motion/hairy_crab.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "94e8d3fd36831ce600e5ea17ddeea0afa07e1d167990cc80e06147400511f4c6",
+      "label": {
+        "zh": "吃大闸蟹",
+        "en": "Hairy crab"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃大闸蟹.webm",
+        "sha256": "fbd0f445c15fda1f827e6eb485270ddf9025ac29b3edcac28a5eff7d9aa80f46",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃大闸蟹",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "tanghulu": {
+      "file": "assets/motion/tanghulu.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "3b61a3735445f4ff9ade6600b330075fa47dc28cb3f6de2c97fec1a4b3b2af3c",
+      "label": {
+        "zh": "吃糖葫芦",
+        "en": "Candied haws"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃糖葫芦.webm",
+        "sha256": "6900468dc166bfb90e1cfb73de9b41a08c62513483ce1300658340cf942be3cd",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃糖葫芦",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "longevity_noodles": {
+      "file": "assets/motion/longevity_noodles.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "e74dbd476aab8ff1ed371334839b9fa38a90b16dd49d248ad43e586b6e3ea68a",
+      "label": {
+        "zh": "吃长寿面",
+        "en": "Longevity noodles"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃长寿面.webm",
+        "sha256": "2881e1cd4ca31fd56ca578ce2ee73d21222f0006f237c865d9b2dc1ebc436edd",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃长寿面",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "watermelon": {
+      "file": "assets/motion/watermelon.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "79985b1f6f3a425ad5f4e1dbb3fa41d680bf887ae6c1151452c4a976bf48d383",
+      "label": {
+        "zh": "吃西瓜",
+        "en": "Watermelon"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃西瓜.webm",
+        "sha256": "0dd992fb7fb51d707d6589cb813a450437a2bd54046709f424a73353e2d7f78d",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃西瓜",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "hotpot": {
+      "file": "assets/motion/hotpot.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "860e1ebb207f387299352bb2deafcaa2b5d876fc80bb10e27d7f0fe6422af7bf",
+      "label": {
+        "zh": "涮火锅",
+        "en": "Hotpot"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/涮火锅.webm",
+        "sha256": "f0b345c22cf2841137d215a7b9d50252b8be0ede64887e91fdc9bd09843e3c8f",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "涮火锅",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "what_to_eat": {
+      "file": "assets/motion/what_to_eat.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "b46479ec07726baca66fc29e8fa4fa41dc23a9c669f7136f1a2ea7c903cc12ec",
+      "mirror": false,
+      "label": {
+        "zh": "是啊，吃什么",
+        "en": "So, what to eat?"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/是啊，吃什么.webm",
+        "sha256": "94e1d69e05cc66cc1dc8bf6986efc51dfd71fe22fd34166f9efe7ca2d21c1e8c",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "是啊，吃什么",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "falling_leaves": {
+      "file": "assets/motion/falling_leaves.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "3549f27b13c417ab618b3be1abfb5471ef0555af50670e39251072dfbf24deeb",
+      "label": {
+        "zh": "被落叶淹没",
+        "en": "Buried in leaves"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/被落叶淹没.webm",
+        "sha256": "91fc8e3dbfcd24546bc30366beb120fb5de7823ed67986dd8032c9c1b29ff079",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "被落叶淹没",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "mooncake": {
+      "file": "assets/motion/mooncake.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "e793f2a94f16e466aa9755c290038d646d9a7918c1b308a7aa08a776dc512afa",
+      "label": {
+        "zh": "赏月吃月饼",
+        "en": "Mooncakes under the moon"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/中秋赏月吃月饼.webm",
+        "sha256": "3f64003262d3f129470721495695ecd231795d859693a748914c02c6e3883a3a",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "中秋赏月吃月饼",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "snowman": {
+      "file": "assets/motion/snowman.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "cb4486ee7b7ab28c383b963f5f2653f0bf890ca8525dbb9ee2e4236b8f41aaa3",
+      "label": {
+        "zh": "堆雪人",
+        "en": "Building a snowman"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/堆雪人.webm",
+        "sha256": "478bdc31cc60e55e3efa139b81c7d8680a8cf83aca2304495e6da50a20a09cf5",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "堆雪人",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "fireworks": {
+      "file": "assets/motion/fireworks.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "f30d0c36bdb76984dcc6bc00a014863bec1bca8e810bf1d7df3ea20f3c189169",
+      "label": {
+        "zh": "放烟花",
+        "en": "Fireworks"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/放烟花.webm",
+        "sha256": "539ac09ae29ed0a11bd828df096f3e72f606529b3c59e29a5fcf3b051779a4d0",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "放烟花",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "zongzi": {
+      "file": "assets/motion/zongzi.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "0d84590154d25dd19543f14870455022b491bd186716b29696cfdaa9128ae353",
+      "label": {
+        "zh": "吃粽子",
+        "en": "Zongzi"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃粽子.webm",
+        "sha256": "f3af3217674427fdc5609bf50b170f69669c84cf229cd7b44261c00da7876ade",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃粽子",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "nian_gao": {
+      "file": "assets/motion/nian_gao.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "1bc40649210bba2e4b9421f877fe1556543b7fae0c719055f2711a199547d74a",
+      "label": {
+        "zh": "吃年糕",
+        "en": "New Year cake"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃年糕.webm",
+        "sha256": "ba0c86988687801a5b19d055d728bb182c8a95a0bdd7071dea16b83c1162135c",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃年糕",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "qingtuan": {
+      "file": "assets/motion/qingtuan.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "a80d1b639c3c8d6046b246c92edcde014adee9d70bf29f77df136412311a3a97",
+      "label": {
+        "zh": "吃青团",
+        "en": "Qingtuan"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃青团.webm",
+        "sha256": "0d99393dd64ddf0b1ec4ab4cf392c86092ab5edf58d12f5b72e325035da23606",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃青团",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "laba_porridge": {
+      "file": "assets/motion/laba_porridge.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "3832c092818246b27c986bcd2ccba638b9b7708e0417ffff383a44bff97f90de",
+      "label": {
+        "zh": "吃腊八粥",
+        "en": "Laba porridge"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃腊八粥.webm",
+        "sha256": "f821527812875262cc0dda50fe023c603fc89ec566172777c6bff4fa45943011",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃腊八粥",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "chongyang_cake": {
+      "file": "assets/motion/chongyang_cake.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "3180be8a8002a27d1e76c9111a12099cf0615b0e1d425cda060ebceaefe72440",
+      "label": {
+        "zh": "吃重阳糕",
+        "en": "Double Ninth cake"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃重阳糕.webm",
+        "sha256": "d2b6b466fcb1ee689ae130680bf38311e9988d995879ca3b5b1d9aa0b5438058",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃重阳糕",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "red_envelope": {
+      "file": "assets/motion/red_envelope.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "a6275a148cb7d9397218bfeb0db70fd0cacfc87506d6aa16fa7842a56dea59a5",
+      "label": {
+        "zh": "收红包",
+        "en": "Red envelope"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/收红包.webm",
+        "sha256": "a0e7a9a5997aff1357c76eeaaad7a01503c320f7017766dd5a42e643daa505c1",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "收红包",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "write_fu": {
+      "file": "assets/motion/write_fu.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "f99733fd5fdfdbe56a75f37dbedba5e25495b0e601303b534268e6ee85176ae1",
+      "mirror": false,
+      "label": {
+        "zh": "写福字",
+        "en": "Writing fu"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/写福字.webm",
+        "sha256": "7841a47a6997bb7c90d81671d524c44b1afc87ca2e8fceb17d06d99003a67181",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "写福字",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "needle_threading": {
+      "file": "assets/motion/needle_threading.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "567975ac73e7172b3eb17426e63719fe91afb41d8bac81c4cd04e9e9fc603b32",
+      "label": {
+        "zh": "穿针乞巧",
+        "en": "Qixi needle threading"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/穿针乞巧.webm",
+        "sha256": "cf16647ec4cb5634e4ff022bfc139a2233cd8be82f2391472bc842f7014ddc90",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "穿针乞巧",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "lion_dance": {
+      "file": "assets/motion/lion_dance.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "63fbdce1d7cbd9490e01eb42535eb9d74fb351cb8f6d9577d58dc680b44c17cd",
+      "label": {
+        "zh": "舞狮头",
+        "en": "Lion dance"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/舞狮头.webm",
+        "sha256": "6d2006b4023d44087cf4c7dc055d1d8f2a8cec32e22610807a2dfea7bb0dc367",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "舞狮头",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "pumpkin_treats": {
+      "file": "assets/motion/pumpkin_treats.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "1e758c4e3cbdfabae5c079c2e9f44e2fbe9229580763f7bb0946cb7f618de96d",
+      "label": {
+        "zh": "讨糖南瓜灯",
+        "en": "Trick-or-treat"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/讨糖南瓜灯.webm",
+        "sha256": "9535d1a29f780aa2d78ffaabd7ee1765952bf34b2b380e9edc25dc6a3003070b",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "讨糖南瓜灯",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "dogwood_chrysanthemum": {
+      "file": "assets/motion/dogwood_chrysanthemum.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "88527d95bc9fa49cb01394cf7a1d046191215e5566f7a6c05725302e4a205095",
+      "label": {
+        "zh": "插茱萸赏菊",
+        "en": "Dogwood and chrysanthemums"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/插茱萸赏菊.webm",
+        "sha256": "4e1ba56724da3663e2f5480001ab1141a82e8618c316e6e81e3dae84998452f3",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "插茱萸赏菊",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "river_lantern": {
+      "file": "assets/motion/river_lantern.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "c2c1bdc41307e2586305dc67152ef324323798a7f219fff3e5bc4914a1b964fd",
+      "label": {
+        "zh": "放河灯",
+        "en": "River lanterns"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/放河灯.webm",
+        "sha256": "af744bed1ff20cc1b0492247add45f2b16433fde0b0897c31d6b0579429b788d",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "放河灯",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "little_ghost": {
+      "file": "assets/motion/little_ghost.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "04293ba502f73aacba6d14b7a766494e6bd3b7ff8b00a34d8f101eb6c635555e",
+      "label": {
+        "zh": "萌化小幽灵",
+        "en": "Little ghost"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/萌化小幽灵.webm",
+        "sha256": "ac2012601d05bf7de7c7cced415b8793b0be3b7cfa569da06c2325f135f7e94f",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "萌化小幽灵",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "christmas_tree": {
+      "file": "assets/motion/christmas_tree.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "bad85b8b7d8f46a83989a1ae3a9f013df909c0f92432d904c10e905d3654a7ea",
+      "label": {
+        "zh": "装点圣诞树",
+        "en": "Trimming the tree"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/装点圣诞树.webm",
+        "sha256": "25da448acdbba49c2d4b209d24053b6dd1b79e656273d1f3e659385dc2bc3759",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "装点圣诞树",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "sky_lantern": {
+      "file": "assets/motion/sky_lantern.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "69580a594a229cea1c6368fc6e8e6e50dd0ae6c5adb2ad5d22add76b0b17a4d8",
+      "label": {
+        "zh": "放孔明灯",
+        "en": "Sky lantern"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/放孔明灯.webm",
+        "sha256": "cc6540b4651f6603363dd326801921d6ba220ecaaf00828b42d248eb28beeb31",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "放孔明灯",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "tangyuan": {
+      "file": "assets/motion/tangyuan.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "adfaaf5d74f66c5e0a07e02ade3709ba204902d07b38a1a015048ffb5548922b",
+      "label": {
+        "zh": "吃汤圆",
+        "en": "Tangyuan"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃汤圆.webm",
+        "sha256": "53a0f93612bb59c7279010f993a1101b033fc01df1998dd9874d8aea175afa6f",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃汤圆",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "dumplings": {
+      "file": "assets/motion/dumplings.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "dd5893c083d1f0125f00c203d9881ddaa603951c55fe06f958408fb3f4a7a0bd",
+      "label": {
+        "zh": "吃饺子",
+        "en": "Dumplings"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/吃饺子.webm",
+        "sha256": "a607391c206cb2a1a977d72f318a6b5bfe95aee4da9b11c9de8724bd9981cc06",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "吃饺子",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
     }
   },
   "categories": [
@@ -1476,7 +4179,22 @@
         "idle_stretch",
         "idle_yawn",
         "look_around",
-        "whisper_daydream"
+        "whisper_daydream",
+        "hum_tune",
+        "desk_tap",
+        "squat_squish",
+        "curtsy",
+        "startled_jump",
+        "twirl_show",
+        "tail_slap",
+        "mirror_check",
+        "outfit_swap",
+        "jot_notes",
+        "write_code",
+        "brush_teeth",
+        "fan_cool",
+        "whisper_wipe_desk",
+        "whisper_screen"
       ]
     },
     {
@@ -1493,6 +4211,86 @@
         "click_bounce",
         "click_huff",
         "turn_run"
+      ]
+    },
+    {
+      "id": "dance",
+      "label": {
+        "zh": "跳舞",
+        "en": "Dances"
+      },
+      "weight": 6,
+      "life": [
+        "idle",
+        "play"
+      ],
+      "cooldown": {
+        "group": "fun",
+        "ms": 180000
+      },
+      "clips": [
+        "maid_dance",
+        "otaku_dance",
+        "sway_dance"
+      ]
+    },
+    {
+      "id": "talent",
+      "label": {
+        "zh": "才艺",
+        "en": "Talents"
+      },
+      "weight": 7,
+      "life": [
+        "idle",
+        "play"
+      ],
+      "cooldown": {
+        "group": "fun",
+        "ms": 180000
+      },
+      "clips": [
+        "violin",
+        "flute",
+        "card_magic",
+        "dove_magic",
+        "juggling",
+        "conjure_flower",
+        "blue_whale",
+        "butterfly_bloom"
+      ]
+    },
+    {
+      "id": "games",
+      "label": {
+        "zh": "娱乐",
+        "en": "Games"
+      },
+      "weight": 7,
+      "life": [
+        "idle",
+        "play"
+      ],
+      "cooldown": {
+        "group": "fun",
+        "ms": 180000
+      },
+      "clips": [
+        "rubiks_cube",
+        "toy_car",
+        "game_rage",
+        "water_gun",
+        "balloon",
+        "kite",
+        "unwrap_gift",
+        "spin_top",
+        "pet_cat",
+        "rocking_horse",
+        "shuttlecock",
+        "gomoku",
+        "swing_ride",
+        "jump_grab",
+        "animal_friends"
       ]
     },
     {
@@ -1516,10 +4314,69 @@
         "zh": "吃什么",
         "en": "Snacks"
       },
-      "weight": 0,
-      "life": [],
+      "weight": 16,
+      "life": [
+        "idle",
+        "play"
+      ],
+      "cooldown": {
+        "group": "eat",
+        "ms": 1200000
+      },
       "clips": [
-        "eat_token"
+        "eat_token",
+        "breakfast",
+        "lunch",
+        "dinner",
+        "plain_rice",
+        "snack_munch",
+        "snack_caught",
+        "ice_cream",
+        "hairy_crab",
+        "tanghulu",
+        "longevity_noodles",
+        "watermelon",
+        "hotpot",
+        "what_to_eat"
+      ]
+    },
+    {
+      "id": "festival",
+      "label": {
+        "zh": "时节",
+        "en": "Seasons and festivals"
+      },
+      "weight": 14,
+      "life": [
+        "idle",
+        "play"
+      ],
+      "cooldown": {
+        "group": "festival",
+        "ms": 600000
+      },
+      "clips": [
+        "falling_leaves",
+        "mooncake",
+        "snowman",
+        "fireworks",
+        "zongzi",
+        "nian_gao",
+        "qingtuan",
+        "laba_porridge",
+        "chongyang_cake",
+        "red_envelope",
+        "write_fu",
+        "needle_threading",
+        "lion_dance",
+        "pumpkin_treats",
+        "dogwood_chrysanthemum",
+        "river_lantern",
+        "little_ghost",
+        "christmas_tree",
+        "sky_lantern",
+        "tangyuan",
+        "dumplings"
       ]
     },
     {
@@ -1585,7 +4442,9 @@
       ]
     ],
     "whisper": [
-      "whisper_daydream"
+      "whisper_wipe_desk",
+      "whisper_daydream",
+      "whisper_screen"
     ]
   },
   "clicks": {
@@ -1600,6 +4459,294 @@
     ],
     "tail": [
       "tail"
+    ]
+  },
+  "schedule": {
+    "statedIn": "Studio rules. Festival windows are those of src/time-context.ts (adapted from upstream dsh-pet/src/host/time-context.ts); meal hours follow its time-of-day slots (morning 7-9, noon 11-13, dusk 17-19); snack hours sit in the afternoon (15-17) and evening (21-23) slots; months assume the northern hemisphere. Upstream draws these clips at random with no schedule.",
+    "rules": [
+      {
+        "id": "breakfast",
+        "hours": [
+          [
+            7,
+            9
+          ]
+        ],
+        "clips": [
+          "breakfast"
+        ]
+      },
+      {
+        "id": "lunch",
+        "hours": [
+          [
+            11,
+            13
+          ]
+        ],
+        "clips": [
+          "lunch",
+          "plain_rice",
+          "what_to_eat"
+        ]
+      },
+      {
+        "id": "dinner",
+        "hours": [
+          [
+            17,
+            19
+          ]
+        ],
+        "clips": [
+          "dinner",
+          "hotpot",
+          "longevity_noodles",
+          "what_to_eat"
+        ]
+      },
+      {
+        "id": "crab-season-dinner",
+        "hours": [
+          [
+            17,
+            19
+          ]
+        ],
+        "months": [
+          9,
+          10,
+          11
+        ],
+        "clips": [
+          "hairy_crab"
+        ]
+      },
+      {
+        "id": "snacks",
+        "hours": [
+          [
+            15,
+            17
+          ],
+          [
+            21,
+            23
+          ]
+        ],
+        "clips": [
+          "snack_munch",
+          "snack_caught",
+          "eat_token"
+        ]
+      },
+      {
+        "id": "summer-snacks",
+        "hours": [
+          [
+            15,
+            17
+          ],
+          [
+            21,
+            23
+          ]
+        ],
+        "months": [
+          6,
+          7,
+          8
+        ],
+        "clips": [
+          "ice_cream",
+          "watermelon"
+        ]
+      },
+      {
+        "id": "winter-snacks",
+        "hours": [
+          [
+            15,
+            17
+          ],
+          [
+            21,
+            23
+          ]
+        ],
+        "months": [
+          12,
+          1,
+          2
+        ],
+        "clips": [
+          "tanghulu"
+        ]
+      },
+      {
+        "id": "morning",
+        "hours": [
+          [
+            5,
+            9
+          ]
+        ],
+        "clips": [
+          "brush_teeth"
+        ]
+      },
+      {
+        "id": "summer",
+        "months": [
+          6,
+          7,
+          8
+        ],
+        "clips": [
+          "fan_cool"
+        ]
+      },
+      {
+        "id": "autumn",
+        "months": [
+          10,
+          11
+        ],
+        "clips": [
+          "falling_leaves"
+        ]
+      },
+      {
+        "id": "winter",
+        "months": [
+          12,
+          1,
+          2
+        ],
+        "clips": [
+          "snowman"
+        ]
+      },
+      {
+        "id": "spring-festival",
+        "festivals": [
+          "spring-festival-eve",
+          "spring-festival"
+        ],
+        "clips": [
+          "red_envelope",
+          "write_fu",
+          "lion_dance",
+          "fireworks",
+          "dumplings",
+          "nian_gao"
+        ]
+      },
+      {
+        "id": "new-year",
+        "festivals": [
+          "new-years-eve",
+          "new-year"
+        ],
+        "clips": [
+          "fireworks"
+        ]
+      },
+      {
+        "id": "lantern-festival",
+        "festivals": [
+          "lantern-festival"
+        ],
+        "clips": [
+          "tangyuan",
+          "sky_lantern",
+          "lion_dance"
+        ]
+      },
+      {
+        "id": "qingming",
+        "festivals": [
+          "qingming"
+        ],
+        "clips": [
+          "qingtuan"
+        ]
+      },
+      {
+        "id": "dragon-boat",
+        "festivals": [
+          "dragon-boat"
+        ],
+        "clips": [
+          "zongzi"
+        ]
+      },
+      {
+        "id": "qixi",
+        "festivals": [
+          "qixi"
+        ],
+        "clips": [
+          "needle_threading"
+        ]
+      },
+      {
+        "id": "zhongyuan",
+        "festivals": [
+          "zhongyuan"
+        ],
+        "clips": [
+          "river_lantern"
+        ]
+      },
+      {
+        "id": "mid-autumn",
+        "festivals": [
+          "mid-autumn"
+        ],
+        "clips": [
+          "mooncake"
+        ]
+      },
+      {
+        "id": "double-ninth",
+        "festivals": [
+          "double-ninth"
+        ],
+        "clips": [
+          "chongyang_cake",
+          "dogwood_chrysanthemum"
+        ]
+      },
+      {
+        "id": "halloween",
+        "festivals": [
+          "halloween"
+        ],
+        "clips": [
+          "pumpkin_treats",
+          "little_ghost"
+        ]
+      },
+      {
+        "id": "christmas",
+        "festivals": [
+          "christmas-eve",
+          "christmas"
+        ],
+        "clips": [
+          "christmas_tree"
+        ]
+      },
+      {
+        "id": "laba",
+        "festivals": [
+          "laba"
+        ],
+        "clips": [
+          "laba_porridge"
+        ]
+      }
     ]
   }
 }
