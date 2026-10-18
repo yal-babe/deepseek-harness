@@ -181,6 +181,10 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // CUA publishes its client API and attributed native source for local macOS builds.
   '@deepseek-ai/dsh-cua': ['lib/api.js', 'lib/bridge.js', 'lib/native-client.js', 'lib/protocol.js'],
   '@deepseek-ai/dsh-experimental-cua-macos': ['native/bin', 'native/Package.swift', 'native/Sources', 'native/tests/swift', 'native/tests/test_swift.py', 'native/LICENSE.cua-driver', 'native/upstream.json', 'native/README.md', 'native/README.zh.md', 'native/protocol.schema.json'],
+  // Pet code and media adapted from PC2005-cloud/dsh-pet (MIT) publish their attribution;
+  // the character packs are runtime media outside the package export paths.
+  '@deepseek-ai/dsh-pet': ['packs/**', 'NOTICE'],
+  '@deepseek-ai/dsh-client-ui-pet': ['NOTICE'],
   '@deepseek-ai/dsh-webhook-github': ['examples/github-review/cordis.yml', 'examples/github-review/github-ready-review-rule.mjs'],
   // Owned Worker bundles import this public bootstrap before their business entry.
   '@deepseek-ai/dsh-app-boot': ['lib/worker/profile-resolution-bootstrap.js'],
