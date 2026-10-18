@@ -1,13 +1,20 @@
 /** Full-length transparent clips, idle scheduling, and bounded decorative effects. */
 import { useEffect, useRef, useState } from 'react'
 import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
-import { ACTION_CLIP, idleDelay, lifeActions, nextIdleClip, petIsIdle, smoothClip, taskClip, type PetActionRequest } from './motion.ts'
+import { idleDelay, mirrorsClip, nextChainClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, taskClip, type PetActionRequest } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { useMotionPhases } from './useMotionPhases.ts'
 import { PetSprite } from './PetSprite.tsx'
 import css from './Pet.module.css'
 
 export type PetEffect = 'bubbles' | 'hearts' | 'ripple' | 'stars' | 'sleep'
+
+const CLIP_EFFECT: Readonly<Record<string, PetEffect>> = { bubbles: 'bubbles', nuzzle: 'hearts', head_pat: 'hearts', celebrate: 'stars', sleep: 'sleep' }
+/** Effect accompanying a requested or autonomous clip; the key spreads into a decoration. */
+function clipEffect(name: string): { effect?: PetEffect } {
+  const effect = CLIP_EFFECT[name]
+  return effect === undefined ? {} : { effect }
+}
 
 /** Small effects never capture clicks except individually positioned bubbles. */
 export function PetEffects({ effect }: { readonly effect: PetEffect }) {
@@ -57,6 +64,8 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
     else if (!petIsIdle(state)) setHeldResult(false)
   }, [state])
   const previousIdle = useRef<string | undefined>(undefined)
+  // A completed turn clip (such as look-around) leaves the character facing the other way.
+  const [facingRight, setFacingRight] = useState(false)
   const wasDragging = useRef(false)
   const cooldown = useRef(0)
   const handledAction = useRef<PetActionRequest | undefined>(undefined)
@@ -95,28 +104,16 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
     handledAction.current = action
     if (action.interrupt !== true && (decoration !== undefined || Date.now() < cooldown.current)) return
     cooldown.current = Date.now() + 1200
-    setDecoration({ name: smoothClip(ACTION_CLIP[action.action], motion), serial: action.serial,
-      ...action.action === 'celebrate' ? { effect: 'stars' as const }
-        : action.action === 'nuzzle' ? { effect: 'hearts' as const }
-          : action.action === 'bubbles' ? { effect: 'bubbles' as const }
-            : action.action === 'sleep' ? { effect: 'sleep' as const }
-              : action.action === 'headPat' ? { effect: 'hearts' as const } : {},
-    })
+    const requested = requestedClip(action)
+    setDecoration({ name: smoothClip(requested, motion), serial: action.serial, ...clipEffect(requested) })
   }, [action, canInteract, decoration?.name, motion])
   useEffect(() => {
     if (!canDecorate || decoration !== undefined) return
     const timer = setTimeout(() => {
-      const allowed = lifeActions(preferences.life, preferences.actions)
-        .map(action => ACTION_CLIP[action]).filter(name => motion.clips[name] !== undefined)
-      const name = nextIdleClip(previousIdle.current, Math.random(), allowed)
+      const name = nextChainClip(motion, preferences.life, preferences.actions, previousIdle.current, Math.random)
       if (name === undefined) return
       previousIdle.current = name
-      setDecoration({ name: smoothClip(name, motion), serial: Date.now(),
-        ...name === 'bubbles' ? { effect: 'bubbles' as const }
-          : name === 'nuzzle' || name === 'head_pat' ? { effect: 'hearts' as const }
-            : name === 'celebrate' ? { effect: 'stars' as const }
-              : name === 'sleep' ? { effect: 'sleep' as const } : {},
-      })
+      setDecoration({ name: smoothClip(name, motion), serial: Date.now(), ...clipEffect(name) })
     }, idleDelay(preferences.activity ?? 'normal', Math.random()) * (preferences.life === 'play' ? 0.75 : 1))
     return () => { clearTimeout(timer) }
   }, [canDecorate, decoration, preferences.activity, preferences.actions, preferences.life, motion])
@@ -142,16 +139,20 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   const effect = preferences.effects === false || reduced || !visible ? undefined
     : decoration?.effect ?? ((name === 'success' || name === 'celebrate') && !ended ? 'stars' : undefined)
   const finish = (): void => {
-    if (decoration !== undefined) { setDecoration(undefined); return }
+    if (decoration !== undefined) {
+      if (clip.turn === true && name === decoration.name) setFacingRight(current => !current)
+      setDecoration(undefined); return
+    }
     if (lifecycle.finish(name)) return
     if (state === 'THINKING' && thinkingCandidates.length > 1) {
       setThinkingName(previous => nextIdleClip(previous, Math.random(), thinkingCandidates) ?? 'thinking'); return
     }
     setEnded(true); setHeldResult(false)
   }
-  // The shipped swim artwork faces left; rightward travel mirrors every phase.
-  return <span className={css.motionContent} data-pet-clip={name}
-    style={name.startsWith('swim_') && movement?.direction === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
+  // The shipped swim artwork faces left; rightward travel mirrors every phase. Other clips follow the facing.
+  const mirrored = name.startsWith('swim_') ? movement?.direction === 'right' : mirrorsClip(motion, name, facingRight)
+  return <span className={css.motionContent} data-pet-clip={name} data-pet-facing={facingRight ? 'right' : 'left'}
+    style={mirrored ? { transform: 'scaleX(-1)' } : undefined}>
     {clip.sheet !== undefined ? <PetSprite key={`${name}:${serial}`} clip={clip} sheet={clip.sheet} poster={poster} knownReady={loadedSheets.current.has(clip.url)} onReady={() => { loadedSheets.current.add(clip.url) }} resting={resting && lifecycle.clip === undefined && clip.sheet.frames <= 8} loop={decoration === undefined && clip.loop && !(state === 'THINKING' && thinkingCandidates.length > 1)} paused={!visible || reduced} onEnd={finish} onFailure={onFailure} /> : <video ref={video} key={`${name}:${serial}`} className={css.motion} src={clip.url}
       muted playsInline preload="auto" loop={decoration === undefined && !dragging ? clip.loop && !(state === 'THINKING' && thinkingCandidates.length > 1) : dragging}
       onError={onFailure} onEnded={finish} /> }

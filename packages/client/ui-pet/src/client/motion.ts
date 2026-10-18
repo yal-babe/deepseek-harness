@@ -8,8 +8,9 @@ export type PetAction = 'headPat' | 'poke' | 'tail' | 'eatToken' | 'stretch' | '
 export type PetLifeState = 'idle' | 'rest' | 'play'
 /** Frequency preset for autonomous actions and movement. */
 export type PetActivityLevel = 'quiet' | 'normal' | 'lively'
-/** One explicit action request; serial distinguishes repeated choices. */
-export interface PetActionRequest { readonly action: PetAction; readonly serial: number; readonly interrupt?: boolean }
+/** One explicit request for a named interaction or a pack clip; serial distinguishes repeated choices. */
+export type PetActionRequest = { readonly serial: number; readonly interrupt?: boolean }
+  & ({ readonly action: PetAction } | { readonly clip: string })
 /** Complete selectable interaction list. */
 export const PET_ACTIONS: readonly PetAction[] = ['headPat', 'poke', 'tail', 'eatToken', 'stretch', 'yawn', 'bubbles', 'sleep', 'nuzzle', 'celebrate',
   'daydream', 'observe', 'swim', 'groom', 'chaseBubbles', 'playBall', 'tailSpin', 'readBook', 'ponder', 'pillowNap',
@@ -21,6 +22,22 @@ export const ACTION_CLIP: Readonly<Record<PetAction, string>> = {
   daydream: 'idle_daydream', observe: 'idle_observe', swim: 'swim', groom: 'idle_groom', chaseBubbles: 'play_bubbles',
   playBall: 'play_ball', tailSpin: 'play_tailspin', readBook: 'work_read', ponder: 'thinking_chin', pillowNap: 'rest_pillow',
 }
+const CLIP_ACTION: ReadonlyMap<string, PetAction> = new Map(PET_ACTIONS.map(action => [ACTION_CLIP[action], action]))
+
+/** Named interaction a pack clip plays, if any.
+ * @param clip - pack clip name.
+ * @returns the matching interaction, or undefined for pack-only clips.
+ */
+export function clipAction(clip: string): PetAction | undefined { return CLIP_ACTION.get(clip) }
+
+/** Clip a request plays.
+ * @param request - explicit request.
+ * @returns the requested clip name.
+ */
+export function requestedClip(request: PetActionRequest): string {
+  return 'action' in request ? ACTION_CLIP[request.action] : request.clip
+}
+
 const IDLE = PET_ACTIONS.map(action => ACTION_CLIP[action])
 const PLAY_ACTIONS: readonly PetAction[] = ['bubbles', 'celebrate', 'chaseBubbles', 'playBall', 'tailSpin']
 const QUIET_ACTIONS: readonly PetAction[] = ['stretch', 'yawn', 'daydream', 'observe', 'groom']
@@ -34,6 +51,45 @@ export function lifeActions(life: PetLifeState = 'idle', enabled: readonly PetAc
   const candidates = life === 'play' ? PLAY_ACTIONS : life === 'rest' ? [] : QUIET_ACTIONS
   return enabled.filter(action => candidates.includes(action))
 }
+/** Pick the next autonomous clip: a category by weight among those for the life state, then a fresh clip in it.
+ * Packs without categories fall back to {@link lifeActions}. Clips that play a named interaction must be in the
+ * device allowlist; pack-only clips follow their category.
+ * @param motion - available character media.
+ * @param life - selected life state; resting never decorates.
+ * @param enabled - device allowlist, or all actions when absent.
+ * @param previous - last autonomous clip, which is not repeated when another is eligible.
+ * @param random - uniform source in [0, 1), called once for the category and once for the clip.
+ * @returns a clip name, or undefined when nothing is eligible.
+ */
+export function nextChainClip(motion: PetMotionView, life: PetLifeState = 'idle', enabled: readonly PetAction[] = PET_ACTIONS,
+  previous: string | undefined, random: () => number): string | undefined {
+  const allowed = (clip: string): boolean => {
+    const action = clipAction(clip)
+    return motion.clips[clip] !== undefined && (action === undefined || enabled.includes(action))
+  }
+  if (motion.categories === undefined || motion.categories.length === 0) {
+    return nextIdleClip(previous, random(), lifeActions(life, enabled).map(action => ACTION_CLIP[action]).filter(allowed))
+  }
+  if (life === 'rest') return undefined
+  const pools = motion.categories.filter(category => category.weight > 0 && category.life.includes(life))
+    .map(category => ({ weight: category.weight, clips: category.clips.filter(allowed) }))
+    .filter(pool => pool.clips.length > 0)
+  const total = pools.reduce((sum, pool) => sum + pool.weight, 0)
+  let point = Math.max(0, Math.min(0.999999, random())) * total
+  const pool = pools.find(candidate => (point -= candidate.weight) < 0) ?? pools.at(-1)
+  return pool === undefined ? undefined : nextIdleClip(previous, random(), pool.clips)
+}
+
+/** Mirror a clip for the current facing; movement clips follow travel direction instead.
+ * @param motion - available character media.
+ * @param name - playing clip.
+ * @param facingRight - whether the character currently faces right after a turn.
+ * @returns whether to mirror the clip horizontally.
+ */
+export function mirrorsClip(motion: PetMotionView, name: string, facingRight: boolean): boolean {
+  return facingRight && !name.startsWith('swim') && motion.clips[name]?.mirror !== false
+}
+
 const INTERVAL: Readonly<Record<PetActivityLevel, readonly [number, number]>> = {
   quiet: [20000, 40000], normal: [8000, 16000], lively: [3000, 7000],
 }

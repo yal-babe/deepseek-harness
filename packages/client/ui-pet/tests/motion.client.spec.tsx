@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetMotion } from '../src/client/PetMotion.tsx'
 import { PetSprite } from '../src/client/PetSprite.tsx'
-import { idleDelay, lifeActions, nextIdleClip, roamDelay, taskClip } from '../src/client/motion.ts'
+import { idleDelay, lifeActions, mirrorsClip, nextChainClip, nextIdleClip, roamDelay, taskClip } from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
 const clip = (name: string, loop = false) => ({ url: `/${name}.webm`, durationMs: 1000, loop })
@@ -189,4 +189,55 @@ it('keeps the left-facing swim artwork aligned with travel direction', () => {
   fireEvent.ended(view.container.querySelector('video')!)
   expect(visual().dataset.petClip).toBe('swim_loop')
   expect(visual().style.transform).toBe('scaleX(-1)')
+})
+
+describe('categorized animation chain', () => {
+  const label = { zh: '甲', en: 'A' }
+  const categorized: PetMotionView = {
+    ...motion,
+    clips: { ...motion.clips, look_around: { ...clip('look_around'), turn: true }, play_ball: clip('play_ball'), sign: { ...clip('sign'), mirror: false } },
+    categories: [
+      { id: 'small', label, weight: 20, life: ['idle'], clips: ['idle_stretch', 'look_around', 'missing'] },
+      { id: 'text', label, weight: 10, life: ['idle'], clips: ['sign'] },
+      { id: 'play', label, weight: 20, life: ['play'], clips: ['play_ball'] },
+      { id: 'interact', label, weight: 0, life: [], clips: ['head_pat'] },
+    ],
+  }
+  const sequence = (...values: number[]) => () => values.shift() ?? 0
+
+  it('picks a category by weight, then a fresh available clip, honoring the allowlist', () => {
+    expect(nextChainClip(categorized, 'idle', undefined, undefined, sequence(0, 0))).toBe('idle_stretch')
+    expect(nextChainClip(categorized, 'idle', undefined, 'idle_stretch', sequence(0, 0))).toBe('look_around')
+    expect(nextChainClip(categorized, 'idle', undefined, undefined, sequence(0.7, 0))).toBe('sign')
+    expect(nextChainClip(categorized, 'idle', [], undefined, sequence(0, 0))).toBe('look_around')
+    expect(nextChainClip(categorized, 'play', undefined, undefined, sequence(0.99, 0))).toBe('play_ball')
+    expect(nextChainClip(categorized, 'play', ['stretch'], undefined, sequence(0, 0))).toBeUndefined()
+    expect(nextChainClip(categorized, 'rest', undefined, undefined, sequence(0, 0))).toBeUndefined()
+    expect(nextChainClip(motion, 'idle', ['yawn'], undefined, sequence(0))).toBe('idle_yawn')
+  })
+
+  it('keeps the facing a turn clip ends on, except for unmirrorable clips', () => {
+    expect(mirrorsClip(categorized, 'idle', true)).toBe(true)
+    expect(mirrorsClip(categorized, 'sign', true)).toBe(false)
+    expect(mirrorsClip(categorized, 'swim_loop', true)).toBe(false)
+    expect(mirrorsClip(categorized, 'idle', false)).toBe(false)
+    const props = { motion: categorized, state: 'IDLE' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
+    const view = render(<PetMotion {...props} action={{ clip: 'look_around', serial: 1 }} />)
+    const content = () => view.container.querySelector<HTMLElement>('[data-pet-clip]')!
+    expect(content().dataset.petClip).toBe('look_around')
+    expect(content().style.transform).toBe('')
+    fireEvent.ended(view.container.querySelector('video')!)
+    expect(content().dataset.petClip).toBe('idle')
+    expect(content().dataset.petFacing).toBe('right')
+    expect(content().style.transform).toBe('scaleX(-1)')
+    view.rerender(<PetMotion {...props} action={{ clip: 'look_around', serial: 2, interrupt: true }} />)
+    expect(content().dataset.petClip).toBe('look_around')
+    expect(content().style.transform).toBe('scaleX(-1)')
+    fireEvent.ended(view.container.querySelector('video')!)
+    expect(content().dataset.petFacing).toBe('left')
+    view.rerender(<PetMotion {...props} action={{ clip: 'head_pat', serial: 3, interrupt: true }} />)
+    expect(content().dataset.petClip).toBe('head_pat')
+    fireEvent.ended(view.container.querySelector('video')!)
+    expect(content().dataset.petFacing).toBe('left')
+  })
 })
