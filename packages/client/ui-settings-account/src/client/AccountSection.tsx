@@ -22,8 +22,8 @@ export interface AccountSnapshot {
   /** Studio identity shown by the sidebar, independent of model-provider credentials. */
   studio?: StudioState
 
-  /** Server-authored bonus notice awaiting display, absent when none is available. */
-  notice?: BonusNotice
+  /** Server-authored notices in front-to-back order, absent when none are available. */
+  notices?: readonly BonusNotice[]
 
   /** Latest Host state, absent until the stream responds. */
   view: AccountView | undefined

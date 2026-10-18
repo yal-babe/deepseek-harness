@@ -13,6 +13,8 @@ const studioSignedOut = { origin: '', identity: null, phase: 'signed-out' as con
 /** Default responses of the boot-time Remote endpoints; a spec loads it first and layers its own table on top. */
 export const remoteDefaultResponses: RemoteTable = {
   unary: {
+    // ui-pet reads the optional Host pack at boot; null retains the built-in fallback.
+    'pet/pack': ok({ pack: null, problems: [] }),
     // Independent Studio account status, read on an explicit account opener.
     'studioCloud/getState': ok(studioSignedOut),
     // api-session-controller `sessions.handleConnected()` on `connection/reset`.
