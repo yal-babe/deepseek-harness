@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { classifyTool, isRestrictedInPet, PetReducer } from '../src/reducer.ts'
 import type { PetReducerOptions } from '../src/reducer.ts'
 import type { PetSettingsView } from '../src/types.ts'
+import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
 import {
-  approvalId, asked, child, decided, ev, jobRegistered, jobSettled, S1, S2, stepStart, SUB, toolCall, toolResult, top, turnEnd, turnStart,
+  approvalId, asked, child, decided, ev, goalChange, goalRound, jobRegistered, jobSettled, S1, S2, stepStart, SUB, toolCall, toolResult,
+  top, turnEnd, turnStart,
 } from './fixtures.ts'
 
 const OPTIONS: PetReducerOptions = {
@@ -102,6 +104,82 @@ describe('PetReducer turn lifecycle', () => {
     expect(fold.acknowledge(S1)).toBe(true)
     expect(fold.acknowledge(S1)).toBe(false)
     expect(fold.snapshot(2, INPUTS).sessions[0]).toMatchObject({ state: 'IDLE', unseenResult: false })
+  })
+})
+
+describe('PetReducer goal rounds', () => {
+  const completed = { kind: 'completed' } as const
+
+  it('announces only the final round of a goal', () => {
+    const fold = reducer()
+    // The user turn creates the goal; rounds follow, so it is not the result yet.
+    fold.apply(top(S1), turnStart(1))
+    expect(fold.apply(top(S1), goalChange(2, 'create'))).toBe(false)
+    fold.apply(top(S1), turnEnd(3, completed))
+    expect(fold.snapshot(3, INPUTS).sessions[0]).toMatchObject({ state: 'IDLE', unseenResult: false })
+    fold.apply(top(S1), turnStart(4))
+    expect(fold.apply(top(S1), goalRound(5, 1))).toBe(false)
+    fold.apply(top(S1), turnEnd(6, completed))
+    expect(fold.snapshot(6, INPUTS).sessions[0]).toMatchObject({ state: 'IDLE', unseenResult: false })
+    expect(fold.nextExpiry(6)).toBeUndefined()
+    fold.apply(top(S1), turnStart(7))
+    fold.apply(top(S1), goalRound(8, 2))
+    fold.apply(top(S1), goalChange(9, 'complete'))
+    fold.apply(top(S1), turnEnd(10, completed))
+    expect(fold.snapshot(10, INPUTS).sessions[0]).toMatchObject({ state: 'SUCCESS', unseenResult: true })
+  })
+
+  it('reads a goal blocked during its round as ERROR', () => {
+    const fold = reducer()
+    fold.apply(top(S1), goalChange(1, 'create'))
+    fold.apply(top(S1), turnStart(2))
+    fold.apply(top(S1), goalRound(3, 1))
+    fold.apply(top(S1), goalChange(4, 'block'))
+    fold.apply(top(S1), turnEnd(5, completed))
+    expect(fold.snapshot(5, INPUTS).sessions[0]).toMatchObject({ state: 'ERROR', unseenResult: true })
+  })
+
+  it('announces the round limit, reached between turns, as ERROR', () => {
+    const fold = reducer()
+    fold.apply(top(S1), goalChange(1, 'create'))
+    fold.apply(top(S1), turnStart(2))
+    fold.apply(top(S1), goalRound(3, 1))
+    fold.apply(top(S1), turnEnd(4, completed))
+    expect(fold.apply(top(S1), goalChange(5, 'block'))).toBe(true)
+    expect(fold.snapshot(5, INPUTS).sessions[0]).toMatchObject({ state: 'ERROR', unseenResult: true })
+    expect(fold.nextExpiry(5)).toBe(5005)
+  })
+
+  it('stays quiet when the user pauses or clears the goal between rounds', () => {
+    const fold = reducer()
+    fold.apply(top(S1), goalChange(1, 'create'))
+    fold.apply(top(S1), turnStart(2))
+    fold.apply(top(S1), goalRound(3, 1))
+    fold.apply(top(S1), turnEnd(4, completed))
+    expect(fold.apply(top(S1), goalChange(5, 'pause'))).toBe(false)
+    expect(fold.apply(top(S1), goalChange(6, 'block'))).toBe(false)
+    expect(fold.snapshot(6, INPUTS).sessions[0]).toMatchObject({ state: 'IDLE', unseenResult: false })
+  })
+
+  it('announces an ordinary turn during an active goal and a failed round as usual', () => {
+    const fold = reducer()
+    fold.apply(top(S1), goalChange(1, 'create'))
+    fold.apply(top(S1), turnStart(2))
+    fold.apply(top(S1), turnEnd(3, completed))
+    expect(fold.snapshot(3, INPUTS).sessions[0]?.state).toBe('SUCCESS')
+    fold.apply(top(S1), turnStart(4))
+    fold.apply(top(S1), goalRound(5, 1))
+    fold.apply(top(S1), turnEnd(6, { kind: 'error', error: { message: 'boom', code: 'test' } }))
+    expect(fold.snapshot(6, INPUTS).sessions[0]?.state).toBe('ERROR')
+  })
+
+  it('ignores goal changes of untracked subagents and malformed payloads', () => {
+    const fold = reducer()
+    expect(fold.apply(child(SUB), goalChange(1, 'create'))).toBe(false)
+    expect(fold.has(SUB)).toBe(false)
+    const forged = { ...goalChange(2, 'block'), data: { kind: 'other' } } as unknown as SessionEvent
+    expect(fold.apply(top(S1), forged)).toBe(false)
+    expect(fold.has(S1)).toBe(false)
   })
 })
 

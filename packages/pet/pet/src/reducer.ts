@@ -2,6 +2,10 @@
  * Pure fold from durable Session events to the Studio Pet snapshot. The fold
  * owns no timers and reads no clock: callers pass event times and the
  * snapshot time, so replaying the same events yields the same snapshot.
+ *
+ * Goal awareness reads `goal/change` and goal-attributed `user/message`
+ * events structurally, without importing the goal domain: only the final
+ * round of a goal announces a result, as in PC2005-cloud/dsh-pet.
  */
 
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session/types'
@@ -83,6 +87,32 @@ interface SessionRecord {
   unseenResult: boolean
   settledAt: number
   updatedAt: number
+  /** The current turn is a goal round, or created, edited, or resumed a goal. */
+  goalTurn: boolean
+  /** Whether the latest `goal/change` left a goal that expects further rounds. */
+  goalActive: boolean
+  /** How the goal closed during the current turn, if it did. */
+  goalClosing: 'complete' | 'blocked' | undefined
+  /** An intermediate goal round ended; the next round has not started yet. */
+  goalAwaitingRound: boolean
+}
+
+/** `goal/change` operations that leave a goal expecting further rounds. */
+const GOAL_CONTINUING = new Set(['create', 'edit', 'resume'])
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Operation of a `goal/change` payload, read structurally.
+ * @param data - event payload.
+ * @returns the operation, or `undefined` for a payload that is not a goal change.
+ */
+function goalOperationOf(data: unknown): string | undefined {
+  if (!isRecord(data) || data['kind'] !== 'goal/change') return undefined
+  const operation = data['operation']
+  return typeof operation === 'string' ? operation : undefined
 }
 
 /** Display priority of aggregated states; higher wins the character. */
@@ -270,6 +300,12 @@ export class PetReducer {
 
   private applyTurnEvent(meta: PetSessionMeta, event: SessionEvent): boolean {
     if (meta.subagent && !this.options.includeSubagents) return false
+    // `goal/change` belongs to the optional goal domain, which this package does not import.
+    const type: string = event.type
+    if (type === 'goal/change') {
+      const data: unknown = event.data
+      return this.applyGoalChange(meta, event.time, goalOperationOf(data))
+    }
     switch (event.type) {
       case 'turn/start': {
         const record = this.touch(meta, event.time)
@@ -278,7 +314,16 @@ export class PetReducer {
         record.progress = undefined
         record.unseenResult = false
         record.state = 'THINKING'
+        record.goalTurn = false
+        record.goalClosing = undefined
+        record.goalAwaitingRound = false
         return true
+      }
+      case 'user/message': {
+        const kind: string = event.data.source.kind
+        const record = this.records.get(meta.sessionId)
+        if (kind === 'goal' && record?.turnActive === true) record.goalTurn = true
+        return false
       }
       case 'tool/call': {
         const record = this.touch(meta, event.time)
@@ -307,13 +352,54 @@ export class PetReducer {
         record.turnActive = false
         record.openTools.clear()
         record.settledAt = event.time
-        record.state = this.turnOutcome(event.data.reason.kind)
+        record.state = this.goalOutcome(record, this.turnOutcome(event.data.reason.kind))
         record.unseenResult = record.state === 'SUCCESS' || record.state === 'ERROR'
+        record.goalTurn = false
+        record.goalClosing = undefined
         return true
       }
       default:
         return false
     }
+  }
+
+  /**
+   * Fold one goal lifecycle change. Inside a turn it only records how the goal
+   * stands; between turns a `block` after an intermediate round (the round
+   * limit) is the goal's final result and announces `ERROR`.
+   */
+  private applyGoalChange(meta: PetSessionMeta, time: number, operation: string | undefined): boolean {
+    if (operation === undefined) return false
+    const record = this.touch(meta, time)
+    record.goalActive = GOAL_CONTINUING.has(operation)
+    if (record.turnActive) {
+      if (record.goalActive) record.goalTurn = true
+      if (operation === 'complete') record.goalClosing = 'complete'
+      if (operation === 'block') record.goalClosing = 'blocked'
+      return false
+    }
+    const awaiting = record.goalAwaitingRound
+    record.goalAwaitingRound = false
+    if (!awaiting || operation !== 'block') return false
+    record.state = 'ERROR'
+    record.settledAt = time
+    record.unseenResult = true
+    return true
+  }
+
+  /**
+   * Final turn state once goal rounds are taken into account: a goal blocked
+   * during the turn reads as `ERROR`, and a successful round of a goal that
+   * still expects rounds reads as `IDLE` without an unseen result.
+   */
+  private goalOutcome(record: SessionRecord, outcome: TurnState): TurnState {
+    if (outcome !== 'SUCCESS') return outcome
+    if (record.goalClosing === 'blocked') return 'ERROR'
+    if (record.goalClosing === undefined && record.goalTurn && record.goalActive) {
+      record.goalAwaitingRound = true
+      return 'IDLE'
+    }
+    return outcome
   }
 
   private turnOutcome(kind: string): TurnState {
@@ -348,6 +434,10 @@ export class PetReducer {
         unseenResult: false,
         settledAt: 0,
         updatedAt: time,
+        goalTurn: false,
+        goalActive: false,
+        goalClosing: undefined,
+        goalAwaitingRound: false,
       }
       this.records.set(meta.sessionId, record)
     }
@@ -370,6 +460,10 @@ export class PetReducer {
       unseenResult: false,
       settledAt: 0,
       updatedAt: time,
+      goalTurn: false,
+      goalActive: false,
+      goalClosing: undefined,
+      goalAwaitingRound: false,
     }
   }
 

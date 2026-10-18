@@ -60,6 +60,7 @@ For pack development, `DSH_PET_DEV=1` with `DSH_PET_DEV_PACKS=<dir>` makes `pet.
 
 - `turn/start` sets `THINKING`; `tool/call` sets `WORKING` with an activity classified from the tool name; `tool/result` returns to `THINKING` once no tool is open.
 - `turn/end` maps `completed` and `max-tokens` to `SUCCESS`, `error` to `ERROR`, and every other reason to `IDLE`. Results hold for `successHoldMs` / `errorHoldMs`; a timer re-emits when a hold ends.
+- Goal rounds announce only the final result. `goal/change` and goal-attributed `user/message` events are read structurally, without importing dsh-goal: a successful round of a goal that still expects rounds reads as `IDLE` with no unseen result; a round that completes the goal reads as `SUCCESS`; a goal blocked during a round, or by the round limit between rounds, reads as `ERROR`. Pausing or clearing a goal between rounds stays quiet.
 - `approval/asked` and `approval/decided` (audit events written by user-approval) track pending approvals, including those of subagent Sessions that are otherwise untracked. Any pending approval makes the character `WAITING`.
 - `todo/write` gives progress, `session/title` gives the title, and `job/registered` / `job/settled` list running jobs.
 

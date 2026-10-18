@@ -79,3 +79,33 @@ export const jobSettled = (time: number, id: string, owner: SessionId): SessionE
     jobId: JobId(id), owner, kind: 'shell', label: 'pnpm test', startedAt: 1, finishedAt: time,
     status: 'completed', cause: 'producer', producerReported: true,
   })
+
+/**
+ * Build one `goal/change` event as dsh-goal records it. The pet does not
+ * import the goal domain, so the payload is built structurally.
+ * @param time - event time and sequence.
+ * @param operation - goal operation.
+ * @returns the recorded envelope.
+ */
+export function goalChange(time: number, operation: string): SessionEvent {
+  const data = operation === 'clear'
+    ? { kind: 'goal/change', version: 1, operation, cleared: { id: 'g1', revision: 1 }, clearedAt: time }
+    : { kind: 'goal/change', version: 1, operation, goal: { id: 'g1' }, roundsStarted: 0, createdAt: 1, updatedAt: time }
+  return { type: 'goal/change', seq: SessionSeq(time), time, data } as unknown as SessionEvent
+}
+
+/**
+ * Build the `user/message` that opens one goal round.
+ * @param time - event time and sequence.
+ * @param round - admitted round.
+ * @returns the recorded envelope.
+ */
+export function goalRound(time: number, round: number): SessionEvent {
+  return {
+    type: 'user/message',
+    seq: SessionSeq(time),
+    time,
+    surfaceOp: 'append',
+    data: { id: MessageId(`goal-${String(round)}`), role: 'user', content: [], source: { kind: 'goal', goalId: 'g1', revision: 1, round } },
+  } as unknown as SessionEvent
+}
