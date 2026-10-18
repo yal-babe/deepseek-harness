@@ -1,6 +1,6 @@
-/** Device-local character coordinates; panels do not participate in positioning. */
 import { throwSpace, type PetThrowSpace } from './physics.ts'
 
+/** Device-local character coordinates; panels do not participate in positioning. */
 export interface PetPagePoint {
   readonly x: number
   readonly y: number
