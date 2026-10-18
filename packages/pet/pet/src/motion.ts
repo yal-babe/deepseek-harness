@@ -78,6 +78,38 @@ export type PetMotionSource =
     readonly generation: PetMotionGeneration
   }
 
+/**
+ * Travel of an in-place gait, measured from its media so the body moves with
+ * the feet rather than sliding.
+ */
+export interface PetMotionMove {
+  /** Travel direction of the unmirrored artwork. */
+  readonly direction: 'left' | 'right'
+  /**
+   * Cumulative travel in source pixels at the start of each frame, positive
+   * along `direction`; one entry per frame, starting at zero.
+   */
+  readonly travel: readonly number[]
+  /** Stand-still time at the start and end, in milliseconds. */
+  readonly leadMs: number
+  readonly tailMs: number
+  /** Mean foot slip per frame in source pixels without and with the travel, and the contacts measured. */
+  readonly slip?: { readonly inPlace: number; readonly synced: number; readonly contacts: number }
+  /** Where the stand-still times are stated upstream. */
+  readonly statedIn?: string
+}
+
+/** Top-level weights of the autonomous chain beside the categories (upstream `animationWeights`). */
+export interface PetMotionChain {
+  /** Stay on the idle loop for one round. */
+  readonly idle: number
+  /** Play a clip marked `turn`. */
+  readonly turn: number
+  /** Play a clip with a `move` record when travel is allowed and there is room. */
+  readonly move: number
+  readonly statedIn?: string
+}
+
 /** One playable clip. */
 export interface PetMotionEntry {
   /** Pack-relative media path (`.webm` or sprite `.png`). */
@@ -95,6 +127,8 @@ export interface PetMotionEntry {
   readonly mirror?: boolean
   /** Menu name when no Client dictionary names the clip. */
   readonly label?: PetMotionText
+  /** Measured travel of an in-place gait. */
+  readonly move?: PetMotionMove
   readonly source: PetMotionSource
 }
 
@@ -118,6 +152,8 @@ export interface PetMotionManifest {
   readonly height: number
   readonly clips: Readonly<Record<string, PetMotionEntry>>
   readonly categories: readonly PetMotionCategory[]
+  /** Top-level chain weights; absent means the categories alone. */
+  readonly chain?: PetMotionChain
 }
 
 /** Result of {@link parsePetMotion}: the manifest, or every problem found. */
@@ -250,6 +286,45 @@ function sheet(value: unknown): PetMotionEntry['sheet'] | 'invalid' | undefined 
   }
 }
 
+function nonNegative(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
+function move(value: unknown, frames: unknown, where: string, errors: string[]): PetMotionMove | undefined {
+  if (value === undefined) return undefined
+  const travel = isRecord(value) ? value['travel'] : undefined
+  const slip = isRecord(value) ? value['slip'] : undefined
+  const valid = isRecord(value) && (value['direction'] === 'left' || value['direction'] === 'right')
+    && Array.isArray(travel) && travel.length === frames && travel[0] === 0
+    && travel.every(entry => typeof entry === 'number' && Number.isFinite(entry))
+    && count(value['leadMs']) && count(value['tailMs'])
+    && (slip === undefined || isRecord(slip) && nonNegative(slip['inPlace']) && nonNegative(slip['synced']) && count(slip['contacts']))
+    && (value['statedIn'] === undefined || isText(value['statedIn']))
+  if (!valid) {
+    errors.push(`${where}: move needs a direction, a travel entry per frame starting at 0, leadMs, and tailMs`)
+    return undefined
+  }
+  return {
+    direction: value['direction'] as 'left' | 'right', travel: travel as number[],
+    leadMs: value['leadMs'] as number, tailMs: value['tailMs'] as number,
+    ...isRecord(slip) ? { slip: { inPlace: slip['inPlace'] as number, synced: slip['synced'] as number, contacts: slip['contacts'] as number } } : {},
+    ...isText(value['statedIn']) ? { statedIn: value['statedIn'] } : {},
+  }
+}
+
+function chain(value: unknown, errors: string[]): PetMotionChain | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value) || !nonNegative(value['idle']) || !nonNegative(value['turn']) || !nonNegative(value['move'])
+    || (value['statedIn'] !== undefined && !isText(value['statedIn']))) {
+    errors.push('chain needs non-negative idle, turn, and move weights')
+    return undefined
+  }
+  return {
+    idle: value['idle'], turn: value['turn'], move: value['move'],
+    ...isText(value['statedIn']) ? { statedIn: value['statedIn'] } : {},
+  }
+}
+
 function clip(name: string, value: unknown, errors: string[]): PetMotionEntry | undefined {
   const where = `clip "${name}"`
   if (!NAME.test(name)) errors.push(`${where}: name must be lowercase snake_case`)
@@ -274,6 +349,10 @@ function clip(name: string, value: unknown, errors: string[]): PetMotionEntry | 
   const label = value['label'] === undefined ? undefined : localized(value['label'])
   if (value['label'] !== undefined && label === undefined) errors.push(`${where}: label needs non-empty zh and en`)
   const parsedSource = source(value['source'], where, errors)
+  if (value['move'] !== undefined && (parsedSheet !== undefined || !positive(value['frames']))) {
+    errors.push(`${where}: move needs a video clip with frames`)
+  }
+  const parsedMove = move(value['move'], value['frames'], where, errors)
   if (typeof file !== 'string' || parsedSheet === 'invalid' || parsedSource === undefined) return undefined
   return {
     file, loop: value['loop'] === true, durationMs: value['durationMs'] as number,
@@ -283,6 +362,7 @@ function clip(name: string, value: unknown, errors: string[]): PetMotionEntry | 
     ...value['turn'] === true ? { turn: true } : {},
     ...value['mirror'] === false ? { mirror: false } : {},
     ...label === undefined ? {} : { label },
+    ...parsedMove === undefined ? {} : { move: parsedMove },
     source: parsedSource,
   }
 }
@@ -351,12 +431,13 @@ export function parsePetMotion(value: unknown): PetMotionParseResult {
     }
   }
   const parsedCategories = categories(value['categories'], clips, errors)
+  const parsedChain = chain(value['chain'], errors)
   if (errors.length > 0) return { ok: false, errors }
   return {
     ok: true,
     manifest: {
       formatVersion: 2, renderer: 'vp9-alpha', width: value['width'] as number, height: value['height'] as number,
-      clips, categories: parsedCategories,
+      clips, categories: parsedCategories, ...parsedChain === undefined ? {} : { chain: parsedChain },
     },
   }
 }

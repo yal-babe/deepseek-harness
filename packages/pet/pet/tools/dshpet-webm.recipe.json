@@ -19,8 +19,22 @@
         { "name": "click_huff", "source": "点击回应-傲娇生气.webm", "section": "点击回应-傲娇生气", "loop": false, "label": { "zh": "傲娇生气", "en": "Pouty huff" } },
         { "name": "look_around", "source": "东张西望.webm", "section": "东张西望", "loop": false, "turn": true, "label": { "zh": "东张西望", "en": "Glance around" } }
       ]
+    },
+    {
+      "batch": 2,
+      "note": "The three upstream moves. Each is an in-place gait; travel is measured from the shipped alpha (see the importer), with upstream leadSec/tailSec as the stand-still ends.",
+      "clips": [
+        { "name": "crab_walk", "source": "螃蟹走路.webm", "section": "螃蟹走路", "loop": false, "label": { "zh": "螃蟹走路", "en": "Crab walk" },
+          "move": { "leadSec": 2, "tailSec": 2 } },
+        { "name": "float_step", "source": "原地漂浮踏步.webm", "section": "原地漂浮踏步", "loop": false, "label": { "zh": "原地漂浮踏步", "en": "Floating steps" },
+          "move": { "leadSec": 2, "tailSec": 2 } },
+        { "name": "turn_run", "source": "原地左转奔跑.webm", "section": "原地左转奔跑", "loop": false, "label": { "zh": "原地左转奔跑", "en": "Turn and run" },
+          "move": { "leadSec": 1.75, "tailSec": 4.8 } }
+      ]
     }
   ],
+  "moveStatedIn": "dsh-pet/assets/config.jsonc, animations.moves (leadSec/tailSec)",
+  "chain": { "idle": 10, "turn": 5, "move": 5, "statedIn": "dsh-pet/assets/config.jsonc, animationWeights" },
   "categories": [
     { "id": "small", "label": { "zh": "小动作", "en": "Small actions" }, "weight": 20, "life": ["idle"],
       "clips": ["idle_stretch", "idle_yawn", "idle_daydream", "idle_observe", "idle_groom", "look_around"] },
@@ -31,6 +45,6 @@
     { "id": "eat", "label": { "zh": "吃什么", "en": "Snacks" }, "weight": 0, "life": [], "clips": ["eat_token"] },
     { "id": "rest", "label": { "zh": "休息", "en": "Rest" }, "weight": 0, "life": [], "clips": ["sleep", "rest_pillow"] },
     { "id": "work", "label": { "zh": "工作", "en": "Work" }, "weight": 0, "life": [], "clips": ["work_read", "thinking_chin"] },
-    { "id": "move", "label": { "zh": "移动", "en": "Movement" }, "weight": 0, "life": [], "clips": ["swim"] }
+    { "id": "move", "label": { "zh": "移动", "en": "Movement" }, "weight": 0, "life": [], "clips": ["swim", "crab_walk", "float_step", "turn_run"] }
   ]
 }

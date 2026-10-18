@@ -27,7 +27,20 @@ scaling, and re-encodes with the same VP9 alpha settings as the other clips.
 motion.json records each source path, SHA-256, frame count, crop, and the
 generation stated upstream: 豆包 (Doubao), manual Premiere Pro keying, and the
 prompt section in the upstream prompt file. look_around ends mirrored, so it
-is marked as a turn. Its walking clips wait for stride-measured movement.
+is marked as a turn.
+
+Three more .webm files (crab_walk, float_step, turn_run) are the second batch,
+cut the same way from the upstream walking clips 螃蟹走路, 原地漂浮踏步 and
+原地左转奔跑. Upstream moves the window evenly while these play; here the
+importer measures the travel from the clip itself instead: it decodes the alpha
+plane, follows the foot contacts along the bottom of the body from frame to
+frame, and records the cumulative travel per frame in source pixels (move.travel)
+with the stand-still lead and tail times stated in upstream
+assets/config.jsonc. It also records the mean foot slip without and with that
+travel. A clip is given a move record only when its contacts agree on one
+direction; turn_run turns and runs on the spot, so it has none and plays in
+place. The chain weights (idle 10, turn 5, move 5) are upstream's
+animationWeights.
 
 Four replacement sheets (bubbles, celebrate, nuzzle, sleep) and ten new sheets
 (idle_daydream, idle_observe, swim, idle_groom, play_bubbles, play_ball,

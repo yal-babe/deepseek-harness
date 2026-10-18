@@ -34,7 +34,8 @@ describe('built-in motion.json', () => {
 
   it('records the pinned upstream commit, source digest, and generation of every dsh-pet clip', () => {
     const imported = Object.entries(builtin().clips).filter(([, clip]) => clip.source.kind === 'dsh-pet-webm')
-    expect(imported.map(([name]) => name).sort()).toEqual(['click_bounce', 'click_huff', 'click_shy', 'look_around'])
+    expect(imported.map(([name]) => name).sort())
+      .toEqual(['click_bounce', 'click_huff', 'click_shy', 'crab_walk', 'float_step', 'look_around', 'turn_run'])
     for (const [name, clip] of imported) {
       expect(clip.source, name).toMatchObject({
         repository: 'https://github.com/PC2005-cloud/dsh-pet', commit: UPSTREAM_COMMIT, crop: [100, 0, 412, 344], fps: 24,
@@ -45,9 +46,27 @@ describe('built-in motion.json', () => {
     expect(builtin().clips.look_around?.turn).toBe(true)
   })
 
+  it('records measured travel only for gaits whose feet carry the body, with the upstream chain weights', () => {
+    const { clips, chain } = builtin()
+    expect(chain).toMatchObject({ idle: 10, turn: 5, move: 5 })
+    for (const name of ['crab_walk', 'float_step']) {
+      const move = clips[name]!.move!
+      expect(move, name).toMatchObject({ direction: 'left', leadMs: 2000, tailMs: 2000 })
+      expect(move.travel, name).toHaveLength(clips[name]!.frames!)
+      // Stand-still ends: no travel before the lead or after the tail.
+      expect(move.travel[48], name).toBe(0)
+      expect(move.travel.at(-1), name).toBe(move.travel[192])
+      expect(move.travel.at(-1)!, name).toBeGreaterThanOrEqual(20)
+      expect(move.slip!.synced, name).toBeLessThan(move.slip!.inPlace)
+    }
+    // The run turns away and steps on the spot; its feet show no consistent travel.
+    expect(clips.turn_run?.move).toBeUndefined()
+  })
+
   it('puts every menu action into one category and keeps the autonomous chain to idle and play', () => {
     const { categories } = builtin()
     expect(categories.map(category => category.id)).toEqual(['small', 'play', 'interact', 'eat', 'rest', 'work', 'move'])
+    expect(categories.find(category => category.id === 'move')?.clips).toEqual(['swim', 'crab_walk', 'float_step', 'turn_run'])
     expect(categories.filter(category => category.life.length > 0).map(category => [category.id, category.life]))
       .toEqual([['small', ['idle']], ['play', ['play']]])
     const members = categories.flatMap(category => category.clips)
@@ -93,6 +112,20 @@ describe('parsePetMotion', () => {
     expect(good.ok && good.manifest.clips.idle?.source).toEqual(video)
     const wrongDate = parsePetMotion(minimal({}, { source: { ...video, generation: { ...video.generation, date: 'today' } } }))
     expect(wrongDate.ok ? [] : wrongDate.errors).toEqual(['clip "idle": generation date is malformed'])
+  })
+
+  it('checks measured travel and chain weights', () => {
+    const travel = Array.from({ length: 4 }, (_, index) => index)
+    const ok = parsePetMotion(minimal({ chain: { idle: 1, turn: 0, move: 2 } }, { frames: 4, move: { direction: 'left', travel, leadMs: 0, tailMs: 0 } }))
+    expect(ok.ok && ok.manifest.clips.idle?.move?.travel).toEqual(travel)
+    expect(ok.ok && ok.manifest.chain).toEqual({ idle: 1, turn: 0, move: 2 })
+    const bad = parsePetMotion(minimal({ chain: { idle: -1 } }, { frames: 4, move: { direction: 'up', travel: [1, 2], leadMs: 0, tailMs: 0 } }))
+    expect(bad.ok ? [] : bad.errors).toEqual([
+      'clip "idle": move needs a direction, a travel entry per frame starting at 0, leadMs, and tailMs',
+      'chain needs non-negative idle, turn, and move weights',
+    ])
+    const sprite = parsePetMotion(minimal({}, { move: { direction: 'left', travel: [0], leadMs: 0, tailMs: 0 } }))
+    expect(sprite.ok ? [] : sprite.errors).toContain('clip "idle": move needs a video clip with frames')
   })
 
   it('checks categories: ids, labels, weights, life states, known clips, and single membership', () => {

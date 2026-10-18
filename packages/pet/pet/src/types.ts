@@ -180,6 +180,16 @@ export interface PetMotionClip {
   readonly mirror?: boolean
   /** Pack-provided menu name, used when no Client dictionary names the clip. */
   readonly label?: { readonly zh: string; readonly en: string }
+  /**
+   * Measured travel of an in-place gait: cumulative source pixels at each
+   * frame start along `direction` of the unmirrored artwork.
+   */
+  readonly move?: {
+    readonly direction: 'left' | 'right'
+    readonly travel: readonly number[]
+    readonly leadMs: number
+    readonly tailMs: number
+  }
 }
 
 /** One category of the weighted animation chain and the action menu. */
@@ -203,4 +213,6 @@ export interface PetMotionView {
   readonly clips: Readonly<Record<string, PetMotionClip>>
   /** Categories of the weighted animation chain and the action menu, in menu order. */
   readonly categories?: readonly PetMotionCategoryView[]
+  /** Top-level chain weights beside the categories: stay idle, turn, or travel. */
+  readonly chain?: { readonly idle: number; readonly turn: number; readonly move: number }
 }

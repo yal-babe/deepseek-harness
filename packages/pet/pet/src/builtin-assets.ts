@@ -46,6 +46,9 @@ export async function builtinAssets(): Promise<{
       ...clip.turn === true ? { turn: true } : {},
       ...clip.mirror === false ? { mirror: false } : {},
       ...clip.label === undefined ? {} : { label: clip.label },
+      ...clip.move === undefined ? {} : {
+        move: { direction: clip.move.direction, travel: clip.move.travel, leadMs: clip.move.leadMs, tailMs: clip.move.tailMs },
+      },
     }
     files.set(mediaPath, { file: new URL(clip.file, root), mediaType: clip.sheet === undefined ? 'video/webm' : 'image/png' })
   }
@@ -54,6 +57,7 @@ export async function builtinAssets(): Promise<{
       motion: {
         width: motion.width, height: motion.height, clips,
         ...motion.categories.length === 0 ? {} : { categories: motion.categories },
+        ...motion.chain === undefined ? {} : { chain: { idle: motion.chain.idle, turn: motion.chain.turn, move: motion.chain.move } },
       },
       ...lines === undefined ? {} : { lines: lines.table },
     },

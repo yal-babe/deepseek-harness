@@ -13,8 +13,19 @@ shared window used by the existing clips, and encoded with the settings of
 tools/import-motion.py at the source frame rate, muxed bit-exactly so a rerun
 reproduces the recorded output hashes.
 
+Clips with a "move" recipe entry are in-place gaits. Their travel is measured
+from the shipped alpha: the feet band (the lowest opaque rows) splits into foot
+blobs, each blob is matched to the nearest blob of the next frame, and the mean
+shift of the matched blobs is the per-frame travel of the body in the opposite
+direction. Frames inside upstream leadSec/tailSec stay still. Moving the body by
+exactly that per-frame amount, synchronised with media time, leaves the least
+foot slip; the residual slip with and without the travel is recorded. A gait
+whose travel is under MIN_TRAVEL_PX, has fewer than MIN_CONTACTS matched
+contacts, or whose backward shifts do not outnumber forward ones by
+MIN_AGREEMENT plays in place with no "move" record.
+
 This tool owns exactly the clips whose source kind is "dsh-pet-webm" and the
-top-level "categories" list. It never rewrites clips of other kinds, and the
+top-level "categories" and "chain" entries. It never rewrites clips of other kinds, and the
 other import tools preserve what it writes. Clips it imported earlier but no
 longer lists are removed together with their media.
 """
@@ -30,6 +41,79 @@ ENCODE = ['-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-auto-alt-ref', '0',
           '-b:v', '0', '-crf', '18', '-deadline', 'good', '-cpu-used', '4', '-threads', '2', '-an',
           # Bit-exact muxing without metadata makes a rerun byte-identical.
           '-fflags', '+bitexact', '-flags:v', '+bitexact', '-map_metadata', '-1']
+
+
+MIN_TRAVEL_PX = 20
+MIN_CONTACTS = 40
+MIN_AGREEMENT = 2
+FEET_BAND_ROWS = 6
+
+
+def foot_blobs(band: list[bytes]) -> list[tuple[float, int]]:
+    """Return (center, width) of opaque column runs in the feet band; gaps of up to 2 columns join."""
+    columns = [any(row[x] > 128 for row in band) for x in range(len(band[0]))]
+    runs, start, previous = [], None, None
+    for x, opaque in enumerate(columns):
+        if not opaque:
+            continue
+        if start is None:
+            start = x
+        elif x > previous + 2:
+            runs.append((start, previous))
+            start = x
+        previous = x
+    if start is not None:
+        runs.append((start, previous))
+    return [((a + b) / 2, b - a + 1) for a, b in runs if b - a + 1 >= 3]
+
+
+def measure_travel(path: Path, frames: int, fps: float, lead: float, tail: float, width: int, height: int) -> dict | None:
+    """Measure the per-frame travel of an in-place gait; None when it is not measurable."""
+    raw = subprocess.check_output(['ffmpeg', '-v', 'error', '-c:v', 'libvpx-vp9', '-i', str(path), '-vf', 'alphaextract',
+                                   '-f', 'rawvideo', '-pix_fmt', 'gray', '-'])
+    size = width * height
+    images = [raw[i * size:(i + 1) * size] for i in range(frames)]
+    bottoms = []
+    for image in images:
+        row = height - 1
+        while row > 0 and max(image[row * width:(row + 1) * width]) <= 128:
+            row -= 1
+        bottoms.append(row)
+    feet = sorted(bottoms)[int(len(bottoms) * 0.9)]
+    blobs = [foot_blobs([image[r * width:(r + 1) * width] for r in range(feet - FEET_BAND_ROWS + 1, feet + 1)]) for image in images]
+    first, last = round(lead * fps), frames - 1 - round(tail * fps)
+    steps, shifts = [0.0] * (frames - 1), []
+    for t in range(first, last):
+        matched = []
+        for center, blob_width in blobs[t]:
+            nearest = min(blobs[t + 1], key=lambda blob: abs(blob[0] - center), default=None)
+            if nearest is not None and abs(nearest[0] - center) <= 6 and abs(nearest[1] - blob_width) <= 4:
+                matched.append(nearest[0] - center)
+        if matched:
+            steps[t] = sum(matched) / len(matched)
+            shifts.extend((t, shift) for shift in matched)
+    total = sum(steps)
+    sign = 1 if total > 0 else -1
+    backward = sum(1 for _, shift in shifts if shift * sign >= 0.5)
+    forward = sum(1 for _, shift in shifts if shift * sign <= -0.5)
+    report = {'contacts': len(shifts), 'travelPx': round(abs(total), 1), 'backward': backward, 'forward': forward}
+    if abs(total) < MIN_TRAVEL_PX or len(shifts) < MIN_CONTACTS or backward < MIN_AGREEMENT * max(1, forward):
+        print('  not measurable as travel:', report, flush=True)
+        return None
+    # Cumulative travel in source pixels at each frame start, positive along the travel direction.
+    cumulative, travelled = [0.0], 0.0
+    for step in steps:
+        travelled += step * sign
+        cumulative.append(round(travelled, 1))
+    in_place = sum(abs(shift) for _, shift in shifts) / len(shifts)
+    synced = sum(abs(shift - steps[t]) for t, shift in shifts) / len(shifts)
+    return {
+        # Blobs shift opposite to the travel: feet sliding right carry the body left.
+        'direction': 'left' if total > 0 else 'right',
+        'travel': cumulative,
+        'leadMs': round(lead * 1000), 'tailMs': round(tail * 1000),
+        'slip': {'inPlace': round(in_place, 3), 'synced': round(synced, 3), 'contacts': len(shifts)},
+    }
 
 
 def probe(path: Path) -> tuple[int, float, int, int]:
@@ -106,7 +190,11 @@ with tempfile.TemporaryDirectory() as scratch:
                 },
             },
         }
-        print(entry['name'], destination.stat().st_size, 'bytes', flush=True)
+        if 'move' in entry:
+            move = measure_travel(destination, frames, fps, entry['move']['leadSec'], entry['move']['tailSec'], width, height)
+            if move is not None:
+                clips[entry['name']]['move'] = {**move, 'statedIn': recipe['moveStatedIn']}
+        print(entry['name'], destination.stat().st_size, 'bytes', clips[entry['name']].get('move', {}).get('slip', ''), flush=True)
 
 for category in recipe['categories']:
     missing = [name for name in category['clips'] if name not in clips]
@@ -114,4 +202,5 @@ for category in recipe['categories']:
         raise SystemExit(f'category {category["id"]} names unknown clips: {missing}')
 manifest['formatVersion'] = 2
 manifest['categories'] = recipe['categories']
+manifest['chain'] = recipe['chain']
 manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
