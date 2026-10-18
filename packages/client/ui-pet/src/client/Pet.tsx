@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent, type PointerEvent, type CSSProperties, type ReactNode } from 'react'
 import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
-import type { PetAgentState, PetPendingApproval, PetSessionView } from '@deepseek-ai/dsh-pet/types'
+import type { PetAgentState, PetMotionView, PetPendingApproval, PetSessionView } from '@deepseek-ai/dsh-pet/types'
 import { matchApproval, type AnswerableApproval, type PetDecisionResult } from './approvals.ts'
 import type { PetController, QuickAskChoice } from './controller.ts'
 import { petAnswerable, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
@@ -11,7 +11,7 @@ import { isSnoozed, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import { PetMotion } from './PetMotion.tsx'
-import { PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest } from './motion.ts'
+import { clipAction, PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest } from './motion.ts'
 import { Button, Menu, MenuItemButton, MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
 import { usePagePosition } from './usePagePosition.ts'
 import css from './Pet.module.css'
@@ -465,20 +465,52 @@ export function PetPanel(
 }
 
 /** One right-click menu action. */
-export type PetMenuAction = PetAction | 'lifeIdle' | 'lifeRest' | 'lifePlay' | 'quickAsk' | 'openMain' | 'notifyOn' | 'notifyOff' | 'snooze' | 'resume' | 'hide'
+export type PetMenuAction = PetAction | 'actions' | 'lifeIdle' | 'lifeRest' | 'lifePlay' | 'quickAsk' | 'openMain' | 'notifyOn' | 'notifyOff' | 'snooze' | 'resume' | 'hide'
+
+/** One action category of the menu, with its clips, in display language. */
+export interface PetMenuCategory {
+  readonly id: string
+  readonly label: string
+  readonly clips: readonly { readonly clip: string; readonly label: string }[]
+}
 
 /**
- * Right-click menu of the character. Escape or a click on an item closes it.
- * @param props - copy, action handler, and close callback.
+ * Menu categories from the pack's motion description: named actions use the
+ * Client dictionary, other clips the pack label, and absent clips are left out.
+ * @param motion - available character media.
+ * @param t - dictionary lookup; its `locale` entry selects the pack label language.
+ * @returns non-empty categories in pack order.
  */
-export function PetMenu({ t, actions, onAction, onClose }: {
+export function petMenuCategories(motion: PetMotionView | undefined, t: T): readonly PetMenuCategory[] {
+  const language = t('locale') === 'en' ? 'en' : 'zh'
+  return (motion?.categories ?? []).map(category => ({
+    id: category.id,
+    label: category.label[language],
+    clips: category.clips.filter(clip => motion?.clips[clip] !== undefined).map((clip) => {
+      const action = clipAction(clip)
+      return { clip, label: action !== undefined ? t(`menu.${action}`) : motion?.clips[clip]?.label?.[language] ?? clip }
+    }),
+  })).filter(category => category.clips.length > 0)
+}
+
+/**
+ * Right-click menu of the character. Escape or a click on an item closes it;
+ * the Actions item opens category and clip levels with a way back.
+ * @param props - copy, action handler, optional categories with clip handler, and close callback.
+ */
+export function PetMenu({ t, actions, onAction, categories = [], onClip, onClose }: {
   readonly t: T
   readonly actions: readonly PetMenuAction[]
   readonly onAction: (action: PetMenuAction) => void
+  readonly categories?: readonly PetMenuCategory[]
+  readonly onClip?: (clip: string) => void
   readonly onClose: () => void
 }): ReactNode {
   const menuRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { menuRef.current?.querySelector<HTMLButtonElement>('[role=menuitem]')?.focus() }, [])
+  // undefined: top level; '': category list; otherwise the open category id.
+  const [level, setLevel] = useState<string | undefined>(undefined)
+  const category = categories.find(entry => entry.id === level)
+  useEffect(() => { menuRef.current?.querySelector<HTMLButtonElement>('[role=menuitem]')?.focus() }, [level])
   useEffect(() => {
     const outside = (event: globalThis.PointerEvent): void => {
       if (event.target instanceof Node && !menuRef.current?.contains(event.target)) onClose()
@@ -497,8 +529,17 @@ export function PetMenu({ t, actions, onAction, onClose }: {
             : event.key === 'ArrowUp' ? (index + buttons.length - 1) % buttons.length : undefined
         if (next !== undefined) { event.preventDefault(); buttons[next]?.focus() }
       }}>
-      {actions.map(action => (
-        <MenuItemButton key={action} onSelect={() => { onClose(); onAction(action) }}>{t(`menu.${action}`)}</MenuItemButton>
+      {level === undefined && actions.map(action => (
+        <MenuItemButton key={action} onSelect={() => { if (action === 'actions') setLevel(''); else { onClose(); onAction(action) } }}>{t(`menu.${action}`)}</MenuItemButton>
+      ))}
+      {level !== undefined && (
+        <MenuItemButton key="back" onSelect={() => { setLevel(category === undefined ? undefined : '') }}>{t('menu.back')}</MenuItemButton>
+      )}
+      {level === '' && categories.map(entry => (
+        <MenuItemButton key={entry.id} onSelect={() => { setLevel(entry.id) }}>{entry.label}</MenuItemButton>
+      ))}
+      {category?.clips.map(entry => (
+        <MenuItemButton key={entry.clip} onSelect={() => { onClose(); onClip?.(entry.clip) }}>{entry.label}</MenuItemButton>
       ))}
     </MenuSurface>
   )
@@ -516,13 +557,16 @@ interface PanelState {
   readonly setMenu: (open: boolean) => void
   readonly act: (action: PetMenuAction) => void
   readonly actions: (desktop: boolean) => readonly PetMenuAction[]
+  readonly categories: readonly PetMenuCategory[]
+  readonly playClip: (clip: string) => void
   readonly action: PetActionRequest | undefined
   readonly interact: (action: PetAction) => void
 }
 
 function usePanel(props: PetProps): PanelState {
   const preferences = props.usePreferences(value => value)
-  const hasMotion = props.usePack(pack => pack.motion !== undefined)
+  const motion = props.usePack(pack => pack.motion)
+  const hasMotion = motion !== undefined
   const view = props.useView(value => value)
   const [open, setOpen] = useState(false)
   const [focusRequest, setFocusRequest] = useState(0)
@@ -581,9 +625,14 @@ function usePanel(props: PetProps): PanelState {
       void props.controller.hide()
     }
   }
+  const categories = petMenuCategories(motion, props.t)
+  const playClip = (clip: string): void => {
+    const named = clipAction(clip)
+    setAction(previous => ({ ...named === undefined ? { clip } : { action: named }, serial: (previous?.serial ?? 0) + 1, interrupt: true }))
+  }
   const actions = (desktop: boolean): readonly PetMenuAction[] => {
     const list: PetMenuAction[] = ['quickAsk', 'lifeIdle', 'lifeRest', 'lifePlay']
-    if (hasMotion && petIsIdle(state) && !open && !waiting) list.push(...PET_ACTIONS)
+    if (hasMotion && petIsIdle(state) && !open && !waiting) list.push(...categories.length > 0 ? ['actions' as const] : PET_ACTIONS)
     if (desktop) list.push('openMain')
     if (props.controller.canNotify) {
       list.push(preferences.notify ? 'notifyOff' : 'notifyOn')
@@ -593,7 +642,8 @@ function usePanel(props: PetProps): PanelState {
     return list
   }
   return {
-    open: shown, toggle, close, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions, action, interact,
+    open: shown, toggle, close, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions,
+    categories, playClip, action, interact,
   }
 }
 
@@ -611,7 +661,9 @@ function PetStatus({ state, useView, t }: Pick<PetProps, 'useView' | 't'> & {
  * @param props - pet props.
  */
 export function PetOverlay(props: PetProps): ReactNode {
-  const { open, toggle, close, state, visible, focusRequest, menu, setMenu, act, actions, action, interact } = usePanel(props)
+  const {
+    open, toggle, close, state, visible, focusRequest, menu, setMenu, act, actions, categories, playClip, action, interact,
+  } = usePanel(props)
   const pack = props.usePack(current => current)
   const preferences = props.usePreferences(current => current)
   const activity = props.useView(view =>
@@ -636,7 +688,8 @@ export function PetOverlay(props: PetProps): ReactNode {
         <div hidden={!open} className={css.panelMount}>
           <PetPanel {...props} focusRequest={focusRequest} onClose={close} panelVisible={open} />
         </div>
-        {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
+        {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} categories={categories} onClip={playClip}
+          onClose={() => { setMenu(false) }} />}
       </div>
       <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })} onClick={toggle}
         onMenu={() => { setMenu(!menu) }} onDrag={position.drag} movement={{ moving: position.wandering, direction: position.direction }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
@@ -650,7 +703,9 @@ export function PetOverlay(props: PetProps): ReactNode {
  * @param props - pet props plus the Desktop quick-ask subscription.
  */
 export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
-  const { open, toggle, close, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, action, interact } = usePanel(props)
+  const {
+    open, toggle, close, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, categories, playClip, action, interact,
+  } = usePanel(props)
   const { controller, onQuickAsk } = props
   const movement = props.useMovement(value => value)
   const pack = props.usePack(current => current)
@@ -694,7 +749,8 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
           <div hidden={!open} className={css.panelMount}>
             <PetPanel {...props} focusRequest={menuFocus} onClose={close} panelVisible={open} />
           </div>
-          {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} onClose={() => { setMenu(false) }} />}
+          {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} categories={categories} onClip={playClip}
+            onClose={() => { setMenu(false) }} />}
         </div>
         <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })}
           onClick={toggle} onMenu={() => { setMenu(!menu) }}

@@ -7,8 +7,9 @@ import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { AnswerableApproval } from '../src/client/approvals.ts'
 import { PetController } from '../src/client/controller.ts'
 import type { AnswerableQuestion } from '../src/client/questions.ts'
-import { APPROVAL_ARM_DELAY_MS, PetCharacter, PetOverlay, PetWindowRoot, type PetProps } from '../src/client/Pet.tsx'
+import { APPROVAL_ARM_DELAY_MS, PetCharacter, PetOverlay, PetWindowRoot, petMenuCategories, type PetProps } from '../src/client/Pet.tsx'
 import type { PetViewState } from '../src/client/store.ts'
+import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 import { BUILTIN_FRAME_SET, type PetFrameSet } from '../src/client/frames.ts'
 import type { NotificationSink } from '../src/client/notifier.ts'
 import { PetPreferenceStore } from '../src/client/preferences.ts'
@@ -576,4 +577,49 @@ it('follows the injected native movement snapshot', () => {
   expect(view.container.querySelector('[data-moving="true"][data-direction="left"]')).toBeTruthy()
   act(() => { movementStore.set({ moving: false, direction: 'left' }) })
   expect(view.container.querySelector('[data-moving="true"]')).toBeNull()
+})
+
+describe('category menu', () => {
+  const clip = (name: string) => ({ url: `/${name}.webm`, durationMs: 1000, loop: name === 'idle' })
+  const label = (zh: string, en: string) => ({ zh, en })
+  const motion: PetMotionView = {
+    width: 412, height: 344,
+    clips: { idle: clip('idle'), head_pat: clip('head_pat'), click_shy: { ...clip('click_shy'), label: label('害羞惊讶', 'Shy surprise') } },
+    categories: [
+      { id: 'interact', label: label('互动', 'Interactions'), weight: 0, life: [], clips: ['head_pat', 'click_shy', 'absent'] },
+      { id: 'empty', label: label('空', 'Empty'), weight: 0, life: [], clips: ['absent'] },
+    ],
+  }
+
+  it('names categories and clips from the pack in the dictionary language and drops absent clips', () => {
+    expect(petMenuCategories(motion, key => key === 'locale' ? 'en' : key)).toEqual([
+      { id: 'interact', label: 'Interactions', clips: [{ clip: 'head_pat', label: 'menu.headPat' }, { clip: 'click_shy', label: 'Shy surprise' }] },
+    ])
+    expect(petMenuCategories(motion, t)[0]?.label).toBe('互动')
+    expect(petMenuCategories(undefined, t)).toEqual([])
+  })
+
+  it('drills from actions to a category to a clip, goes back, and plays the chosen clip', () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+    const { props, packStore } = setup({ connected: true, snapshot: snapshot() })
+    packStore.set({ ...BUILTIN_FRAME_SET, motion })
+    const view = render(<PetOverlay {...props} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    expect(screen.queryByRole('menuitem', { name: 'menu.headPat' })).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.actions' }))
+    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual(['menu.back', '互动'])
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'menu.back' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '互动' }))
+    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual(['menu.back', 'menu.headPat', '害羞惊讶'])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.back' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.back' }))
+    expect(screen.getByRole('menuitem', { name: 'menu.quickAsk' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '互动' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '害羞惊讶' }))
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(view.container.querySelector('[data-pet-clip]')?.getAttribute('data-pet-clip')).toBe('click_shy')
+    vi.restoreAllMocks()
+  })
 })

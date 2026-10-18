@@ -2,6 +2,8 @@
 
 /** Simplified Chinese dictionary and key-set source of truth. */
 export const zh = {
+  /** Language of pack-provided text (labels, lines): `zh` or `en`. */
+  locale: 'zh',
   'state.IDLE': '空闲中',
   'state.THINKING': '思考中',
   'state.WORKING': '工作中',
@@ -80,6 +82,8 @@ export const zh = {
   menuLabel: '桌宠菜单',
   showPet: '显示桌宠',
   'menu.quickAsk': '快速提问',
+  'menu.actions': '动作…',
+  'menu.back': '返回',
   'menu.headPat': '摸摸头',
   'menu.poke': '戳一戳',
   'menu.tail': '点点尾巴',
@@ -134,6 +138,7 @@ export type PetLocaleKey = keyof typeof zh
 
 /** English dictionary, checked against the Chinese key set. */
 export const en = {
+  locale: 'en',
   'state.IDLE': 'Idle',
   'state.THINKING': 'Thinking',
   'state.WORKING': 'Working',
@@ -212,6 +217,8 @@ export const en = {
   menuLabel: 'Pet menu',
   showPet: 'Show pet',
   'menu.quickAsk': 'Quick ask',
+  'menu.actions': 'Actions…',
+  'menu.back': 'Back',
   'menu.headPat': 'Head pat',
   'menu.poke': 'Poke',
   'menu.tail': 'Touch tail',
