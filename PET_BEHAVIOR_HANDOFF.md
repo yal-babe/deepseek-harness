@@ -20,7 +20,7 @@
 
 图集以 24 fps 播放，播放器改用浏览器动画帧调度，等待图片加载后计时；暂停保留已播放时间。`sheet.startFrame` 允许共享图集的片段只播放指定区间，入睡和醒来不混入睡眠保持段，游动具有起步、保持、停下。首次加载显示已有角色图，分段间复用已加载图集，资源地址附内容摘要避免旧八帧缓存。
 
-[正式动作清单](packages/pet/pet/packs/whaletail-maid/motion.json)记录实际帧数、独立像素帧数、原始和输出摘要、透明画布、锚点、源行界限、列界限及提取方式。[导入脚本](packages/pet/pet/tools/import-generated-motion.py)和[配方](packages/pet/pet/tools/generated-motion.recipe.json)可在提供原始生成文件的目录上重建。生成图列距不统一，优先按独立透明区域提取角色；相连轮廓行采用列界限提取主轮廓，排除相邻角色碎片。生成素材的姿态、接缝和相连轮廓边缘仍可继续精修，不把帧数当作手工动画质量保证。
+[正式动作清单](packages/pet/pet/packs/whaletail-maid/motion.json)记录实际帧数、独立像素帧数、原始和输出摘要、透明画布、锚点、源行界限、列界限及提取方式。导入脚本 `tools/import-generated-motion.py` 和配方 `tools/generated-motion.recipe.json` 曾可在提供原始生成文件的目录上重建（后来已随十四组图集一并移除，新动作改用 [AI 视频片段](packages/pet/pet/tools/AI_VIDEO_CLIPS.zh.md)）。生成图列距不统一，优先按独立透明区域提取角色；相连轮廓行采用列界限提取主轮廓，排除相邻角色碎片。生成素材的姿态、接缝和相连轮廓边缘仍可继续精修，不把帧数当作手工动画质量保证。
 
 [旧吐泡泡样稿](pet-art-drafts/bubbles-64-draft.png)保留供参考，但不参与正式播放；[原角色参考](pet-art-drafts/character-reference.png)用于重建来源记录。原有十六组 MIT 透明视频保留，不把改名后的旧动作计入新增十套。
 

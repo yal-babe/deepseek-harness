@@ -63,7 +63,7 @@
 
 - `python3 packages/pet/pet/tools/import-dshpet-webm.py /path/to/dsh-pet [recipe.json]`：从上游仓库的固定 commit 用 `git show` 读取 webm（不读工作区），按 `tools/dshpet-webm.recipe.json` 的批次裁切重编码，写入 `motion.json` 的片段、分类、动画链权重、事件档位与点击回应，并记录源与输出 SHA-256。新增批次时在配方中追加条目再运行。
 - `python3 packages/pet/pet/tools/import-motion.py /path/to/dsh-dafeiyu`：按 dsh-dafeiyu 帧清单重编码原有视频片段；保留带来源类型的片段、分类、动画链、事件档位、点击回应和上游基线记录。
-- `python3 packages/pet/pet/tools/import-generated-motion.py recipe.json [source-directory]`：把审核过的生成图集按实际行列切分归一化，需要 Pillow。
+- `python3 packages/pet/pet/tools/import-ai-video.py SOURCE --name NAME --tool TOOL --prompt TEXT [--category ID] [--follow CLIP] [--despill] [--dry-run]`：导入一个 AI 生成的绿幕（或已带 alpha 的）视频，按 `idle` 站姿归一化后编码，逐段检查通过才写入 `motion.json` 的 `ai-video` 记录；步骤见 [AI 视频片段指南](packages/pet/pet/tools/AI_VIDEO_CLIPS.zh.md)。原先的生成图集导入脚本及配方已随十四组图集一并移除。
 
 导入后运行 `packages/pet/pet/tests`，确认 `motion.json` 校验与媒体集成测试通过，并核对新增字节数。
 
