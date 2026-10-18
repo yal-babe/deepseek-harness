@@ -206,7 +206,7 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
     }
     setEnded(true); setHeldResult(false)
   }
-  // The shipped swim artwork faces left; rightward travel mirrors every phase. Other clips follow the facing.
+  // Swim clips are drawn facing left (see the AI-video clip guide); rightward travel mirrors every phase. Others follow the facing.
   const mirrored = name.startsWith('swim_') ? movement?.direction === 'right' : mirrorsClip(motion, name, facingRight)
   return <span className={css.motionContent} data-pet-clip={name} data-pet-facing={facingRight ? 'right' : 'left'}
     style={mirrored ? { transform: 'scaleX(-1)' } : undefined}>

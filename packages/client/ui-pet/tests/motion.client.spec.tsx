@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetMotion } from '../src/client/PetMotion.tsx'
 import { PetSprite } from '../src/client/PetSprite.tsx'
 import {
-  autonomousPackClips, balanceTier, clickArea, clickClip, clipAllowed, eventClip, idleDelay, lifeActions, mirrorsClip, nextAutonomousClip,
-  nextChainClip, nextIdleClip, roamDelay, taskClip, travelAt, travelScale, walkDirection,
+  autonomousPackClips, availableActions, balanceTier, clickArea, clickClip, clipAllowed, eventClip, idleDelay, lifeActions, mirrorsClip,
+  nextAutonomousClip,
+  nextChainClip, nextIdleClip, PET_ACTIONS, roamDelay, smoothClip, taskClip, travelAt, travelScale, walkDirection,
 } from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
@@ -192,6 +193,30 @@ it('keeps the left-facing swim artwork aligned with travel direction', () => {
   fireEvent.ended(view.container.querySelector('video')!)
   expect(visual().dataset.petClip).toBe('swim_loop')
   expect(visual().style.transform).toBe('scaleX(-1)')
+})
+
+describe('action slots without their clips', () => {
+  const videos: PetMotionView = { ...motion, clips: { ...motion.clips, click_bounce: clip('click_bounce'), look_around: clip('look_around') } }
+
+  it('offers only the named actions whose clip the pack has, and all of them for a frame-only pack', () => {
+    expect(availableActions(motion)).toEqual(['headPat', 'eatToken', 'stretch', 'yawn'])
+    expect(availableActions(undefined)).toBe(PET_ACTIONS)
+    expect(availableActions({ ...motion, clips: { ...motion.clips, play_ball: clip('play_ball') } })).toContain('playBall')
+  })
+
+  it('substitutes shipped videos for missing action clips and plays an added clip by its own name', () => {
+    expect(['bubbles', 'celebrate', 'nuzzle', 'sleep', 'idle_observe', 'play_ball', 'swim', 'thinking_chin', 'mystery']
+      .map(name => smoothClip(name, videos))).toEqual(['click_bounce', 'success', 'head_pat', 'idle_yawn', 'look_around', 'click_bounce',
+      'idle', 'thinking', 'mystery'])
+    expect(smoothClip('play_ball', { ...videos, clips: { ...videos.clips, play_ball: clip('play_ball') } })).toBe('play_ball')
+    expect(smoothClip('bubbles', motion)).toBe('idle')
+  })
+
+  it('plays the success clip for a menu celebration the pack cannot show', () => {
+    const view = render(<PetMotion motion={videos} state="IDLE" dragging={false} preferences={preferences} paused={false}
+      action={{ action: 'celebrate', serial: 1 }} onFailure={vi.fn()} />)
+    expect(view.container.querySelector('[data-pet-clip]')?.getAttribute('data-pet-clip')).toBe('success')
+  })
 })
 
 describe('pack event tiers, click areas, and the pack clip allowlist', () => {

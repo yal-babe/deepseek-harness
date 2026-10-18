@@ -501,6 +501,22 @@ describe('PetWindowRoot', () => {
     expect(fire).toBeUndefined()
   })
 
+  it('asks Desktop to glide only for frame packs or packs with travel clips', () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+    const { props, controller, packStore, preferences } = setup({ connected: true, snapshot: snapshot() })
+    const wander = vi.spyOn(controller, 'wander').mockImplementation(() => {})
+    preferences.update({ roam: true })
+    render(<PetWindowRoot {...props} onQuickAsk={() => () => {}} />)
+    expect(wander).toHaveBeenLastCalledWith(true, 'normal')
+    const clip = (name: string) => ({ url: `/${name}.webm`, durationMs: 1000, loop: name.endsWith('loop') || name === 'idle' })
+    act(() => { packStore.set({ ...BUILTIN_FRAME_SET, motion: { width: 412, height: 344, clips: { idle: clip('idle') } } }) })
+    expect(wander).toHaveBeenLastCalledWith(false, 'normal')
+    act(() => { packStore.set({ ...BUILTIN_FRAME_SET, motion: { width: 412, height: 344, clips: { idle: clip('idle'), swim_loop: clip('swim_loop') } } }) })
+    expect(wander).toHaveBeenLastCalledWith(true, 'normal')
+    vi.restoreAllMocks()
+  })
+
   it('renders nothing while hidden and re-shows the pet on the quick-ask shortcut', () => {
     const { props, controller, viewStore } = setup({ connected: true, snapshot: snapshot({ visible: false }) })
     let fire: (() => void) | undefined

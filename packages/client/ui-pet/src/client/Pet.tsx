@@ -11,10 +11,11 @@ import { isSnoozed, throwEnabled, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import { PetMotion, type PetWalkSurface } from './PetMotion.tsx'
+import { hasTravelPhases } from './useMotionPhases.ts'
 import { pickPetLine, petMomentTriggers, type PetLine } from '@deepseek-ai/dsh-pet/lines'
 import {
-  AREA_ACTION, balanceTier, clickArea, clickClip, clipAction, eventClip, PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest,
-  type PetClickArea,
+  AREA_ACTION, availableActions, balanceTier, clickArea, clickClip, clipAction, eventClip, PET_ACTIONS, petIsIdle, type PetAction,
+  type PetActionRequest, type PetClickArea,
 } from './motion.ts'
 import type { PetBalanceReading } from './metrics-slot.ts'
 import { Button, Menu, MenuItemButton, MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -178,7 +179,7 @@ export function PetCharacter({
       motion?.removeEventListener?.('change', resume)
     }
   }, [frames, pack.fps, loop, playingMotion, preferences?.reducedMotion])
-  const swimMotion = playingMotion && pack.motion.clips.swim_loop !== undefined
+  const swimMotion = playingMotion && hasTravelPhases(pack.motion)
   return (
     <button type="button" className={css.character} data-state={state} data-life={petIsIdle(state) ? preferences?.life ?? 'idle' : 'work'} data-reduced={preferences?.reducedMotion === true} aria-label={label} title={name ?? label} style={{ '--pet-scale': (preferences?.size ?? 100) / 100 } as CSSProperties} {...pointer}
       onPointerUpCapture={(event) => {
@@ -701,7 +702,7 @@ function usePanel(props: PetProps): PanelState {
   const actions = (desktop: boolean): readonly PetMenuAction[] => {
     const list: PetMenuAction[] = ['quickAsk', 'lifeIdle', 'lifeRest', 'lifePlay']
     if (hasMotion && petIsIdle(state) && !open && !waiting) {
-      list.push(...categories.length > 0 ? ['actions' as const] : PET_ACTIONS)
+      list.push(...categories.length > 0 ? ['actions' as const] : availableActions(motion))
       if (motion?.events?.balance !== undefined) list.push('balance')
     }
     if (desktop) list.push('openMain')
@@ -837,6 +838,16 @@ function useSystemReducedMotion(): boolean {
 }
 
 /**
+ * Whether idle wandering glides the whole character: a frame-only pack bobs while it glides, a motion pack needs
+ * its travel clips (`swim_*`). Packs without them move only through walking clips with measured travel.
+ * @param pack - active pack.
+ * @returns whether gliding is available.
+ */
+function glides(pack: PetFrameSet): boolean {
+  return pack.motion === undefined || hasTravelPhases(pack.motion)
+}
+
+/**
  * In-page character anchored to the bottom-right corner of the Web shell.
  * @param props - pet props.
  */
@@ -851,7 +862,9 @@ export function PetOverlay(props: PetProps): ReactNode {
     view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId)?.activity)
   const systemReduced = useSystemReducedMotion()
   const roaming = visible && preferences.roam === true && preferences.reducedMotion !== true && petIsIdle(state) && !open && !menu
-  const position = usePagePosition(roaming && preferences.life !== 'rest', preferences.size ?? 100, preferences.activity ?? 'normal',
+  // Gliding needs the travel clips (or a frame-only pack); otherwise only walking clips move the character.
+  const position = usePagePosition(roaming && glides(pack) && preferences.life !== 'rest', preferences.size ?? 100,
+    preferences.activity ?? 'normal',
     throwEnabled(preferences, systemReduced))
   const walk: PetWalkSurface = {
     allowed: roaming && !systemReduced && !position.flying, room: position.room, travel: position.travel,
@@ -918,12 +931,13 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
     revealed.current = showing
     controller.reveal(showing)
   }, [controller, open, menu])
+  const glide = glides(pack)
   const visibleNow = useRef(visible)
   visibleNow.current = visible
   useEffect(() => {
     const query = window.matchMedia?.('(prefers-reduced-motion: reduce)')
     const update = (): void => {
-      const allowed = visible && preferences.roam === true && preferences.reducedMotion !== true
+      const allowed = visible && preferences.roam === true && preferences.reducedMotion !== true && glide
         && petIsIdle(state) && preferences.life !== 'rest' && !open && !menu && !document.hidden && query?.matches !== true
       controller.wander(allowed, preferences.activity ?? 'normal')
     }
@@ -935,7 +949,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
       document.removeEventListener('visibilitychange', update)
       controller.wander(false)
     }
-  }, [controller, visible, preferences.roam, preferences.reducedMotion, state, open, menu, preferences.life, preferences.activity])
+  }, [controller, visible, preferences.roam, preferences.reducedMotion, state, open, menu, preferences.life, preferences.activity, glide])
   useEffect(() => onQuickAsk(() => {
     // The shortcut is also the way back after "hide": it re-shows the pet through the Host setting.
     if (!visibleNow.current) void controller.show()

@@ -314,14 +314,33 @@ export function balanceTier(usedPercent: number): number {
   return percent === 100 ? 5 : Math.min(4, Math.floor(percent / 20))
 }
 
-/** Use a continuous substitute only for legacy sparsely sampled interaction media.
+/**
+ * Shipped video clips that stand in for an action clip the pack lacks, in order of preference. The names on the
+ * left are slots: a pack that adds a clip with that name (for example an AI-video `play_ball`) plays it instead.
+ */
+export const CLIP_SUBSTITUTES: Readonly<Record<string, readonly string[]>> = {
+  bubbles: ['click_bounce', 'idle'], celebrate: ['success'], nuzzle: ['head_pat'], sleep: ['idle_yawn'], rest_pillow: ['idle_yawn'],
+  idle_daydream: ['idle_yawn'], idle_observe: ['look_around'], idle_groom: ['idle_stretch'], swim: ['idle'],
+  play_bubbles: ['click_bounce'], play_ball: ['click_bounce'], play_tailspin: ['turn_run', 'click_bounce'],
+  work_read: ['thinking'], thinking_chin: ['thinking'], thinking_idea: ['thinking'],
+}
+
+/** Clip to play for a requested animation: the clip itself, or an available substitute when the pack lacks it or
+ * only has a legacy sparsely sampled sheet of it (eight poses or fewer).
  * @param name - requested animation.
  * @param motion - available character media.
- * @returns the original clip when sufficiently sampled, otherwise an available continuous substitute.
+ * @returns the original clip when present and sufficiently sampled, otherwise the first available substitute.
  */
 export function smoothClip(name: string, motion: PetMotionView): string {
   const clip = motion.clips[name]
-  if (clip?.sheet === undefined || clip.sheet.frames > 8) return name
-  const substitute = ({ bubbles: 'idle', sleep: 'idle_yawn', nuzzle: 'head_pat', celebrate: 'success' } as Readonly<Record<string, string>>)[name]
-  return substitute !== undefined && motion.clips[substitute] !== undefined ? substitute : name
+  if (clip !== undefined && (clip.sheet === undefined || clip.sheet.frames > 8)) return name
+  return (CLIP_SUBSTITUTES[name] ?? []).find(substitute => motion.clips[substitute] !== undefined) ?? name
+}
+
+/** Named interactions whose own clip the pack has, for menus and settings; all of them for a frame-only pack.
+ * @param motion - available character media.
+ * @returns the interactions in {@link PET_ACTIONS} order.
+ */
+export function availableActions(motion: PetMotionView | undefined): readonly PetAction[] {
+  return motion === undefined ? PET_ACTIONS : PET_ACTIONS.filter(action => motion.clips[ACTION_CLIP[action]] !== undefined)
 }

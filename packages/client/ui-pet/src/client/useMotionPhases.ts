@@ -4,8 +4,53 @@ import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
 type Mode = 'travel' | 'rest' | undefined
 
+/** Entry, persistent loop, and exit clip names of one continuation. */
+export interface PetPhaseFamily {
+  readonly enter: string
+  readonly loop: string
+  readonly exit: string
+}
+
+/**
+ * Rest continuations in order of preference; the first whose loop the pack has is used. `pillow_*` and `sleep_*`
+ * are the slots for dedicated sleeping clips (an AI-video pack plugs them back in by name). Without them, and
+ * without a single held `sleep` pose, the pet yawns, keeps the idle loop, and stretches when it wakes, using the
+ * shipped videos.
+ */
+export const PET_REST_FAMILIES: readonly PetPhaseFamily[] = [
+  { enter: 'pillow_enter', loop: 'pillow_loop', exit: 'pillow_wake' },
+  { enter: 'sleep_enter', loop: 'sleep_loop', exit: 'sleep_wake' },
+  { enter: 'idle_yawn', loop: 'idle', exit: 'idle_stretch' },
+]
+
+/** Travel continuation of autonomous gliding; the slot for directional swimming clips. */
+export const PET_TRAVEL_FAMILY: PetPhaseFamily = { enter: 'swim_start', loop: 'swim_loop', exit: 'swim_stop' }
+
+/**
+ * Rest continuation a pack supports.
+ * @param motion - available character media.
+ * @returns the first rest family whose loop clip exists, or undefined when there is none or a dedicated family is
+ * missing but a single `sleep` pose is held instead.
+ */
+export function restFamily(motion: PetMotionView): PetPhaseFamily | undefined {
+  const fallback = PET_REST_FAMILIES.at(-1)
+  return PET_REST_FAMILIES.find(family => family !== fallback && motion.clips[family.loop] !== undefined)
+    ?? (motion.clips.sleep === undefined && fallback !== undefined && motion.clips[fallback.loop] !== undefined ? fallback : undefined)
+}
+
+/**
+ * Whether a pack has the travel continuation that autonomous gliding plays; without it the pet only moves
+ * through walking clips with measured travel.
+ * @param motion - available character media, or undefined for a frame-only pack.
+ * @returns true when the pack has `swim_loop`.
+ */
+export function hasTravelPhases(motion: PetMotionView | undefined): boolean {
+  return motion?.clips[PET_TRAVEL_FAMILY.loop] !== undefined
+}
+
 /**
  * Keep entry, loop and exit clips together while task state owns interruption.
+ * Missing entry or exit clips are skipped.
  * @param motion - available character media.
  * @param options - current local playback intent.
  * @returns the active continuation and its completion handler.
@@ -17,28 +62,25 @@ export function useMotionPhases(motion: PetMotionView, options: {
   reduced: boolean
 }): { clip: string | undefined; finish: (name: string) => boolean } {
   const { moving, resting, idle, reduced } = options
-  const family = motion.clips.pillow_loop !== undefined ? 'pillow' : 'sleep'
-  const mode: Mode = !idle ? undefined : moving && motion.clips.swim_loop !== undefined ? 'travel'
-    : resting && motion.clips[`${family}_loop`] !== undefined ? 'rest' : undefined
-  const [phase, setPhase] = useState<string | undefined>(() => {
-    const initial = mode === 'travel' ? 'swim_start' : mode === 'rest' ? `${family}_enter` : undefined
-    return initial !== undefined && motion.clips[initial] !== undefined ? initial : undefined
-  })
-  const previous = useRef<{ mode: Mode; family: string }>({ mode: undefined, family })
+  const rest = restFamily(motion)
+  const mode: Mode = !idle ? undefined : moving && hasTravelPhases(motion) ? 'travel' : resting && rest !== undefined ? 'rest' : undefined
+  const family = mode === 'travel' ? PET_TRAVEL_FAMILY : mode === 'rest' ? rest : undefined
+  const available = (name: string | undefined): string | undefined =>
+    name !== undefined && motion.clips[name] !== undefined ? name : undefined
+  const [phase, setPhase] = useState<string | undefined>(() => available(family?.enter))
+  const previous = useRef<{ mode: Mode; family: PetPhaseFamily | undefined }>({ mode: undefined, family })
   useEffect(() => {
     const old = previous.current
     previous.current = { mode, family }
     if (!idle || reduced) { setPhase(undefined); return }
-    if (mode === old.mode && family === old.family) return
-    const requested = mode === 'travel' ? 'swim_start' : mode === 'rest' ? `${family}_enter`
-      : old.mode === 'travel' ? 'swim_stop' : old.mode === 'rest' ? `${old.family}_wake` : undefined
-    setPhase(requested !== undefined && motion.clips[requested] !== undefined ? requested : undefined)
-  }, [mode, family, idle, reduced, motion])
-  const base = mode === 'travel' ? 'swim_loop' : mode === 'rest' ? `${family}_loop` : undefined
+    if (mode === old.mode && family?.loop === old.family?.loop) return
+    setPhase(available(family !== undefined ? family.enter : old.family?.exit))
+  }, [mode, family?.loop, idle, reduced, motion])
+  const base = family?.loop
   const clip = !idle ? undefined : reduced ? mode === 'rest' ? base : undefined : phase ?? base
   const finish = (name: string): boolean => {
     if (name !== phase) return false
-    setPhase(mode === 'travel' ? 'swim_loop' : mode === 'rest' ? `${family}_loop` : undefined)
+    setPhase(family?.loop)
     return true
   }
   return { clip, finish }

@@ -6,7 +6,7 @@ import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/cli
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { PET_CHARACTER_SOURCE } from './credits.ts'
 import type { PetFrameSet } from './frames.ts'
-import { autonomousPackClips, PET_ACTIONS } from './motion.ts'
+import { autonomousPackClips, availableActions, PET_ACTIONS } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { addRestrictedTool, removeRestrictedTool, type PetSettingsFields, type PetSettingsSwitch, type PetSettingsWriteState } from './settings.ts'
 import css from './PetSettingsSection.module.css'
@@ -169,7 +169,7 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
         </div>
       </Row>
       <details><summary>{t('settings.randomActions')}</summary>
-        {PET_ACTIONS.map(action => <Row key={action} title={t(`menu.${action}`)}>
+        {availableActions(motion).map(action => <Row key={action} title={t(`menu.${action}`)}>
           <Switch checked={(preferences.actions ?? PET_ACTIONS).includes(action)} label={t(`menu.${action}`)}
             onChange={(checked) => { const selected = preferences.actions ?? PET_ACTIONS
               props.setPreferences({ actions: checked ? [...selected, action] : selected.filter(item => item !== action) }) }} />

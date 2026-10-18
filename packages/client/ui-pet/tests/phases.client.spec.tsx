@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, renderHook } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 import { PetSprite } from '../src/client/PetSprite.tsx'
-import { useMotionPhases } from '../src/client/useMotionPhases.ts'
+import { hasTravelPhases, restFamily, useMotionPhases } from '../src/client/useMotionPhases.ts'
 
 const motion: PetMotionView = { width: 208, height: 208, clips: Object.fromEntries([
   'swim_start', 'swim_loop', 'swim_stop', 'pillow_enter', 'pillow_loop', 'pillow_wake',
@@ -40,6 +40,35 @@ describe('persistent motion phases', () => {
     expect(view.result.current.clip).toBe('pillow_enter')
     view.rerender({ ...options, resting: true, reduced: true })
     expect(view.result.current.clip).toBe('pillow_loop')
+  })
+
+  it('rests on the shipped videos when the pack has no sleeping clips, and never glides without travel clips', () => {
+    const videos: PetMotionView = { width: 412, height: 344, clips: Object.fromEntries(['idle', 'idle_yawn', 'idle_stretch']
+      .map(name => [name, { url: `/${name}.webm`, durationMs: 1000, loop: name === 'idle' }])) }
+    const view = renderHook(props => useMotionPhases(videos, props), { initialProps: { ...options, resting: true } })
+    expect(view.result.current.clip).toBe('idle_yawn')
+    act(() => { view.result.current.finish('idle_yawn') })
+    expect(view.result.current.clip).toBe('idle')
+    view.rerender(options)
+    expect(view.result.current.clip).toBe('idle_stretch')
+    act(() => { view.result.current.finish('idle_stretch') })
+    expect(view.result.current.clip).toBeUndefined()
+    view.rerender({ ...options, moving: true })
+    expect(view.result.current.clip).toBeUndefined()
+    expect(hasTravelPhases(videos)).toBe(false)
+    expect(hasTravelPhases(motion)).toBe(true)
+    expect(hasTravelPhases(undefined)).toBe(false)
+  })
+
+  it('prefers dedicated sleeping clips, then a held sleep pose, then the video fallback', () => {
+    const clip = { url: '/x.webm', durationMs: 1000, loop: false }
+    const with_ = (...names: string[]): PetMotionView =>
+      ({ width: 1, height: 1, clips: Object.fromEntries(names.map(name => [name, clip])) })
+    expect(restFamily(motion)?.loop).toBe('pillow_loop')
+    expect(restFamily(with_('idle', 'sleep_enter', 'sleep_loop'))?.loop).toBe('sleep_loop')
+    expect(restFamily(with_('idle', 'sleep'))).toBeUndefined()
+    expect(restFamily(with_('idle'))?.loop).toBe('idle')
+    expect(restFamily(with_('working'))).toBeUndefined()
   })
 })
 
