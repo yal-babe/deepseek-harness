@@ -10,7 +10,7 @@ import type { Config } from '../src/index.ts'
 import type { PetSnapshot } from '../src/types.ts'
 import { asked, decided, S1, S2, SUB, turnEnd, turnStart } from './fixtures.ts'
 
-function session(id: SessionId, extra: { origin?: 'subagent'; cwd?: string } = {}): Session {
+function session(id: SessionId, extra: { origin?: 'subagent'; cwd?: string; parentSession?: SessionId } = {}): Session {
   return Session.create(id, [], { version: SESSION_FORMAT_VERSION, id, createdAt: 0, isSeeded: false, ...extra })
 }
 
@@ -88,6 +88,18 @@ describe('PetService', () => {
     const { ctx, pet } = await setup({ includeSubagents: true })
     emit(ctx, session(SUB, { origin: 'subagent' }), turnStart(Date.now()))
     expect(pet.getSnapshot().sessions[0]).toMatchObject({ sessionId: SUB, subagent: true })
+  })
+
+  it('holds a result while a subagent child of the Session works, but not for a fork', async () => {
+    const { ctx, pet } = await setup()
+    emit(ctx, session(S1), turnStart(Date.now()))
+    emit(ctx, session(SUB, { origin: 'subagent', parentSession: S1 }), turnStart(Date.now()))
+    emit(ctx, session(S1), turnEnd(Date.now(), { kind: 'completed' }))
+    expect(pet.getSnapshot().sessions[0]).toMatchObject({ sessionId: S1, state: 'WORKING', unseenResult: false })
+    emit(ctx, session(S2), turnStart(Date.now()))
+    emit(ctx, session(SUB, { parentSession: S2 }), turnStart(Date.now()))
+    emit(ctx, session(S2), turnEnd(Date.now(), { kind: 'completed' }))
+    expect(pet.getSnapshot().sessions.find(view => view.sessionId === S2)?.state).toBe('SUCCESS')
   })
 
   it('streams frames on change and stops on abort', async () => {

@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { classifyTool, isRestrictedInPet, PetReducer } from '../src/reducer.ts'
 import type { PetReducerOptions } from '../src/reducer.ts'
 import type { PetSettingsView } from '../src/types.ts'
+import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
 import {
-  approvalId, asked, child, decided, ev, goalChange, goalRound, jobRegistered, jobSettled, S1, S2, stepStart, SUB, toolCall, toolResult,
-  top, turnEnd, turnStart,
+  approvalId, asked, child, childOf, decided, ev, goalChange, goalRound, jobRegistered, jobSettled, S1, S2, stepStart, SUB, toolCall,
+  toolResult, top, turnEnd, turnStart,
 } from './fixtures.ts'
 
 const OPTIONS: PetReducerOptions = {
@@ -180,6 +181,107 @@ describe('PetReducer goal rounds', () => {
     const forged = { ...goalChange(2, 'block'), data: { kind: 'other' } } as unknown as SessionEvent
     expect(fold.apply(top(S1), forged)).toBe(false)
     expect(fold.has(S1)).toBe(false)
+  })
+})
+
+describe('PetReducer completion hold', () => {
+  const completed = { kind: 'completed' } as const
+  const GRAND = SessionId('grand')
+  const hold = (options: Partial<PetReducerOptions> = {}): PetReducer =>
+    reducer({ holdCompletions: true, completionQuietMs: 100, ...options })
+
+  it('holds a result while a subagent child works, then settles after the quiet window', () => {
+    const fold = hold()
+    fold.apply(top(S1), turnStart(1))
+    fold.apply(childOf(SUB, S1), turnStart(2))
+    fold.apply(top(S1), turnEnd(10, completed))
+    expect(fold.snapshot(10, INPUTS).sessions[0]).toMatchObject({ sessionId: S1, state: 'WORKING', unseenResult: false })
+    expect(fold.nextExpiry(10)).toBeUndefined()
+    expect(fold.apply(childOf(SUB, S1), turnEnd(50, completed))).toBe(true)
+    expect(fold.snapshot(60, INPUTS).sessions[0]?.state).toBe('WORKING')
+    expect(fold.nextExpiry(60)).toBe(150)
+    const settled = fold.snapshot(150, INPUTS)
+    expect(settled.sessions[0]).toMatchObject({ state: 'SUCCESS', unseenResult: true })
+    // The success hold counts from the end of the quiet window.
+    expect(fold.nextExpiry(150)).toBe(1150)
+  })
+
+  it('restarts the quiet window when a child starts again and counts grandchildren and their jobs', () => {
+    const fold = hold()
+    fold.apply(top(S1), turnStart(1))
+    fold.apply(childOf(SUB, S1), turnStart(2))
+    fold.apply(childOf(GRAND, SUB), turnStart(3))
+    fold.apply(top(S1), turnEnd(10, completed))
+    fold.apply(childOf(SUB, S1), turnEnd(20, completed))
+    expect(fold.nextExpiry(20)).toBeUndefined()
+    fold.apply(childOf(GRAND, SUB), jobRegistered(25, 'j1', GRAND))
+    fold.apply(childOf(GRAND, SUB), turnEnd(30, completed))
+    expect(fold.nextExpiry(30)).toBeUndefined()
+    fold.apply(childOf(GRAND, SUB), jobSettled(40, 'j1', GRAND))
+    expect(fold.nextExpiry(40)).toBe(140)
+    fold.apply(childOf(SUB, S1), turnStart(90))
+    expect(fold.snapshot(200, INPUTS).sessions[0]?.state).toBe('WORKING')
+    fold.apply(childOf(SUB, S1), turnEnd(300, completed))
+    expect(fold.apply(top(S2), turnStart(400))).toBe(true)
+    const settled = fold.snapshot(400, INPUTS).sessions.find(view => view.sessionId === S1)
+    expect(settled).toMatchObject({ state: 'SUCCESS', unseenResult: true })
+  })
+
+  it('does not hold for jobs of the Session itself, errors, idle children, or when disabled', () => {
+    const own = hold()
+    own.apply(top(S1), jobRegistered(1, 'dev', S1))
+    own.apply(top(S1), turnStart(2))
+    own.apply(top(S1), turnEnd(3, completed))
+    expect(own.snapshot(3, INPUTS).sessions[0]?.state).toBe('SUCCESS')
+
+    const failed = hold()
+    failed.apply(top(S1), turnStart(1))
+    failed.apply(childOf(SUB, S1), turnStart(2))
+    failed.apply(top(S1), turnEnd(3, { kind: 'error', error: { message: 'boom', code: 'test' } }))
+    expect(failed.snapshot(3, INPUTS).sessions[0]?.state).toBe('ERROR')
+
+    const disabled = reducer()
+    disabled.apply(top(S1), turnStart(1))
+    disabled.apply(childOf(SUB, S1), turnStart(2))
+    disabled.apply(top(S1), turnEnd(3, completed))
+    expect(disabled.snapshot(3, INPUTS).sessions[0]?.state).toBe('SUCCESS')
+
+    const quiet = hold()
+    quiet.apply(childOf(SUB, S1), turnStart(1))
+    quiet.apply(childOf(SUB, S1), turnEnd(2, completed))
+    quiet.apply(top(S1), turnStart(3))
+    quiet.apply(top(S1), turnEnd(4, completed))
+    expect(quiet.snapshot(4, INPUTS).sessions[0]?.state).toBe('SUCCESS')
+  })
+
+  it('ignores children of other Sessions and a parent link on a non-subagent', () => {
+    const fold = hold()
+    fold.apply(childOf(SUB, S2), turnStart(1))
+    fold.apply({ ...top(GRAND), parentSessionId: S1 }, turnStart(2))
+    fold.apply(top(S1), turnStart(3))
+    fold.apply(top(S1), turnEnd(4, completed))
+    expect(fold.snapshot(4, INPUTS).sessions.find(view => view.sessionId === S1)?.state).toBe('SUCCESS')
+  })
+
+  it('starts the quiet window when the busy child is disposed and drops the hold on a new turn', () => {
+    const fold = hold()
+    fold.apply(top(S1), turnStart(1))
+    fold.apply(childOf(SUB, S1), turnStart(2))
+    fold.apply(top(S1), turnEnd(3, completed))
+    expect(fold.remove(SUB, 10)).toBe(true)
+    expect(fold.nextExpiry(10)).toBe(110)
+    fold.apply(top(S1), turnStart(50))
+    expect(fold.snapshot(200, INPUTS).sessions[0]).toMatchObject({ state: 'THINKING', unseenResult: false })
+    expect(fold.nextExpiry(200)).toBeUndefined()
+  })
+
+  it('uses the 1500 ms default quiet window', () => {
+    const fold = hold({ completionQuietMs: undefined })
+    fold.apply(top(S1), turnStart(1))
+    fold.apply(childOf(SUB, S1), turnStart(2))
+    fold.apply(top(S1), turnEnd(3, completed))
+    fold.apply(childOf(SUB, S1), turnEnd(4, completed))
+    expect(fold.nextExpiry(4)).toBe(1504)
   })
 })
 

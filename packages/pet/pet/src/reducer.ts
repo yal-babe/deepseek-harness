@@ -35,6 +35,8 @@ export interface PetSessionMeta {
   readonly cwd?: string
   /** Whether the Session header marks a subagent child. */
   readonly subagent: boolean
+  /** Parent Session of a subagent child (header `parentSession`); absent for top-level and forked Sessions. */
+  readonly parentSessionId?: SessionId
 }
 
 /** Resolved fold options; the Host plugin derives them from its validated `Config`. */
@@ -49,7 +51,18 @@ export interface PetReducerOptions {
   readonly maxSessions: number
   /** Whether a `WAITING` Session takes focus away from a pinned Session. */
   readonly waitingPreempts: boolean
+  /**
+   * Hold a successful result while subagent descendants of the Session still
+   * run a turn or own an unsettled job; the Session reads `WORKING` until they
+   * are quiet. Off when omitted.
+   */
+  readonly holdCompletions?: boolean
+  /** Milliseconds descendants must stay quiet before a held result settles. Defaults to 1500. */
+  readonly completionQuietMs?: number
 }
+
+/** Default quiet window of a held result, the notification delay of PC2005-cloud/dsh-pet. */
+export const PET_COMPLETION_QUIET_MS = 1500
 
 /** Host-owned values the snapshot carries besides folded events. */
 export interface PetSnapshotInputs {
@@ -95,6 +108,8 @@ interface SessionRecord {
   goalClosing: 'complete' | 'blocked' | undefined
   /** An intermediate goal round ended; the next round has not started yet. */
   goalAwaitingRound: boolean
+  /** A successful result held while descendants work; `quietSince` is set once they are quiet. */
+  held: { quietSince: number | undefined } | undefined
 }
 
 /** `goal/change` operations that leave a goal expecting further rounds. */
@@ -159,6 +174,10 @@ export class PetReducer {
   private readonly records = new Map<SessionId, SessionRecord>()
   private readonly approvals = new Map<PetApprovalRequestId, Omit<PetPendingApproval, 'restrictedInPet'>>()
   private readonly jobs = new Map<JobId, PetJobView>()
+  /** Parent of every subagent child seen, tracked even when subagents are not shown. */
+  private readonly parents = new Map<SessionId, SessionId>()
+  /** Subagent children with an open turn, tracked even when subagents are not shown. */
+  private readonly busyChildren = new Set<SessionId>()
 
   /** @param options - resolved fold options. */
   constructor(private readonly options: PetReducerOptions) {}
@@ -170,6 +189,13 @@ export class PetReducer {
    * @returns whether the published snapshot can differ after this event.
    */
   apply(meta: PetSessionMeta, event: SessionEvent): boolean {
+    const settled = this.settleHeld(event.time)
+    if (meta.subagent && meta.parentSessionId !== undefined) this.parents.set(meta.sessionId, meta.parentSessionId)
+    const changed = this.applyEvent(meta, event)
+    return this.recheckHeld(meta, event, event.time) || changed || settled
+  }
+
+  private applyEvent(meta: PetSessionMeta, event: SessionEvent): boolean {
     switch (event.type) {
       case 'approval/asked':
         this.approvals.set(event.data.id, {
@@ -204,10 +230,14 @@ export class PetReducer {
   /**
    * Forget a Session that left the store, including its pending approvals and jobs.
    * @param sessionId - disposed Session.
+   * @param now - Unix epoch milliseconds of the disposal; it starts the quiet window of results the Session held.
    * @returns whether anything was removed.
    */
-  remove(sessionId: SessionId): boolean {
-    let changed = this.records.delete(sessionId)
+  remove(sessionId: SessionId, now = 0): boolean {
+    let changed = this.settleHeld(now)
+    changed = this.records.delete(sessionId) || changed
+    this.busyChildren.delete(sessionId)
+    this.parents.delete(sessionId)
     for (const [id, approval] of this.approvals) {
       if (approval.sessionId !== sessionId) continue
       this.approvals.delete(id)
@@ -218,7 +248,7 @@ export class PetReducer {
       this.jobs.delete(id)
       changed = true
     }
-    return changed
+    return this.recheckAllHeld(now) || changed
   }
 
   /**
@@ -250,8 +280,15 @@ export class PetReducer {
    * @returns the expiry time, or `undefined` when no hold is running.
    */
   nextExpiry(now: number): number | undefined {
+    this.settleHeld(now)
     let earliest: number | undefined
     for (const record of this.records.values()) {
+      const quietSince = record.held?.quietSince
+      if (quietSince !== undefined) {
+        const end = quietSince + this.quietMs()
+        if (end > now && (earliest === undefined || end < earliest)) earliest = end
+        continue
+      }
       const hold = this.holdOf(record.state)
       if (hold === undefined) continue
       const end = record.settledAt + hold
@@ -267,6 +304,7 @@ export class PetReducer {
    * @returns a frame that replaces any earlier one.
    */
   snapshot(now: number, inputs: PetSnapshotInputs): PetSnapshot {
+    this.settleHeld(now)
     const waiting = new Set([...this.approvals.values()].map(approval => approval.sessionId))
     const views = [...this.records.values()].map(record => this.view(record, now, waiting.has(record.sessionId)))
     views.sort((left, right) =>
@@ -314,6 +352,7 @@ export class PetReducer {
         record.progress = undefined
         record.unseenResult = false
         record.state = 'THINKING'
+        record.held = undefined
         record.goalTurn = false
         record.goalClosing = undefined
         record.goalAwaitingRound = false
@@ -353,6 +392,11 @@ export class PetReducer {
         record.openTools.clear()
         record.settledAt = event.time
         record.state = this.goalOutcome(record, this.turnOutcome(event.data.reason.kind))
+        if (record.state === 'SUCCESS' && this.options.holdCompletions === true && !record.subagent
+          && this.descendantsBusy(record.sessionId)) {
+          record.held = { quietSince: undefined }
+          record.state = 'WORKING'
+        }
         record.unseenResult = record.state === 'SUCCESS' || record.state === 'ERROR'
         record.goalTurn = false
         record.goalClosing = undefined
@@ -438,6 +482,7 @@ export class PetReducer {
         goalActive: false,
         goalClosing: undefined,
         goalAwaitingRound: false,
+        held: undefined,
       }
       this.records.set(meta.sessionId, record)
     }
@@ -464,7 +509,73 @@ export class PetReducer {
       goalActive: false,
       goalClosing: undefined,
       goalAwaitingRound: false,
+      held: undefined,
     }
+  }
+
+  private quietMs(): number {
+    return this.options.completionQuietMs ?? PET_COMPLETION_QUIET_MS
+  }
+
+  /** Whether `sessionId` is a strict ancestor of `candidate` through subagent parent links. */
+  private isAncestor(sessionId: SessionId, candidate: SessionId): boolean {
+    const seen = new Set<SessionId>()
+    let current = this.parents.get(candidate)
+    while (current !== undefined && !seen.has(current)) {
+      if (current === sessionId) return true
+      seen.add(current)
+      current = this.parents.get(current)
+    }
+    return false
+  }
+
+  /**
+   * Whether subagent descendants of a Session still work: an open turn, or an
+   * unsettled job they own. Jobs of the Session itself, such as a dev server,
+   * do not hold its result.
+   */
+  private descendantsBusy(sessionId: SessionId): boolean {
+    for (const child of this.busyChildren) if (this.isAncestor(sessionId, child)) return true
+    for (const job of this.jobs.values()) if (this.isAncestor(sessionId, job.owner)) return true
+    return false
+  }
+
+  /** Track subagent turns, then refresh held results the event may concern. */
+  private recheckHeld(meta: PetSessionMeta, event: SessionEvent, time: number): boolean {
+    if (meta.subagent && event.type === 'turn/start') this.busyChildren.add(meta.sessionId)
+    else if (meta.subagent && event.type === 'turn/end') this.busyChildren.delete(meta.sessionId)
+    else if (event.type !== 'job/registered' && event.type !== 'job/settled') return false
+    return this.recheckAllHeld(time)
+  }
+
+  /** Start or stop the quiet window of every held result. */
+  private recheckAllHeld(time: number): boolean {
+    let changed = false
+    for (const record of this.records.values()) {
+      const held = record.held
+      if (held === undefined) continue
+      const busy = this.descendantsBusy(record.sessionId)
+      if (busy && held.quietSince !== undefined) held.quietSince = undefined
+      else if (!busy && held.quietSince === undefined) held.quietSince = time
+      else continue
+      changed = true
+    }
+    return changed
+  }
+
+  /** Settle held results whose quiet window ended by `now`; the result counts from the window's end. */
+  private settleHeld(now: number): boolean {
+    let settled = false
+    for (const record of this.records.values()) {
+      const quietSince = record.held?.quietSince
+      if (quietSince === undefined || now < quietSince + this.quietMs()) continue
+      record.held = undefined
+      record.state = 'SUCCESS'
+      record.settledAt = quietSince + this.quietMs()
+      record.unseenResult = true
+      settled = true
+    }
+    return settled
   }
 
   private holdOf(state: TurnState): number | undefined {

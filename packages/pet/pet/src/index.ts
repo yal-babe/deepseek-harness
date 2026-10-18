@@ -8,7 +8,7 @@ import type { Context, Volatile } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import { PetReducer } from './reducer.ts'
+import { PET_COMPLETION_QUIET_MS, PetReducer } from './reducer.ts'
 import type { PetSessionMeta } from './reducer.ts'
 import { loadPetDevPacks } from './dev-packs.ts'
 import { builtinAssets, PET_MEDIA_PATH } from './builtin-assets.ts'
@@ -19,7 +19,7 @@ import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 
 export type * from './types.ts'
-export { PetReducer, PET_STATE_PRIORITY, classifyTool, isRestrictedInPet } from './reducer.ts'
+export { PetReducer, PET_COMPLETION_QUIET_MS, PET_STATE_PRIORITY, classifyTool, isRestrictedInPet } from './reducer.ts'
 export type { PetReducerOptions, PetSessionMeta, PetSnapshotInputs } from './reducer.ts'
 
 /**
@@ -53,6 +53,10 @@ export interface Config {
   snapshotDebounceMs: number
   /** Whether a `WAITING` Session takes focus from a pinned Session. */
   waitingPreempts: boolean
+  /** Hold a successful result (and its notification) while subagent descendants still work. */
+  holdCompletionsWhileBusy: boolean
+  /** Milliseconds descendants must stay quiet before a held result settles. */
+  completionQuietMs: number
 }
 
 /** Validated at plugin load. */
@@ -69,6 +73,8 @@ export const Config = Schema.object({
   maxSessions: Schema.number().min(1).max(256).step(1).default(32),
   snapshotDebounceMs: Schema.number().min(0).max(5000).step(1).default(100),
   waitingPreempts: Schema.boolean().default(true),
+  holdCompletionsWhileBusy: Schema.boolean().default(true),
+  completionQuietMs: Schema.number().min(0).max(60000).step(1).default(PET_COMPLETION_QUIET_MS),
 })
 
 declare module '@deepseek-ai/cordis' {
@@ -78,10 +84,14 @@ declare module '@deepseek-ai/cordis' {
 }
 
 function metaOf(session: Session): PetSessionMeta {
+  const subagent = session.header.origin === 'subagent' || (session.header.delegationDepth ?? 0) > 0
+  // Forks also record `parentSession`; only a subagent child counts as working for its parent.
+  const parent = subagent ? session.header.parentSession : undefined
   return {
     sessionId: session.id,
     ...(session.header.cwd === undefined ? {} : { cwd: session.header.cwd }),
-    subagent: session.header.origin === 'subagent' || (session.header.delegationDepth ?? 0) > 0,
+    subagent,
+    ...(parent === undefined ? {} : { parentSessionId: parent }),
   }
 }
 
@@ -114,6 +124,8 @@ export class PetService extends TypertRemoteService {
       errorHoldMs: config.errorHoldMs,
       maxSessions: config.maxSessions,
       waitingPreempts: config.waitingPreempts,
+      holdCompletions: config.holdCompletionsWhileBusy,
+      completionQuietMs: config.completionQuietMs,
     })
     ctx.inject(['webServer'], (scope) => {
       scope.effect(() => {
@@ -143,7 +155,7 @@ export class PetService extends TypertRemoteService {
     })
     ctx.on('session/disposed', (session: Session) => {
       if (this.pinned === session.id) this.pinned = undefined
-      if (this.reducer.remove(session.id)) this.changed()
+      if (this.reducer.remove(session.id, Date.now())) this.changed()
     })
     ctx.effect(() => () => {
       this.closed = true

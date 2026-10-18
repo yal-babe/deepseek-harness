@@ -18,6 +18,9 @@ export const SUB = SessionId('sub')
 export const top = (sessionId: SessionId, cwd = '/work/dsh-studio'): PetSessionMeta => ({ sessionId, cwd, subagent: false })
 /** Header facts of a subagent child. */
 export const child = (sessionId: SessionId): PetSessionMeta => ({ sessionId, cwd: '/work/dsh-studio', subagent: true })
+/** Header facts of a subagent child spawned by `parent`. */
+export const childOf = (sessionId: SessionId, parent: SessionId): PetSessionMeta =>
+  ({ sessionId, cwd: '/work/dsh-studio', subagent: true, parentSessionId: parent })
 
 type NonSurface = Exclude<keyof SessionEventMap, 'system/message' | 'developer/message' | 'user/message' | 'assistant/message' | 'tool/result'>
 
