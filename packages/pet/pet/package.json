@@ -26,6 +26,14 @@
       "types": "./lib/types/pack.d.ts",
       "default": "./lib/types/pack.js"
     },
+    "./time-context": {
+      "types": "./lib/types/time-context.d.ts",
+      "default": "./lib/types/time-context.js"
+    },
+    "./lines": {
+      "types": "./lib/types/lines.d.ts",
+      "default": "./lib/types/lines.js"
+    },
     "./packs/*": "./packs/*",
     "./src/*": "./src/*",
     "./package.json": "./package.json",

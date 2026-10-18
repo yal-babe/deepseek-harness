@@ -28,6 +28,326 @@
         "zh": "要来点新任务吗？",
         "en": "Anything else I can do?"
       }
+    ],
+    "greet.small-hours": [
+      {
+        "zh": "这么晚还没睡呀，记得早点休息哦。",
+        "en": "Still up this late? Remember to rest soon."
+      },
+      {
+        "zh": "夜深了，我陪你再待一会儿。",
+        "en": "It's deep in the night. I'll keep you company a bit longer."
+      }
+    ],
+    "greet.dawn": [
+      {
+        "zh": "天才刚亮，起得真早！",
+        "en": "The sun is barely up. You're an early bird!"
+      }
+    ],
+    "greet.morning": [
+      {
+        "zh": "早上好！今天也一起加油吧～",
+        "en": "Good morning! Let's do our best today~"
+      },
+      {
+        "zh": "早安，先吃点早饭再开工哦。",
+        "en": "Morning! Grab some breakfast before we start."
+      }
+    ],
+    "greet.forenoon": [
+      {
+        "zh": "上午好，脑子最清醒的时候到啦。",
+        "en": "Good morning! This is your sharpest time of day."
+      }
+    ],
+    "greet.noon": [
+      {
+        "zh": "中午啦，记得吃午饭！",
+        "en": "It's noon. Don't forget lunch!"
+      },
+      {
+        "zh": "午饭时间到～歇一会儿吧。",
+        "en": "Lunchtime~ Take a little break."
+      }
+    ],
+    "greet.afternoon": [
+      {
+        "zh": "下午好，来口水润润嗓子吧。",
+        "en": "Good afternoon! Have some water."
+      },
+      {
+        "zh": "下午容易犯困，起来伸个懒腰？",
+        "en": "Afternoons get sleepy. Time for a stretch?"
+      }
+    ],
+    "greet.dusk": [
+      {
+        "zh": "傍晚了，今天辛苦啦。",
+        "en": "It's evening already. Thanks for today's work."
+      }
+    ],
+    "greet.evening": [
+      {
+        "zh": "晚上好，别忘了放松一下。",
+        "en": "Good evening. Don't forget to unwind."
+      }
+    ],
+    "greet.late-night": [
+      {
+        "zh": "已经很晚了，早点睡对身体好哦。",
+        "en": "It's getting late. Sleep helps more than you think."
+      },
+      {
+        "zh": "深夜模式开启～我会安静一点。",
+        "en": "Late-night mode on~ I'll keep it quiet."
+      }
+    ],
+    "festival.valentines-day": [
+      {
+        "zh": "情人节快乐！今天也要好好爱自己。",
+        "en": "Happy Valentine's Day! Be kind to yourself today too."
+      }
+    ],
+    "festival.new-years-eve": [
+      {
+        "zh": "今天是跨年夜，一起倒数吧！",
+        "en": "It's New Year's Eve. Let's count down together!"
+      }
+    ],
+    "festival.april-fools": [
+      {
+        "zh": "今天是愚人节，我说的话要打个问号哦～",
+        "en": "It's April Fools' Day. Take what I say with a grain of salt~"
+      }
+    ],
+    "festival.youth-day": [
+      {
+        "zh": "青年节快乐，保持元气！",
+        "en": "Happy Youth Day! Stay full of energy!"
+      }
+    ],
+    "festival.spring-festival-eve": [
+      {
+        "zh": "今天是除夕，年夜饭准备好了吗？",
+        "en": "It's Spring Festival Eve. Is the reunion dinner ready?"
+      }
+    ],
+    "festival.spring-festival-eve.tomorrow": [
+      {
+        "zh": "明天就是除夕啦！",
+        "en": "Spring Festival Eve is tomorrow!"
+      }
+    ],
+    "festival.lantern-festival": [
+      {
+        "zh": "元宵节快乐，记得吃汤圆！",
+        "en": "Happy Lantern Festival! Don't forget the tangyuan!"
+      }
+    ],
+    "festival.spring-festival": [
+      {
+        "zh": "新年快乐！还在过年的气氛里呢～",
+        "en": "Happy Lunar New Year! Still in the festive mood~"
+      }
+    ],
+    "festival.spring-festival.today": [
+      {
+        "zh": "大年初一，新年快乐！",
+        "en": "It's the first day of the Lunar New Year. Happy New Year!"
+      }
+    ],
+    "festival.spring-festival.soon": [
+      {
+        "zh": "快过年啦，年货买好了吗？",
+        "en": "The Lunar New Year is almost here. Ready for it?"
+      }
+    ],
+    "festival.spring-festival.just-over": [
+      {
+        "zh": "年过完了，慢慢找回节奏吧。",
+        "en": "The New Year holiday is over. Ease back into the rhythm."
+      }
+    ],
+    "festival.mid-autumn": [
+      {
+        "zh": "中秋快乐！今晚记得看月亮。",
+        "en": "Happy Mid-Autumn Festival! Look at the moon tonight."
+      }
+    ],
+    "festival.mid-autumn.soon": [
+      {
+        "zh": "中秋快到了，月饼准备好了吗？",
+        "en": "Mid-Autumn is coming. Got your mooncakes?"
+      }
+    ],
+    "festival.national-day": [
+      {
+        "zh": "国庆假期快乐，好好休息一下！",
+        "en": "Happy National Day holiday! Get some rest!"
+      }
+    ],
+    "festival.national-day.last-day": [
+      {
+        "zh": "国庆假期最后一天了，收收心～",
+        "en": "Last day of the National Day holiday. Time to wind down~"
+      }
+    ],
+    "festival.national-day.soon": [
+      {
+        "zh": "国庆假期快到了，有什么计划吗？",
+        "en": "The National Day holiday is close. Any plans?"
+      }
+    ],
+    "festival.national-day.just-over": [
+      {
+        "zh": "国庆刚过完，慢慢进入状态吧。",
+        "en": "National Day just ended. Take it slow getting back."
+      }
+    ],
+    "festival.new-year": [
+      {
+        "zh": "新年快乐！新的一年也请多关照～",
+        "en": "Happy New Year! Let's keep working together this year~"
+      }
+    ],
+    "festival.new-year.soon": [
+      {
+        "zh": "新年快到了，今年过得怎么样？",
+        "en": "The new year is almost here. How was this one?"
+      }
+    ],
+    "festival.dragon-boat": [
+      {
+        "zh": "端午安康，记得吃粽子！",
+        "en": "Happy Dragon Boat Festival! Have some zongzi!"
+      }
+    ],
+    "festival.dragon-boat.soon": [
+      {
+        "zh": "端午快到了，你喜欢甜粽还是咸粽？",
+        "en": "Dragon Boat Festival is near. Sweet or savory zongzi?"
+      }
+    ],
+    "festival.qingming": [
+      {
+        "zh": "清明时节，出门记得带伞。",
+        "en": "It's Qingming. Bring an umbrella if you go out."
+      }
+    ],
+    "festival.labor-day": [
+      {
+        "zh": "劳动节快乐，今天该休息啦！",
+        "en": "Happy Labor Day! Today is for resting!"
+      }
+    ],
+    "festival.childrens-day": [
+      {
+        "zh": "儿童节快乐，今天允许当个小朋友！",
+        "en": "Happy Children's Day! You're allowed to be a kid today!"
+      }
+    ],
+    "festival.qixi": [
+      {
+        "zh": "今天是七夕，愿你被温柔以待。",
+        "en": "It's Qixi. May you be treated gently."
+      }
+    ],
+    "festival.zhongyuan": [
+      {
+        "zh": "今天是中元节，早点回家哦。",
+        "en": "It's the Zhongyuan Festival. Head home early."
+      }
+    ],
+    "festival.longtaitou": [
+      {
+        "zh": "二月二，龙抬头，要不要剪个头发？",
+        "en": "It's Longtaitou. Maybe time for a haircut?"
+      }
+    ],
+    "festival.double-ninth": [
+      {
+        "zh": "重阳节到了，记得问候家里的长辈。",
+        "en": "It's the Double Ninth Festival. Say hello to your elders."
+      }
+    ],
+    "festival.laba": [
+      {
+        "zh": "腊八节，来碗热乎的腊八粥吧。",
+        "en": "It's Laba. How about a warm bowl of Laba porridge?"
+      }
+    ],
+    "festival.xiaonian": [
+      {
+        "zh": "小年到了，年味越来越浓啦。",
+        "en": "It's Xiaonian. The New Year feeling is getting stronger."
+      }
+    ],
+    "festival.winter-break": [
+      {
+        "zh": "寒假期间也别忘了休息～",
+        "en": "It's winter break. Don't forget to rest~"
+      }
+    ],
+    "festival.winter-break.soon": [
+      {
+        "zh": "快放寒假了，再坚持一下！",
+        "en": "Winter break is almost here. Hang in there!"
+      }
+    ],
+    "festival.summer-break": [
+      {
+        "zh": "暑假期间注意防暑哦。",
+        "en": "It's summer break. Stay cool!"
+      }
+    ],
+    "festival.summer-break.soon": [
+      {
+        "zh": "快放暑假了，再坚持一下！",
+        "en": "Summer break is almost here. Hang in there!"
+      }
+    ],
+    "festival.womens-day": [
+      {
+        "zh": "妇女节快乐！",
+        "en": "Happy Women's Day!"
+      }
+    ],
+    "festival.teachers-day": [
+      {
+        "zh": "教师节快乐，谢谢每一位老师。",
+        "en": "Happy Teachers' Day. Thanks to every teacher."
+      }
+    ],
+    "festival.party-founding-day": [
+      {
+        "zh": "今天是七一建党节。",
+        "en": "Today is the Party Founding Day, July 1."
+      }
+    ],
+    "festival.army-day": [
+      {
+        "zh": "今天是八一建军节。",
+        "en": "Today is Army Day, August 1."
+      }
+    ],
+    "festival.halloween": [
+      {
+        "zh": "万圣夜快乐，不给糖就捣蛋！",
+        "en": "Happy Halloween! Trick or treat!"
+      }
+    ],
+    "festival.christmas-eve": [
+      {
+        "zh": "平安夜快乐，愿你平平安安。",
+        "en": "Merry Christmas Eve. Stay safe and sound."
+      }
+    ],
+    "festival.christmas": [
+      {
+        "zh": "圣诞快乐！",
+        "en": "Merry Christmas!"
+      }
     ]
   }
 }

@@ -44,6 +44,8 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 
 内置角色及其媒体来自 PC2005-cloud 的 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)。其代码为 MIT；素材仅限非商业使用，衍生作品须在任何介绍、展示、分发的地方附上 <https://github.com/PC2005-cloud/dsh-pet>。[UPSTREAM_ASSET_TERMS.md](packs/whaletail-maid/UPSTREAM_ASSET_TERMS.md) 逐字引用上游条款并记录固定的上游提交；包内 `pet.json` 的 `license.assets` 指向这些条款。
 
+台词都在本地，从不由模型生成。`@deepseek-ai/dsh-pet/lines` 校验 `lines.json`（`parsePetLines`），并按一组触发键选出一句台词（`pickPetLine`，随机源由调用方传入）。`@deepseek-ai/dsh-pet/time-context` 读取本地时段、工作日或周末以及临近的节日（公历日期、用内置 `Intl` 农历计算的农历日期，以及固定的寒暑假窗口；不建模法定调休补班），`petMomentTriggers` 把这一时刻转成 `festival.<id>.<phase>`、`festival.<id>` 与 `greet.<slot>` 触发键。内置包为每个时段准备了问候，为每个节日准备了台词。两个模块都可在浏览器中运行，改编自 PC2005-cloud/dsh-pet（见 [NOTICE](NOTICE)）。
+
 开发宠物包时，设置 `DSH_PET_DEV=1` 与 `DSH_PET_DEV_PACKS=<dir>` 后，`pet.pack()` 会从 `<dir>` 的子目录（按名称排序）中提供第一个有效包，不校验签名，标记为 `dev: true`，帧以 data URL 形式提供（单张图最多 4 MiB，每个包最多 30 MiB）。被跳过的目录及原因放在 `problems` 中返回。该目录每次 Host 运行只读取一次。未开启时，存在 `webServer` 则提供内置媒体，否则 `pet.pack()` 返回 `{ pack: null, problems: [] }` 并使用内嵌回退帧。尚未加载来自 studio-cloud 的签名包。
 
 -----
