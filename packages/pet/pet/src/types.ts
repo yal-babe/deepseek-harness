@@ -171,6 +171,26 @@ export interface PetMotionClip {
     /** Zero-based starting cell in row-major order; omitted means zero. */
     readonly startFrame?: number
   }
+  /** The clip ends facing the other way; the character keeps the new facing. */
+  readonly turn?: boolean
+  /** `false` when the clip must never be mirrored, such as clips with text. */
+  readonly mirror?: boolean
+  /** Pack-provided menu name, used when no Client dictionary names the clip. */
+  readonly label?: { readonly zh: string; readonly en: string }
+}
+
+/** One category of the weighted animation chain and the action menu. */
+export interface PetMotionCategoryView {
+  /** Stable category identity. */
+  readonly id: string
+  /** Pack-provided category name. */
+  readonly label: { readonly zh: string; readonly en: string }
+  /** Relative chance among the categories eligible for the current life state. */
+  readonly weight: number
+  /** Life states whose autonomous chain draws from the category; empty means menu only. */
+  readonly life: readonly ('idle' | 'play')[]
+  /** Clip names in menu order. */
+  readonly clips: readonly string[]
 }
 
 /** Browser-decodable media, separate from the initial client bundle. */
@@ -178,4 +198,6 @@ export interface PetMotionView {
   readonly width: number
   readonly height: number
   readonly clips: Readonly<Record<string, PetMotionClip>>
+  /** Categories of the weighted animation chain and the action menu, in menu order. */
+  readonly categories?: readonly PetMotionCategoryView[]
 }

@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { parsePetPack } from './pack.ts'
+import { parsePetMotion } from './motion.ts'
 import type { PetMotionClip, PetPackState } from './types.ts'
 
 /** Host route serving only shipped character media. */
@@ -17,18 +18,9 @@ export async function builtinAssets(): Promise<{
 }> {
   const parsed = parsePetPack(JSON.parse(await readFile(new URL('pet.json', root), 'utf8')))
   if (!parsed.ok) throw new Error(`pet: invalid built-in pack: ${parsed.errors.join('; ')}`)
-  const motion: {
-    width: number
-    height: number
-    clips: Record<string, {
-      file: string
-      loop: boolean
-      durationMs: number
-      sha256?: string
-      sheet?: { columns: number; rows: number; frames: number; startFrame?: number }
-    }>
-  } =
-    JSON.parse(await readFile(new URL('motion.json', root), 'utf8'))
+  const described = parsePetMotion(JSON.parse(await readFile(new URL('motion.json', root), 'utf8')))
+  if (!described.ok) throw new Error(`pet: invalid built-in motion: ${described.errors.join('; ')}`)
+  const motion = described.manifest
   const files = new Map<string, { readonly file: URL; readonly mediaType: string }>()
   const assets: Record<string, string> = {}
   for (const clip of Object.values(parsed.pack.clips)) {
@@ -43,12 +35,23 @@ export async function builtinAssets(): Promise<{
   for (const [name, clip] of Object.entries(motion.clips)) {
     const extension = clip.sheet === undefined ? 'webm' : 'png'
     const mediaPath = `${PET_MEDIA_PATH}/v1/${clip.file.split('/').at(-1) ?? `${name}.${extension}`}`
-    const url = `${mediaPath}?v=${clip.sha256 ?? 'builtin'}`
-    clips[name] = { url, loop: clip.loop, durationMs: clip.durationMs, ...clip.sheet === undefined ? {} : { sheet: clip.sheet } }
+    const url = `${mediaPath}?v=${clip.sha256}`
+    clips[name] = {
+      url, loop: clip.loop, durationMs: clip.durationMs,
+      ...clip.sheet === undefined ? {} : { sheet: clip.sheet },
+      ...clip.turn === true ? { turn: true } : {},
+      ...clip.mirror === false ? { mirror: false } : {},
+      ...clip.label === undefined ? {} : { label: clip.label },
+    }
     files.set(mediaPath, { file: new URL(clip.file, root), mediaType: clip.sheet === undefined ? 'video/webm' : 'image/png' })
   }
   const pack: PetPackState = {
-    pack: { manifest: parsed.pack, assets, dev: false, motion: { width: motion.width, height: motion.height, clips } },
+    pack: { manifest: parsed.pack, assets, dev: false,
+      motion: {
+        width: motion.width, height: motion.height, clips,
+        ...motion.categories.length === 0 ? {} : { categories: motion.categories },
+      },
+    },
     problems: [],
   }
   return {
