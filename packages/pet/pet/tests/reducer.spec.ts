@@ -91,6 +91,19 @@ describe('PetReducer turn lifecycle', () => {
     expect(fold.snapshot(5, INPUTS).sessions[0]?.progress).toBeUndefined()
   })
 
+  it('reports the last in-progress todo as current', () => {
+    const fold = reducer()
+    fold.apply(top(S1), turnStart(1))
+    fold.apply(top(S1), ev('todo/write', 2, {
+      todos: [
+        { content: 'a', status: 'in_progress' },
+        { content: 'b', status: 'in_progress' },
+        { content: 'c', status: 'pending' },
+      ],
+    }))
+    expect(fold.snapshot(2, INPUTS).sessions[0]?.progress).toEqual({ completed: 0, total: 3, current: 2 })
+  })
+
   it('carries the caller-supplied moment', () => {
     const moment = { date: '2026-10-01', slot: 'noon', dayKind: 'workday', festival: { id: 'national-day', phase: 'today' } } as const
     expect(reducer().snapshot(0, { ...INPUTS, moment }).moment).toEqual(moment)

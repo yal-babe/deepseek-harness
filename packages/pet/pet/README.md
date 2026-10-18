@@ -64,7 +64,7 @@ For pack development, `DSH_PET_DEV=1` with `DSH_PET_DEV_PACKS=<dir>` makes `pet.
 - Goal rounds announce only the final result. `goal/change` and goal-attributed `user/message` events are read structurally, without importing dsh-goal: a successful round of a goal that still expects rounds reads as `IDLE` with no unseen result; a round that completes the goal reads as `SUCCESS`; a goal blocked during a round, or by the round limit between rounds, reads as `ERROR`. Pausing or clearing a goal between rounds stays quiet.
 - `approval/asked` and `approval/decided` (audit events written by user-approval) track pending approvals, including those of subagent Sessions that are otherwise untracked. Any pending approval makes the character `WAITING`.
 - Every snapshot carries `moment`, the Host-local time of day, day kind, and festival (`@deepseek-ai/dsh-pet/time-context`); the expiry timer also fires at the next slot boundary so the moment stays current without events.
-- `todo/write` gives progress, `session/title` gives the title, and `job/registered` / `job/settled` list running jobs.
+- `todo/write` gives progress (`current` is the last in-progress item), `session/title` gives the title, and `job/registered` / `job/settled` list running jobs.
 
 Character priority is `WAITING > ERROR > SUCCESS > WORKING > THINKING > IDLE`. A pinned Session wins focus unless `waitingPreempts` lets a `WAITING` Session take it. `watch()` coalesces changes inside `snapshotDebounceMs`. A fold failure is logged and never reaches the Session append path.
 

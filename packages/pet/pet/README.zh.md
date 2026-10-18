@@ -64,7 +64,7 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 - 目标轮次只播报最终结果。`goal/change` 与归属目标的 `user/message` 按结构读取，不导入 dsh-goal：目标仍需后续轮次时，成功的一轮读作 `IDLE`，不标记未读结果；完成目标的一轮读作 `SUCCESS`；目标在某轮中被阻塞，或在轮次之间因轮数上限被阻塞，读作 `ERROR`。轮次之间暂停或清除目标不会播报。
 - `approval/asked` 与 `approval/decided`（user-approval 写入的审计事件）跟踪待审批项，包括本身未被跟踪的子代理会话。只要存在待审批项，角色即为 `WAITING`。
 - 每个快照都携带 `moment`，即 Host 本地的时段、日类型与节日（`@deepseek-ai/dsh-pet/time-context`）；到期定时器也会在下一个时段边界触发，使 moment 无需事件也保持最新。
-- `todo/write` 提供进度，`session/title` 提供标题，`job/registered` / `job/settled` 列出运行中的作业。
+- `todo/write` 提供进度（`current` 为最后一个进行中的条目），`session/title` 提供标题，`job/registered` / `job/settled` 列出运行中的作业。
 
 角色优先级为 `WAITING > ERROR > SUCCESS > WORKING > THINKING > IDLE`。被钉住的会话获得焦点，除非 `waitingPreempts` 让 `WAITING` 会话抢占。`watch()` 在 `snapshotDebounceMs` 内合并变化。汇总失败只记录日志，绝不影响会话追加路径。
 

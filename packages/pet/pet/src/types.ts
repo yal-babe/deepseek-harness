@@ -41,7 +41,7 @@ export interface PetProgress {
   readonly completed: number
   /** All todo items. */
   readonly total: number
-  /** One-based index of the first in-progress item, when one exists. */
+  /** One-based index of the last in-progress item, when one exists. */
   readonly current?: number
 }
 

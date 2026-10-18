@@ -163,7 +163,8 @@ export function classifyTool(name: string): PetWorkActivity {
 function progressOf(todos: readonly { readonly status: string }[]): PetProgress | undefined {
   if (todos.length === 0) return undefined
   const completed = todos.filter(todo => todo.status === 'completed').length
-  const current = todos.findIndex(todo => todo.status === 'in_progress')
+  // The last in-progress item: models often mark the next item before closing the previous one.
+  const current = todos.findLastIndex(todo => todo.status === 'in_progress')
   return current < 0 ? { completed, total: todos.length } : { completed, total: todos.length, current: current + 1 }
 }
 
