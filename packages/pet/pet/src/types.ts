@@ -160,7 +160,14 @@ export interface PetMotionClip {
   readonly url: string
   readonly loop: boolean
   readonly durationMs: number
-  readonly sheet?: { readonly columns: number; readonly rows: number; readonly frames: number }
+  readonly sheet?: {
+    readonly columns: number
+    readonly rows: number
+    /** Number of frames played, starting at startFrame. */
+    readonly frames: number
+    /** Zero-based starting cell in row-major order; omitted means zero. */
+    readonly startFrame?: number
+  }
 }
 
 /** Browser-decodable media, separate from the initial client bundle. */

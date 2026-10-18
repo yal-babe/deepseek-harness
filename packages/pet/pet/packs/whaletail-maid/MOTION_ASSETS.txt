@@ -5,12 +5,37 @@ whale-tail maid frames, originally by PC2005-cloud. motion.json records the
 pinned repository revision, source video hashes, frame counts, durations and
 output hashes. MOTION_LICENSE.txt preserves the upstream MIT license.
 
-bubbles.png, sleep.png, nuzzle.png and celebrate.png were generated for DSH
-Studio on 2026-10-17 from the same character reference, following an animation
-concept approved by the project owner. They contain eight key poses per action
-in a 4-column, 2-row grid; playback does not synthesize intermediate frames.
-They are shipped under the project's MIT terms with the upstream character
-notice retained. No legacy restricted BigFish assets are included.
+Four replacement sheets (bubbles, celebrate, nuzzle, sleep) and ten new sheets
+(idle_daydream, idle_observe, swim, idle_groom, play_bubbles, play_ball,
+play_tailspin, work_read, thinking_chin, rest_pillow) were generated for DSH
+Studio on 2026-10-18 using the approved character reference. The replacements
+have respectively 56, 56, 56, 40 actual frames. The new sheets have respectively 48, 48, 40, 48,
+48, 40, 48, 48, 48, 42 actual frames: 666 in total, played at 24 fps.
+No repeated or interpolated frames were added to meet a requested count.
 
-The 32-pose draft with an incorrect layout is not shipped. The approved concept
-and generated source images remain in the task's generated_images artifacts.
+Actual generated layouts differ from requested grids. The import recipe in
+../../tools/generated-motion.recipe.json records reviewed row boundaries and
+per-row pose counts. ../../tools/import-generated-motion.py separates actual alpha islands;
+rows with touching silhouettes use column cuts and primary-island extraction
+to exclude neighbor fragments. It calibrates standing row height and pads each
+to a transparent 208x208 ground-anchored
+canvas. Run with the recipe and a directory containing its named raw sources.
+Source rows can have different pose counts; only actual poses are packed, and
+unused trailing atlas cells are never scheduled. Raw source hashes, actual/unique
+frame counts, output hashes, normalization,
+durations and grid details are recorded in motion.json. Raw generated source
+images remain in the task's generated_images artifacts. The original reference
+is preserved in the repository's pet-art-drafts/character-reference.png.
+
+Sleep and pillow sleep have finite entry/wake and persistent loop segments.
+Swimming has finite start/stop and a directional loop; the artwork faces left and the client mirrors
+all rightward phases. Thinking splits pondering and an idea into two variants. Segment
+aliases reuse the same physical atlas; their startFrame and frames describe
+only the played range. Task/drag states interrupt local phases. User-selected
+interactions and autonomous decorations play finitely before returning to the
+selected life state. All fourteen atlases are generated art, so further visual
+refinement can improve consistency; real frame count does not establish quality.
+
+These generated resources ship under the project's MIT terms with the upstream
+character notice retained. No legacy restricted BigFish assets are included.
+The older 64-frame-target draft is not shipped in the motion manifest.

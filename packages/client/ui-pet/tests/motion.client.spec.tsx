@@ -86,7 +86,8 @@ describe('motion scheduling', () => {
     const onEnd = vi.fn()
     const sheet = { ...clip('bubbles'), sheet: { columns: 4, rows: 2, frames: 8 } }
     const view = render(<PetSprite clip={sheet} sheet={sheet.sheet} paused={false} onEnd={onEnd} onFailure={vi.fn()} />)
-    act(() => { vi.advanceTimersByTime(1000) })
+    fireEvent.load(view.container.querySelector('img')!)
+    act(() => { vi.advanceTimersByTime(1000); vi.advanceTimersToNextFrame() })
     expect(onEnd).toHaveBeenCalledOnce()
     act(() => { vi.advanceTimersByTime(5000) })
     expect(onEnd).toHaveBeenCalledOnce()
@@ -134,4 +135,37 @@ it('uses a continuous animation with bubbles instead of playing the eight-pose s
   expect(view.container.querySelector('video')?.getAttribute('src')).toBe('/idle.webm')
   expect(view.container.querySelector('[data-pet-sprite]')).toBeNull()
   expect(view.container.querySelector('[data-effect="bubbles"]')).toBeTruthy()
+})
+
+
+it('rotates thinking variants without repeating the current clip and yields to tool work', () => {
+  vi.spyOn(Math, 'random').mockReturnValue(0)
+  const variants = { ...motion, clips: { ...motion.clips,
+    thinking_chin: clip('thinking_chin'), thinking_idea: clip('thinking_idea'), work_read: clip('work_read'),
+  } }
+  const props = { motion: variants, state: 'THINKING' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
+  const view = render(<PetMotion {...props} />)
+  const source = () => view.container.querySelector('video')!.getAttribute('src')
+  expect(source()).toBe('/thinking_chin.webm')
+  fireEvent.ended(view.container.querySelector('video')!)
+  expect(source()).toBe('/thinking.webm')
+  expect(view.container.querySelector('video')!.loop).toBe(false)
+  view.rerender(<PetMotion {...props} state="WORKING" activity="search" />)
+  expect(source()).toBe('/working_search.webm')
+})
+
+
+it('keeps the left-facing swim artwork aligned with travel direction', () => {
+  const travel = { ...motion, clips: { ...motion.clips,
+    swim_start: clip('swim_start'), swim_loop: clip('swim_loop', true), swim_stop: clip('swim_stop'),
+  } }
+  const props = { motion: travel, state: 'IDLE' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
+  const view = render(<PetMotion {...props} movement={{ moving: true, direction: 'left' }} />)
+  const visual = () => view.container.querySelector<HTMLElement>('[data-pet-clip]')!
+  expect(visual().style.transform).toBe('')
+  view.rerender(<PetMotion {...props} movement={{ moving: true, direction: 'right' }} />)
+  expect(visual().style.transform).toBe('scaleX(-1)')
+  fireEvent.ended(view.container.querySelector('video')!)
+  expect(visual().dataset.petClip).toBe('swim_loop')
+  expect(visual().style.transform).toBe('scaleX(-1)')
 })

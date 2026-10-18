@@ -3,5 +3,5 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write pet-art-drafts/README.md
 /dafeiyu-animation-drafts:
-  en: dc1dd1e722b02e7b
-  zh: 75c2b19ebc52ed40
+  en: eb7c0cd992814cf7
+  zh: f0d18cae9bb6ad84

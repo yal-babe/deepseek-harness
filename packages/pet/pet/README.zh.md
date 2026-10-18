@@ -91,7 +91,7 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 - **宠物包** — 开发包使用 `frames` 渲染器，内置媒体另外支持视频和图集片段；不支持 studio-cloud 签名包、内容包、换装、脚本与声音。`lines.json` 随包提供并有测试检查，但尚未用于台词。
 - **Host 侧不做审批决定** — 从 Host 决定需要 user-approval 能取消已转发给 Client 的请求；因此改由 Client 回答。
 
-存在 `webServer` 时，`pet.pack()` 会提供内置媒体及回退帧清单。`/pet-motion` 仅提供允许列表中的随包媒体，支持 GET、HEAD 和单段字节范围请求，并随所属插件卸载而移除路由。16 段透明 VP9 视频保留全部 3,444 帧导入素材，另有四组各八姿态的生成互动图集。来源和编码记录位于 `packs/whaletail-maid/motion.json`，上游 MIT 许可证随 `MOTION_LICENSE.txt` 提供。有效开发包优先。
+存在 `webServer` 时，`pet.pack()` 会提供内置媒体及回退帧清单。`/pet-motion` 仅提供允许列表中的随包媒体，支持 GET、HEAD 和单段字节范围请求，并随所属插件卸载而移除路由。16 段透明 VP9 视频保留全部 3,444 帧导入素材，另有十四组共 666 个实际帧、以 24 fps 播放的生成图集，包含四套重制及十套新增。图集元数据支持从零开始的 `startFrame` 和播放帧数，让睡眠及移动的进入／循环／退出片段共用同一个资源地址；地址附加内容摘要，避免素材更新后继续使用旧浏览器缓存。来源和编码记录位于 `packs/whaletail-maid/motion.json`，上游 MIT 许可证随 `MOTION_LICENSE.txt` 提供。有效开发包优先。
 
 <a id="dev-note"></a>
 ### 开发备注

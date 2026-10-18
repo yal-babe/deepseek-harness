@@ -33,7 +33,17 @@ describe('built-in motion in a Loader composition', () => {
     const pack = await ctx.pet.pack()
     expect(pack.pack?.dev).toBe(false)
     const clips = pack.pack!.motion!.clips
-    expect(Object.keys(clips)).toHaveLength(20)
+    expect(Object.keys(clips)).toEqual(expect.arrayContaining([
+      'bubbles', 'celebrate', 'nuzzle', 'sleep_enter', 'sleep_loop', 'sleep_wake',
+      'idle_daydream', 'idle_observe', 'idle_groom', 'swim_start', 'swim_loop', 'swim_stop',
+      'play_bubbles', 'play_ball', 'play_tailspin', 'work_read', 'thinking_chin', 'thinking_idea',
+      'pillow_enter', 'pillow_loop', 'pillow_wake',
+    ]))
+    expect(clips.sleep_enter!.url).toBe(clips.sleep_loop!.url)
+    expect(clips.sleep_loop!.url).toBe(clips.sleep_wake!.url)
+    expect(clips.sleep_loop!.sheet?.startFrame).toBe(13)
+    expect(clips.thinking_idea!.sheet?.startFrame).toBe(24)
+    expect(new URL(clips.bubbles!.url, 'http://localhost').searchParams.get('v')).toMatch(/^[a-f0-9]{64}$/)
     const base = ctx.webServer.getOrigin()
     const url = base + clips.idle!.url
     const full = await fetch(url)
@@ -55,9 +65,20 @@ describe('built-in motion in a Loader composition', () => {
     expect((await fetch(url, { method: 'POST' })).status).toBe(405)
     expect((await fetch(base + '/pet-motion/v1/not-a-clip.webm')).status).toBe(404)
     expect((await fetch(base + '/pet-motion/%2e%2e/package.json')).status).toBe(404)
-    const sprite = await fetch(base + clips.bubbles!.url)
-    expect(sprite.headers.get('content-type')).toBe('image/png')
-    await sprite.arrayBuffer()
+    // Every atlas must match its declared grid; ranged headers avoid downloading all media twice.
+    const sprites = Object.values(clips).filter(clip => clip.sheet !== undefined)
+    for (const clip of [...new Map(sprites.map(clip => [clip.url, clip])).values()]) {
+      const sprite = await fetch(base + clip.url, { headers: { range: 'bytes=0-23' } })
+      expect(sprite.status).toBe(206)
+      expect(sprite.headers.get('content-type')).toBe('image/png')
+      const header = new DataView(await sprite.arrayBuffer())
+      expect(header.getUint32(0)).toBe(0x89504e47)
+      expect(header.getUint32(16)).toBe(clip.sheet!.columns * 208)
+      expect(header.getUint32(20)).toBe(clip.sheet!.rows * 208)
+    }
+    for (const clip of sprites) {
+      expect((clip.sheet!.startFrame ?? 0) + clip.sheet!.frames).toBeLessThanOrEqual(clip.sheet!.columns * clip.sheet!.rows)
+    }
     const petFiber = [...ctx.loader.entries()].find(entry => entry.options.name === 'cordis:pet-test-character')!.fiber!
     await petFiber.dispose()
     expect((await fetch(url)).status).toBe(404)

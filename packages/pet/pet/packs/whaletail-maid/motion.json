@@ -246,65 +246,3096 @@
     "bubbles": {
       "file": "assets/motion/bubbles.png",
       "loop": false,
-      "durationMs": 3200,
-      "frames": 8,
+      "durationMs": 2333,
+      "frames": 56,
       "sheet": {
-        "columns": 4,
-        "rows": 2,
-        "frames": 8
+        "columns": 8,
+        "rows": 7,
+        "frames": 56,
+        "startFrame": 0
       },
+      "sha256": "5cf8f99d2a3a5d218ae2a85d459d05166a537221de12d483807008e7fcb2e84f",
       "source": {
         "kind": "generated",
-        "date": "2026-10-17",
-        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+        "description": "Blowing and following one small soap bubble.",
+        "imageSha256": "12c83c0311a5cead6560df135889a77aec0d60e67e6b1e9d0ceb79f44fd7f7b8",
+        "actualFrames": 56,
+        "uniquePixelFrames": 56,
+        "sourceSize": {
+          "width": 1402,
+          "height": 1122
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            175,
+            350,
+            526,
+            701,
+            876,
+            1052,
+            1227,
+            1402
+          ],
+          [
+            0,
+            175,
+            350,
+            526,
+            701,
+            876,
+            1052,
+            1227,
+            1402
+          ],
+          [
+            0,
+            175,
+            350,
+            526,
+            701,
+            876,
+            1052,
+            1227,
+            1402
+          ],
+          [
+            0,
+            175,
+            350,
+            526,
+            701,
+            876,
+            1052,
+            1227,
+            1402
+          ],
+          [
+            0,
+            175,
+            350,
+            526,
+            701,
+            876,
+            1052,
+            1227,
+            1402
+          ],
+          [
+            0,
+            175,
+            350,
+            526,
+            701,
+            876,
+            1052,
+            1227,
+            1402
+          ],
+          [
+            0,
+            175,
+            350,
+            526,
+            701,
+            876,
+            1052,
+            1227,
+            1402
+          ]
+        ],
+        "rowEdges": [
+          0,
+          155,
+          303,
+          450,
+          598,
+          745,
+          893,
+          1044
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          0.9932432432432432,
+          1.0,
+          1.0068493150684932,
+          1.0,
+          1.0068493150684932,
+          1.0000919371150134
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "sleep": {
       "file": "assets/motion/sleep.png",
       "loop": false,
-      "durationMs": 3200,
-      "frames": 8,
+      "durationMs": 1667,
+      "frames": 40,
       "sheet": {
-        "columns": 4,
-        "rows": 2,
-        "frames": 8
+        "columns": 7,
+        "rows": 6,
+        "frames": 40,
+        "startFrame": 0
       },
+      "sha256": "96cb4c35d637763554c23e63adce7449a2ad3996359a427f02a5c8be59863fbd",
       "source": {
         "kind": "generated",
-        "date": "2026-10-17",
-        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+        "description": "Lying down, sleeping continuously, then waking.",
+        "imageSha256": "4508e158ecefe96ce0ee3ef85178e4ff38e6198a5a316f1f1c8baf306e1d5b97",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 1173,
+          "height": 1341
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ]
+        ],
+        "rowEdges": [
+          0,
+          260,
+          465,
+          638,
+          817,
+          1055,
+          1341
+        ],
+        "rowColumns": [
+          7,
+          6,
+          6,
+          7,
+          7,
+          7
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "nuzzle": {
       "file": "assets/motion/nuzzle.png",
       "loop": false,
-      "durationMs": 3200,
-      "frames": 8,
+      "durationMs": 2333,
+      "frames": 56,
       "sheet": {
-        "columns": 4,
-        "rows": 2,
-        "frames": 8
+        "columns": 8,
+        "rows": 7,
+        "frames": 56,
+        "startFrame": 0
       },
+      "sha256": "deec0ca95624855e651ca4d37a8ff855b41d75acd0093b9c4d5c7d7ea33cf00c",
       "source": {
         "kind": "generated",
-        "date": "2026-10-17",
-        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+        "description": "Affectionate cheek nuzzle and tiny tail wag.",
+        "imageSha256": "e4dbf46ce3d4e9296a7d2d22f9aedc68c5f598a30931dbc5b66b1632bda0baa3",
+        "actualFrames": 56,
+        "uniquePixelFrames": 56,
+        "sourceSize": {
+          "width": 1261,
+          "height": 1247
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            158,
+            315,
+            473,
+            630,
+            788,
+            946,
+            1103,
+            1261
+          ],
+          [
+            0,
+            158,
+            315,
+            473,
+            630,
+            788,
+            946,
+            1103,
+            1261
+          ],
+          [
+            0,
+            158,
+            315,
+            473,
+            630,
+            788,
+            946,
+            1103,
+            1261
+          ],
+          [
+            0,
+            158,
+            315,
+            473,
+            630,
+            788,
+            946,
+            1103,
+            1261
+          ],
+          [
+            0,
+            158,
+            315,
+            473,
+            630,
+            788,
+            946,
+            1103,
+            1261
+          ],
+          [
+            0,
+            158,
+            315,
+            473,
+            630,
+            788,
+            946,
+            1103,
+            1261
+          ],
+          [
+            0,
+            158,
+            315,
+            473,
+            630,
+            788,
+            946,
+            1103,
+            1261
+          ]
+        ],
+        "rowEdges": [
+          0,
+          182,
+          362,
+          541,
+          721,
+          903,
+          1083,
+          1247
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0233949491514946,
+          1.0000634840020315,
+          0.9830822267620021,
+          0.97765083324398,
+          0.9721590909090909,
+          1.0936789772727273
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "celebrate": {
       "file": "assets/motion/celebrate.png",
       "loop": false,
-      "durationMs": 3200,
-      "frames": 8,
+      "durationMs": 2333,
+      "frames": 56,
       "sheet": {
-        "columns": 4,
-        "rows": 2,
-        "frames": 8
+        "columns": 8,
+        "rows": 7,
+        "frames": 56,
+        "startFrame": 0
       },
+      "sha256": "682236ef5f31847285cb5f54ff60ae2f89388e990940d3da619edd7c763a2522",
       "source": {
         "kind": "generated",
-        "date": "2026-10-17",
-        "reference": "PC2005-cloud whale-tail maid; user-approved animation direction"
+        "description": "Cheerful raised-hand celebration and gentle bounce.",
+        "imageSha256": "4daadbf43d17c2417e615135b1ffdef285b5d885cb7b390c4684b58ddce28ffe",
+        "actualFrames": 56,
+        "uniquePixelFrames": 56,
+        "sourceSize": {
+          "width": 1269,
+          "height": 1240
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            159,
+            317,
+            476,
+            634,
+            793,
+            952,
+            1110,
+            1269
+          ],
+          [
+            0,
+            159,
+            317,
+            476,
+            634,
+            793,
+            952,
+            1110,
+            1269
+          ],
+          [
+            0,
+            159,
+            317,
+            476,
+            634,
+            793,
+            952,
+            1110,
+            1269
+          ],
+          [
+            0,
+            159,
+            317,
+            476,
+            634,
+            793,
+            952,
+            1110,
+            1269
+          ],
+          [
+            0,
+            159,
+            317,
+            476,
+            634,
+            793,
+            952,
+            1110,
+            1269
+          ],
+          [
+            0,
+            159,
+            317,
+            476,
+            634,
+            793,
+            952,
+            1110,
+            1269
+          ],
+          [
+            0,
+            159,
+            317,
+            476,
+            634,
+            793,
+            952,
+            1110,
+            1269
+          ]
+        ],
+        "rowEdges": [
+          0,
+          172,
+          341,
+          505,
+          668,
+          831,
+          997,
+          1168
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          0.9821059385470877,
+          1.0123456790123457,
+          1.0187116564417178,
+          1.0187116564417178,
+          1.0123456790123457,
+          0.9940828402366864
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "sleep_enter": {
+      "file": "assets/motion/sleep.png",
+      "loop": false,
+      "durationMs": 542,
+      "frames": 13,
+      "sheet": {
+        "columns": 7,
+        "rows": 6,
+        "frames": 13,
+        "startFrame": 0
+      },
+      "sha256": "96cb4c35d637763554c23e63adce7449a2ad3996359a427f02a5c8be59863fbd",
+      "source": {
+        "kind": "generated",
+        "description": "Lying down, sleeping continuously, then waking.",
+        "imageSha256": "4508e158ecefe96ce0ee3ef85178e4ff38e6198a5a316f1f1c8baf306e1d5b97",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 1173,
+          "height": 1341
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ]
+        ],
+        "rowEdges": [
+          0,
+          260,
+          465,
+          638,
+          817,
+          1055,
+          1341
+        ],
+        "rowColumns": [
+          7,
+          6,
+          6,
+          7,
+          7,
+          7
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "sleep_loop": {
+      "file": "assets/motion/sleep.png",
+      "loop": true,
+      "durationMs": 542,
+      "frames": 13,
+      "sheet": {
+        "columns": 7,
+        "rows": 6,
+        "frames": 13,
+        "startFrame": 13
+      },
+      "sha256": "96cb4c35d637763554c23e63adce7449a2ad3996359a427f02a5c8be59863fbd",
+      "source": {
+        "kind": "generated",
+        "description": "Lying down, sleeping continuously, then waking.",
+        "imageSha256": "4508e158ecefe96ce0ee3ef85178e4ff38e6198a5a316f1f1c8baf306e1d5b97",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 1173,
+          "height": 1341
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ]
+        ],
+        "rowEdges": [
+          0,
+          260,
+          465,
+          638,
+          817,
+          1055,
+          1341
+        ],
+        "rowColumns": [
+          7,
+          6,
+          6,
+          7,
+          7,
+          7
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "sleep_wake": {
+      "file": "assets/motion/sleep.png",
+      "loop": false,
+      "durationMs": 583,
+      "frames": 14,
+      "sheet": {
+        "columns": 7,
+        "rows": 6,
+        "frames": 14,
+        "startFrame": 26
+      },
+      "sha256": "96cb4c35d637763554c23e63adce7449a2ad3996359a427f02a5c8be59863fbd",
+      "source": {
+        "kind": "generated",
+        "description": "Lying down, sleeping continuously, then waking.",
+        "imageSha256": "4508e158ecefe96ce0ee3ef85178e4ff38e6198a5a316f1f1c8baf306e1d5b97",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 1173,
+          "height": 1341
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            196,
+            391,
+            586,
+            782,
+            978,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ],
+          [
+            0,
+            168,
+            335,
+            503,
+            670,
+            838,
+            1005,
+            1173
+          ]
+        ],
+        "rowEdges": [
+          0,
+          260,
+          465,
+          638,
+          817,
+          1055,
+          1341
+        ],
+        "rowColumns": [
+          7,
+          6,
+          6,
+          7,
+          7,
+          7
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "reviewed-column-cuts-primary-island",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "idle_daydream": {
+      "file": "assets/motion/idle_daydream.png",
+      "loop": false,
+      "durationMs": 2000,
+      "frames": 48,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 48,
+        "startFrame": 0
+      },
+      "sha256": "c008bcbfb25d98f9fd4d11d212eddefb313186520507b8a4ffa46226ae12e8ed",
+      "source": {
+        "kind": "generated",
+        "description": "Daydreaming, blinking and observing a drifting star.",
+        "imageSha256": "b06cb9bde054645c0e105a0a0add4ce7c44cd734f2d5951b648f997f9e40645f",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          190,
+          375,
+          564,
+          747,
+          916,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          0.9040683073832244,
+          1.0526315789473684,
+          1.0389610389610389,
+          1.0810810810810811,
+          1.0063684251906595
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "idle_observe": {
+      "file": "assets/motion/idle_observe.png",
+      "loop": false,
+      "durationMs": 2000,
+      "frames": 48,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 48,
+        "startFrame": 0
+      },
+      "sha256": "4bdff72accccb7446ed675235b5a40442113bf98bc55b06659894b78f247153a",
+      "source": {
+        "kind": "generated",
+        "description": "Curious left and right head tilts and observation.",
+        "imageSha256": "c586c783b659e9042f9787e872631d88eb13a564387c8167df724463c612127d",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          188,
+          368,
+          548,
+          728,
+          910,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          0.9943827160493827,
+          0.9943827160493827,
+          0.9943827160493827,
+          0.9834554334554334,
+          1.0169823232323232
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "swim": {
+      "file": "assets/motion/swim.png",
+      "loop": false,
+      "durationMs": 1667,
+      "frames": 40,
+      "sheet": {
+        "columns": 5,
+        "rows": 8,
+        "frames": 40,
+        "startFrame": 0
+      },
+      "sha256": "28d1dc84b0120fd9d5ef369fb17763010c34feea59093ca35c0d91d4ebeac2b2",
+      "source": {
+        "kind": "generated",
+        "description": "Paddling arms and tail propulsion with entry and landing.",
+        "imageSha256": "b66404096d7dd909943cbc7a8e337d825de1e5c27e80cd986847cd26eece0a1e",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 992,
+          "height": 1586
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ]
+        ],
+        "rowEdges": [
+          0,
+          205,
+          397,
+          592,
+          790,
+          990,
+          1187,
+          1380,
+          1586
+        ],
+        "rowColumns": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "swim_start": {
+      "file": "assets/motion/swim.png",
+      "loop": false,
+      "durationMs": 333,
+      "frames": 8,
+      "sheet": {
+        "columns": 5,
+        "rows": 8,
+        "frames": 8,
+        "startFrame": 0
+      },
+      "sha256": "28d1dc84b0120fd9d5ef369fb17763010c34feea59093ca35c0d91d4ebeac2b2",
+      "source": {
+        "kind": "generated",
+        "description": "Paddling arms and tail propulsion with entry and landing.",
+        "imageSha256": "b66404096d7dd909943cbc7a8e337d825de1e5c27e80cd986847cd26eece0a1e",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 992,
+          "height": 1586
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ]
+        ],
+        "rowEdges": [
+          0,
+          205,
+          397,
+          592,
+          790,
+          990,
+          1187,
+          1380,
+          1586
+        ],
+        "rowColumns": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "swim_loop": {
+      "file": "assets/motion/swim.png",
+      "loop": true,
+      "durationMs": 1000,
+      "frames": 24,
+      "sheet": {
+        "columns": 5,
+        "rows": 8,
+        "frames": 24,
+        "startFrame": 8
+      },
+      "sha256": "28d1dc84b0120fd9d5ef369fb17763010c34feea59093ca35c0d91d4ebeac2b2",
+      "source": {
+        "kind": "generated",
+        "description": "Paddling arms and tail propulsion with entry and landing.",
+        "imageSha256": "b66404096d7dd909943cbc7a8e337d825de1e5c27e80cd986847cd26eece0a1e",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 992,
+          "height": 1586
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ]
+        ],
+        "rowEdges": [
+          0,
+          205,
+          397,
+          592,
+          790,
+          990,
+          1187,
+          1380,
+          1586
+        ],
+        "rowColumns": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "swim_stop": {
+      "file": "assets/motion/swim.png",
+      "loop": false,
+      "durationMs": 333,
+      "frames": 8,
+      "sheet": {
+        "columns": 5,
+        "rows": 8,
+        "frames": 8,
+        "startFrame": 32
+      },
+      "sha256": "28d1dc84b0120fd9d5ef369fb17763010c34feea59093ca35c0d91d4ebeac2b2",
+      "source": {
+        "kind": "generated",
+        "description": "Paddling arms and tail propulsion with entry and landing.",
+        "imageSha256": "b66404096d7dd909943cbc7a8e337d825de1e5c27e80cd986847cd26eece0a1e",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 992,
+          "height": 1586
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ]
+        ],
+        "rowEdges": [
+          0,
+          205,
+          397,
+          592,
+          790,
+          990,
+          1187,
+          1380,
+          1586
+        ],
+        "rowColumns": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "idle_groom": {
+      "file": "assets/motion/idle_groom.png",
+      "loop": false,
+      "durationMs": 2000,
+      "frames": 48,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 48,
+        "startFrame": 0
+      },
+      "sha256": "b6c2aea7616812f29bb0f50ccff605c29a3bffb15283c0212b17522abb44675f",
+      "source": {
+        "kind": "generated",
+        "description": "Straightening headband, hair and apron.",
+        "imageSha256": "233d12096a162e828daed583ecd2d0059ea36f7b27a4b0143eae071d78450f77",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          196,
+          383,
+          569,
+          753,
+          932,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0213903743315509,
+          1.0268817204301075,
+          1.0380434782608696,
+          1.0670391061452513,
+          1.2402597402597402
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "play_bubbles": {
+      "file": "assets/motion/play_bubbles.png",
+      "loop": false,
+      "durationMs": 2000,
+      "frames": 48,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 48,
+        "startFrame": 0
+      },
+      "sha256": "a3042dd6884b8f889c97a11eef6d2e2342bfe5c6fe6d1be6807169e322575b9a",
+      "source": {
+        "kind": "generated",
+        "description": "Following and catching a drifting bubble.",
+        "imageSha256": "62d24c024ce20a35e8955e77229e89acc1fda18f2d23e71e05365693e2b53fec",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          189,
+          368,
+          550,
+          729,
+          911,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0229250055295134,
+          1.0055555555555555,
+          1.0229250055295134,
+          1.0113636363636362,
+          1.0406330749354005
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "play_ball": {
+      "file": "assets/motion/play_ball.png",
+      "loop": false,
+      "durationMs": 1667,
+      "frames": 40,
+      "sheet": {
+        "columns": 5,
+        "rows": 8,
+        "frames": 40,
+        "startFrame": 0
+      },
+      "sha256": "590e4583131eb0270e3331ea77d1422ff2108aba895ab1f9173535d79ba6c27b",
+      "source": {
+        "kind": "generated",
+        "description": "Nudging, catching and hugging a small blue toy ball.",
+        "imageSha256": "94c64eaa555a01a27c180c2765a1d862f922d88d0f22d01db1cc38f54296954b",
+        "actualFrames": 40,
+        "uniquePixelFrames": 40,
+        "sourceSize": {
+          "width": 992,
+          "height": 1586
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ],
+          [
+            0,
+            198,
+            397,
+            595,
+            794,
+            992
+          ]
+        ],
+        "rowEdges": [
+          0,
+          199,
+          394,
+          585,
+          780,
+          981,
+          1198,
+          1399,
+          1586
+        ],
+        "rowColumns": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "play_tailspin": {
+      "file": "assets/motion/play_tailspin.png",
+      "loop": false,
+      "durationMs": 2000,
+      "frames": 48,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 48,
+        "startFrame": 0
+      },
+      "sha256": "82180b71c3dea3e661129e9e5f0c3f3c71cf67a35cc2cc9c9631ff5bad9bba66",
+      "source": {
+        "kind": "generated",
+        "description": "Turning to chase the whale tail, twirling and returning forward.",
+        "imageSha256": "ec24fd0d1feddb01c27831a3d51d666600321a74d77ee96b8acb35f94e45f400",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          187,
+          367,
+          547,
+          728,
+          907,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          0.994475138121547,
+          1.005586592178771,
+          1.0170137125444387
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "work_read": {
+      "file": "assets/motion/work_read.png",
+      "loop": false,
+      "durationMs": 2000,
+      "frames": 48,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 48,
+        "startFrame": 0
+      },
+      "sha256": "cb90944d63a0ab65d37bcadf7ec94c08e3702fd0e5efae7905c7c60cdae1ea12",
+      "source": {
+        "kind": "generated",
+        "description": "Opening a book, reading, turning a page and closing it.",
+        "imageSha256": "01a5ab6440c8c378e789cd07f207e8f6a908b016a298a6bfccad36de6ce79563",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          186,
+          366,
+          547,
+          727,
+          907,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          0.9943827160493827,
+          1.0113008577394051,
+          0.9943827160493827,
+          0.9943827160493827,
+          1.0113008577394051
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "thinking_chin": {
+      "file": "assets/motion/thinking_chin.png",
+      "loop": false,
+      "durationMs": 1000,
+      "frames": 24,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 24,
+        "startFrame": 0
+      },
+      "sha256": "a2ad8f6c2e3d0b7eb083b6efefd52af85b49e42d1052bb6af9ad30007482b15c",
+      "source": {
+        "kind": "generated",
+        "description": "Chin-resting thought followed by an idea sparkle and raised finger.",
+        "imageSha256": "33704c9dbaa0df20aabab8f87faf1b7ad7faf70143b9aba4b6371a3117b5c62e",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          194,
+          383,
+          566,
+          747,
+          914,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0105268959435627,
+          1.055255135600081,
+          1.0551910681399632,
+          1.1436501996007984,
+          1.1301945546737213
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "thinking_idea": {
+      "file": "assets/motion/thinking_chin.png",
+      "loop": false,
+      "durationMs": 1000,
+      "frames": 24,
+      "sheet": {
+        "columns": 8,
+        "rows": 6,
+        "frames": 24,
+        "startFrame": 24
+      },
+      "sha256": "a2ad8f6c2e3d0b7eb083b6efefd52af85b49e42d1052bb6af9ad30007482b15c",
+      "source": {
+        "kind": "generated",
+        "description": "Chin-resting thought followed by an idea sparkle and raised finger.",
+        "imageSha256": "33704c9dbaa0df20aabab8f87faf1b7ad7faf70143b9aba4b6371a3117b5c62e",
+        "actualFrames": 48,
+        "uniquePixelFrames": 48,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ],
+          [
+            0,
+            181,
+            362,
+            543,
+            724,
+            905,
+            1086,
+            1267,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          194,
+          383,
+          566,
+          747,
+          914,
+          1086
+        ],
+        "rowColumns": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0105268959435627,
+          1.055255135600081,
+          1.0551910681399632,
+          1.1436501996007984,
+          1.1301945546737213
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "rest_pillow": {
+      "file": "assets/motion/rest_pillow.png",
+      "loop": false,
+      "durationMs": 1750,
+      "frames": 42,
+      "sheet": {
+        "columns": 6,
+        "rows": 7,
+        "frames": 42,
+        "startFrame": 0
+      },
+      "sha256": "04a2d62bc424922dcfa320fa3fde7556c2fdce8a1c67051a4204e0b14d8e2670",
+      "source": {
+        "kind": "generated",
+        "description": "Picking up a whale pillow, sleeping continuously and waking.",
+        "imageSha256": "a2055b2a9d46761a9c0cf081a0facb80c584fe918699e537f5d5149cb54e277a",
+        "actualFrames": 42,
+        "uniquePixelFrames": 42,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          212,
+          386,
+          522,
+          658,
+          790,
+          930,
+          1086
+        ],
+        "rowColumns": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "pillow_enter": {
+      "file": "assets/motion/rest_pillow.png",
+      "loop": false,
+      "durationMs": 500,
+      "frames": 12,
+      "sheet": {
+        "columns": 6,
+        "rows": 7,
+        "frames": 12,
+        "startFrame": 0
+      },
+      "sha256": "04a2d62bc424922dcfa320fa3fde7556c2fdce8a1c67051a4204e0b14d8e2670",
+      "source": {
+        "kind": "generated",
+        "description": "Picking up a whale pillow, sleeping continuously and waking.",
+        "imageSha256": "a2055b2a9d46761a9c0cf081a0facb80c584fe918699e537f5d5149cb54e277a",
+        "actualFrames": 42,
+        "uniquePixelFrames": 42,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          212,
+          386,
+          522,
+          658,
+          790,
+          930,
+          1086
+        ],
+        "rowColumns": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "pillow_loop": {
+      "file": "assets/motion/rest_pillow.png",
+      "loop": true,
+      "durationMs": 750,
+      "frames": 18,
+      "sheet": {
+        "columns": 6,
+        "rows": 7,
+        "frames": 18,
+        "startFrame": 12
+      },
+      "sha256": "04a2d62bc424922dcfa320fa3fde7556c2fdce8a1c67051a4204e0b14d8e2670",
+      "source": {
+        "kind": "generated",
+        "description": "Picking up a whale pillow, sleeping continuously and waking.",
+        "imageSha256": "a2055b2a9d46761a9c0cf081a0facb80c584fe918699e537f5d5149cb54e277a",
+        "actualFrames": 42,
+        "uniquePixelFrames": 42,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          212,
+          386,
+          522,
+          658,
+          790,
+          930,
+          1086
+        ],
+        "rowColumns": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
+      }
+    },
+    "pillow_wake": {
+      "file": "assets/motion/rest_pillow.png",
+      "loop": false,
+      "durationMs": 500,
+      "frames": 12,
+      "sheet": {
+        "columns": 6,
+        "rows": 7,
+        "frames": 12,
+        "startFrame": 30
+      },
+      "sha256": "04a2d62bc424922dcfa320fa3fde7556c2fdce8a1c67051a4204e0b14d8e2670",
+      "source": {
+        "kind": "generated",
+        "description": "Picking up a whale pillow, sleeping continuously and waking.",
+        "imageSha256": "a2055b2a9d46761a9c0cf081a0facb80c584fe918699e537f5d5149cb54e277a",
+        "actualFrames": 42,
+        "uniquePixelFrames": 42,
+        "sourceSize": {
+          "width": 1448,
+          "height": 1086
+        },
+        "rowColumnEdges": [
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ],
+          [
+            0,
+            241,
+            483,
+            724,
+            965,
+            1207,
+            1448
+          ]
+        ],
+        "rowEdges": [
+          0,
+          212,
+          386,
+          522,
+          658,
+          790,
+          930,
+          1086
+        ],
+        "rowColumns": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "rowExtraction": [
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands",
+          "separate-alpha-islands"
+        ],
+        "rowHeightCalibration": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "fps": 24,
+        "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     }
   }

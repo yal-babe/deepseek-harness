@@ -3,6 +3,7 @@ import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai
 
 /** Available explicit character interactions. */
 export type PetAction = 'headPat' | 'poke' | 'tail' | 'eatToken' | 'stretch' | 'yawn' | 'bubbles' | 'sleep' | 'nuzzle' | 'celebrate'
+  | 'daydream' | 'observe' | 'swim' | 'groom' | 'chaseBubbles' | 'playBall' | 'tailSpin' | 'readBook' | 'ponder' | 'pillowNap'
 /** Device-local life state; task work temporarily takes precedence. */
 export type PetLifeState = 'idle' | 'rest' | 'play'
 /** Frequency preset for autonomous actions and movement. */
@@ -10,11 +11,15 @@ export type PetActivityLevel = 'quiet' | 'normal' | 'lively'
 /** One explicit action request; serial distinguishes repeated choices. */
 export interface PetActionRequest { readonly action: PetAction; readonly serial: number; readonly interrupt?: boolean }
 /** Complete selectable interaction list. */
-export const PET_ACTIONS: readonly PetAction[] = ['headPat', 'poke', 'tail', 'eatToken', 'stretch', 'yawn', 'bubbles', 'sleep', 'nuzzle', 'celebrate']
+export const PET_ACTIONS: readonly PetAction[] = ['headPat', 'poke', 'tail', 'eatToken', 'stretch', 'yawn', 'bubbles', 'sleep', 'nuzzle', 'celebrate',
+  'daydream', 'observe', 'swim', 'groom', 'chaseBubbles', 'playBall', 'tailSpin', 'readBook', 'ponder', 'pillowNap',
+]
 /** Built-in animation names for each explicit interaction. */
 export const ACTION_CLIP: Readonly<Record<PetAction, string>> = {
   headPat: 'head_pat', poke: 'poke', tail: 'tail', eatToken: 'eat_token', stretch: 'idle_stretch', yawn: 'idle_yawn',
   bubbles: 'bubbles', sleep: 'sleep', nuzzle: 'nuzzle', celebrate: 'celebrate',
+  daydream: 'idle_daydream', observe: 'idle_observe', swim: 'swim', groom: 'idle_groom', chaseBubbles: 'play_bubbles',
+  playBall: 'play_ball', tailSpin: 'play_tailspin', readBook: 'work_read', ponder: 'thinking_chin', pillowNap: 'rest_pillow',
 }
 const IDLE = PET_ACTIONS.map(action => ACTION_CLIP[action])
 const INTERVAL: Readonly<Record<PetActivityLevel, readonly [number, number]>> = {
@@ -69,7 +74,7 @@ export function taskClip(state: PetAgentState, activity?: PetWorkActivity): stri
   return { IDLE: 'idle', DISCONNECTED: 'idle', THINKING: 'thinking', WAITING: 'waiting', SUCCESS: 'success', ERROR: 'error' }[state]
 }
 
-/** Use an existing continuous clip for low-frame interactions until their replacement assets are available.
+/** Use a continuous substitute only for legacy sparsely sampled interaction media.
  * @param name - requested animation.
  * @param motion - available character media.
  * @returns the original clip when sufficiently sampled, otherwise an available continuous substitute.

@@ -20,7 +20,13 @@ export async function builtinAssets(): Promise<{
   const motion: {
     width: number
     height: number
-    clips: Record<string, { file: string; loop: boolean; durationMs: number; sheet?: { columns: number; rows: number; frames: number } }>
+    clips: Record<string, {
+      file: string
+      loop: boolean
+      durationMs: number
+      sha256?: string
+      sheet?: { columns: number; rows: number; frames: number; startFrame?: number }
+    }>
   } =
     JSON.parse(await readFile(new URL('motion.json', root), 'utf8'))
   const files = new Map<string, { readonly file: URL; readonly mediaType: string }>()
@@ -36,9 +42,10 @@ export async function builtinAssets(): Promise<{
   const clips: Record<string, PetMotionClip> = {}
   for (const [name, clip] of Object.entries(motion.clips)) {
     const extension = clip.sheet === undefined ? 'webm' : 'png'
-    const url = `${PET_MEDIA_PATH}/v1/${name}.${extension}`
+    const mediaPath = `${PET_MEDIA_PATH}/v1/${clip.file.split('/').at(-1) ?? `${name}.${extension}`}`
+    const url = `${mediaPath}?v=${clip.sha256 ?? 'builtin'}`
     clips[name] = { url, loop: clip.loop, durationMs: clip.durationMs, ...clip.sheet === undefined ? {} : { sheet: clip.sheet } }
-    files.set(url, { file: new URL(clip.file, root), mediaType: clip.sheet === undefined ? 'video/webm' : 'image/png' })
+    files.set(mediaPath, { file: new URL(clip.file, root), mediaType: clip.sheet === undefined ? 'video/webm' : 'image/png' })
   }
   const pack: PetPackState = {
     pack: { manifest: parsed.pack, assets, dev: false, motion: { width: motion.width, height: motion.height, clips } },

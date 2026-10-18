@@ -170,6 +170,7 @@ export function PetCharacter({
       motion?.removeEventListener?.('change', resume)
     }
   }, [frames, pack.fps, loop, playingMotion, preferences?.reducedMotion])
+  const swimMotion = playingMotion && pack.motion.clips.swim_loop !== undefined
   return (
     <button type="button" className={css.character} data-state={state} data-life={petIsIdle(state) ? preferences?.life ?? 'idle' : 'work'} data-reduced={preferences?.reducedMotion === true} aria-label={label} title={name ?? label} style={{ '--pet-scale': (preferences?.size ?? 100) / 100 } as CSSProperties} {...pointer}
       onPointerUpCapture={(event) => {
@@ -185,10 +186,11 @@ export function PetCharacter({
       }}
       aria-haspopup={onMenu === undefined ? undefined : 'menu'}
       onContextMenu={onMenu === undefined ? undefined : (event) => { event.preventDefault(); onMenu() }}>
-      <span className={css.characterVisual} data-moving={movement?.moving === true && preferences?.reducedMotion !== true}
+      <span className={css.characterVisual} data-moving={movement?.moving === true && preferences?.reducedMotion !== true && !swimMotion}
         data-direction={movement?.direction}>
         {pack.motion !== undefined && playingMotion
           ? <PetMotion motion={pack.motion} state={state} activity={activity} action={action} dragging={dragging}
+            movement={movement} poster={frames[0]}
             preferences={preferences ?? { notify: false, snoozeUntil: undefined }} paused={paused}
             onFailure={() => { setFailedMotion(pack.key) }} />
           : <img src={frames[index % frames.length]} alt="" draggable={false} /> }
@@ -637,7 +639,7 @@ export function PetOverlay(props: PetProps): ReactNode {
         {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} onClose={() => { setMenu(false) }} />}
       </div>
       <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })} onClick={toggle}
-        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} movement={{ moving: position.wandering, direction: position.direction }} onInteract={interact} action={action} preferences={preferences} paused={open || menu || position.wandering} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} movement={{ moving: position.wandering, direction: position.direction }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
     </div>
   )
 }
@@ -696,7 +698,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         </div>
         <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })}
           onClick={toggle} onMenu={() => { setMenu(!menu) }}
-          movement={movement} onDrag={(phase) => { controller.drag(phase) }} onInteract={interact} action={action} preferences={preferences} paused={open || menu || movement.moving} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+          movement={movement} onDrag={(phase) => { controller.drag(phase) }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
       </div>
     </div>
   )

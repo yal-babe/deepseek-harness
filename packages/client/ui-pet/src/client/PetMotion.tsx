@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
 import { ACTION_CLIP, idleDelay, nextIdleClip, petIsIdle, smoothClip, taskClip, type PetActionRequest } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
+import { useMotionPhases } from './useMotionPhases.ts'
 import { PetSprite } from './PetSprite.tsx'
 import css from './Pet.module.css'
 
@@ -24,21 +25,29 @@ export function PetEffects({ effect }: { readonly effect: PetEffect }) {
 }
 
 /** Media is downloaded only when selected; a failed clip falls back to the built-in still frames. */
-export function PetMotion({ motion, state, activity, action, dragging, preferences, paused, onFailure }: {
+export function PetMotion({ motion, state, activity, action, dragging, preferences, paused, movement, poster, onFailure }: {
   readonly motion: PetMotionView
   readonly state: PetAgentState
   readonly activity?: PetWorkActivity | undefined
   readonly action?: PetActionRequest | undefined
+  readonly poster?: string | undefined
+  readonly movement?: { moving: boolean; direction: 'left' | 'right' } | undefined
   readonly dragging: boolean
   readonly preferences: PetPreferences
   readonly paused: boolean
   readonly onFailure: () => void
 }) {
   const video = useRef<HTMLVideoElement>(null)
+  const loadedSheets = useRef(new Set<string>())
   const [decoration, setDecoration] = useState<{ name: string; serial: number; effect?: PetEffect } | undefined>(undefined)
   const [visible, setVisible] = useState(!document.hidden)
   const [systemReduced, setSystemReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true)
   const resultClip = useRef('success')
+  const [thinkingName, setThinkingName] = useState('thinking')
+  const thinkingCandidates = ['thinking', 'thinking_chin', 'thinking_idea', 'work_read'].filter(name => motion.clips[name] !== undefined)
+  useEffect(() => {
+    if (state === 'THINKING') setThinkingName(previous => nextIdleClip(previous, Math.random(), thinkingCandidates) ?? 'thinking')
+  }, [state, motion])
   const [heldResult, setHeldResult] = useState(false)
   useEffect(() => {
     if (state === 'SUCCESS') {
@@ -53,8 +62,10 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   const handledAction = useRef<PetActionRequest | undefined>(undefined)
   const reduced = systemReduced || preferences.reducedMotion === true
   const idle = petIsIdle(state)
-  const resting = idle && preferences.life === 'rest'
-  const canInteract = idle && !heldResult && !paused && visible && !reduced && !dragging
+  const resting = idle && !heldResult && preferences.life === 'rest'
+  const moving = idle && !heldResult && movement?.moving === true && !reduced && !dragging
+  const lifecycle = useMotionPhases(motion, { moving, resting, idle: idle && !heldResult && !dragging, reduced })
+  const canInteract = idle && !heldResult && !paused && visible && !reduced && !dragging && !moving
   const canDecorate = !resting && canInteract
   useEffect(() => {
     const update = (): void => { setVisible(!document.hidden) }
@@ -65,10 +76,10 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
     return () => { document.removeEventListener('visibilitychange', update); query?.removeEventListener?.('change', changed) }
   }, [])
   useEffect(() => {
-    if (!idle || paused || reduced || !visible || resting) {
+    if (!idle || paused || reduced || !visible || resting || moving) {
       setDecoration(current => current?.name === 'dragging_release' && visible && !reduced ? current : undefined)
     }
-  }, [idle, paused, reduced, visible, state, resting])
+  }, [idle, paused, reduced, visible, state, resting, moving])
   useEffect(() => {
     if (dragging) { wasDragging.current = true; setDecoration(undefined) }
     else if (wasDragging.current) {
@@ -116,7 +127,7 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
     const timer = setTimeout(() => { setDecoration(undefined) }, 7000)
     return () => { clearTimeout(timer) }
   }, [decoration])
-  const name = dragging ? 'dragging' : decoration?.name ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : state === 'SUCCESS' || heldResult && idle ? resultClip.current : taskClip(state, activity))
+  const name = dragging ? 'dragging' : decoration?.name ?? lifecycle.clip ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : state === 'SUCCESS' || heldResult && idle ? resultClip.current : state === 'THINKING' ? thinkingName : taskClip(state, activity))
   const clip = motion.clips[name] ?? motion.clips.idle
   const serial = decoration?.serial ?? 0
   const [ended, setEnded] = useState(false)
@@ -131,11 +142,20 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   if (clip === undefined) return null
   const effect = preferences.effects === false || reduced || !visible ? undefined
     : decoration?.effect ?? ((name === 'success' || name === 'celebrate') && !ended ? 'stars' : undefined)
-  const finish = (): void => { setEnded(true); setHeldResult(false); if (decoration !== undefined) setDecoration(undefined) }
-  return <>
-    {clip.sheet !== undefined ? <PetSprite key={`${name}:${serial}`} clip={clip} sheet={clip.sheet} resting={resting} loop={decoration === undefined && !resting && clip.loop} paused={!visible || reduced} onEnd={finish} onFailure={onFailure} /> : <video ref={video} key={`${name}:${serial}`} className={css.motion} src={clip.url}
-      muted playsInline preload="auto" loop={decoration === undefined && !dragging ? clip.loop : dragging}
+  const finish = (): void => {
+    if (decoration !== undefined) { setDecoration(undefined); return }
+    if (lifecycle.finish(name)) return
+    if (state === 'THINKING' && thinkingCandidates.length > 1) {
+      setThinkingName(previous => nextIdleClip(previous, Math.random(), thinkingCandidates) ?? 'thinking'); return
+    }
+    setEnded(true); setHeldResult(false)
+  }
+  // The shipped swim artwork faces left; rightward travel mirrors every phase.
+  return <span className={css.motionContent} data-pet-clip={name}
+    style={name.startsWith('swim_') && movement?.direction === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
+    {clip.sheet !== undefined ? <PetSprite key={`${name}:${serial}`} clip={clip} sheet={clip.sheet} poster={poster} knownReady={loadedSheets.current.has(clip.url)} onReady={() => { loadedSheets.current.add(clip.url) }} resting={resting && lifecycle.clip === undefined && clip.sheet.frames <= 8} loop={decoration === undefined && clip.loop && !(state === 'THINKING' && thinkingCandidates.length > 1)} paused={!visible || reduced} onEnd={finish} onFailure={onFailure} /> : <video ref={video} key={`${name}:${serial}`} className={css.motion} src={clip.url}
+      muted playsInline preload="auto" loop={decoration === undefined && !dragging ? clip.loop && !(state === 'THINKING' && thinkingCandidates.length > 1) : dragging}
       onError={onFailure} onEnded={finish} /> }
     {effect !== undefined && <PetEffects key={`${name}:${serial}:${effect}`} effect={effect} />}
-  </>
+  </span>
 }
