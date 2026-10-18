@@ -1,7 +1,13 @@
-"""Re-encode the MIT frame manifest from dsh-dafeiyu into transparent VP9 clips.
+"""Re-encode the dsh-dafeiyu frame manifest into transparent VP9 clips.
+
+The frames derive from PC2005-cloud/dsh-pet character assets, which are
+non-commercial and require credit to https://github.com/PC2005-cloud/dsh-pet
+(see packs/whaletail-maid/UPSTREAM_ASSET_TERMS.md). The dsh-dafeiyu MIT notice
+covers code; it does not relicense those assets.
 
 Usage: python3 tools/import-motion.py /path/to/dsh-dafeiyu
 Requires ffmpeg with libvpx-vp9. Existing clips are overwritten deterministically.
+The recorded upstream baseline (upstreamBaseline) is kept from the existing motion.json.
 """
 import hashlib
 import json
@@ -40,7 +46,9 @@ record = {
     'formatVersion': 1, 'renderer': 'vp9-alpha', 'width': manifest['maxFrameWidth'], 'height': manifest['maxFrameHeight'],
     'repository': 'https://github.com/qcytsn/dsh-dafeiyu',
     'revision': subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip(),
-    'upstream': manifest['assetSource'], 'clips': clips,
+    'upstream': manifest['assetSource'],
+    **({'upstreamBaseline': existing['upstreamBaseline']} if 'upstreamBaseline' in existing else {}),
+    'clips': clips,
 }
 (pack / 'motion.json').write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 (pack / 'MOTION_LICENSE.txt').write_bytes((source / 'assets/dsh-pet-LICENSE.txt').read_bytes())

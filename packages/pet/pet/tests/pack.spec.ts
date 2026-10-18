@@ -6,6 +6,7 @@ import {
 } from '../src/pack.ts'
 
 const BUILTIN = join(import.meta.dirname, '..', 'packs', 'whaletail-maid')
+const UPSTREAM = 'https://github.com/PC2005-cloud/dsh-pet'
 
 function manifest(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   const clips: Record<string, unknown> = {}
@@ -38,6 +39,26 @@ describe('built-in pack', () => {
     }
     expect(readFileSync(join(BUILTIN, 'LICENSE'), 'utf8')).toContain('Copyright (c) 2026 PC2005-cloud')
     expect(resolvePetClip(pack, 'dragging')).toBe(resolvePetClip(pack, 'idle'))
+  })
+
+  it('labels the character assets with the upstream non-commercial, credit-required terms', () => {
+    const result = parsePetPack(JSON.parse(readFileSync(join(BUILTIN, 'pet.json'), 'utf8')))
+    const pack = (result as { pack: PetPackManifest }).pack
+    expect(pack.license.assets).not.toBe('MIT')
+    expect(pack.license.assets).toContain('non-commercial')
+    expect(pack.license.assets).toContain(UPSTREAM)
+    expect(pack.license.source).toBe(UPSTREAM)
+    const terms = readFileSync(join(BUILTIN, 'UPSTREAM_ASSET_TERMS.md'), 'utf8')
+    expect(terms).toContain('素材（动画/提示词/源视频）：允许开源使用，**禁止商用**')
+    expect(terms).toContain(`须附上原作者 GitHub 地址：<${UPSTREAM}>`)
+    expect(terms).toContain('549fff2ea33c2acfb16612c76912c6137da4a758')
+    expect(terms).toContain('091b27b40f9eeecc814bedb691fe214ec2b48299')
+    const motion = JSON.parse(readFileSync(join(BUILTIN, 'motion.json'), 'utf8')) as {
+      upstream: { commit: string }
+      upstreamBaseline: { commit: string; pluginVersion: string }
+    }
+    expect(motion.upstream.commit).toBe('549fff2ea33c2acfb16612c76912c6137da4a758')
+    expect(motion.upstreamBaseline).toMatchObject({ commit: '091b27b40f9eeecc814bedb691fe214ec2b48299', pluginVersion: '0.3.7' })
   })
 })
 

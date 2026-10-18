@@ -18,6 +18,14 @@
     ],
     "webpQuality": 68
   },
+  "upstreamBaseline": {
+    "repository": "https://github.com/PC2005-cloud/dsh-pet",
+    "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+    "pluginVersion": "0.3.7",
+    "recordedAt": "2026-10-18",
+    "sourceHashesMatch": true,
+    "terms": "UPSTREAM_ASSET_TERMS.md"
+  },
   "clips": {
     "idle": {
       "file": "assets/motion/idle.webm",

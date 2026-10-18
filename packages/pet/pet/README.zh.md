@@ -42,6 +42,8 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 
 宠物包是一个目录，不是 npm 插件：`pet.json`（格式版本 2）、`lines.json`（按触发器组织的 zh/en 台词）、`assets/` 与 `LICENSE`。内置包 `whaletail-maid@1.0.0` 位于 `packs/whaletail-maid`，以 `@deepseek-ai/dsh-pet/packs/*` 导出；ui-pet 打包其中的帧。`@deepseek-ai/dsh-pet/pack` 是两端共用的纯解析器，可在浏览器中运行：`parsePetPack` 检查格式版本、id 与版本、`engines`（以 caret 范围匹配宠物运行时 1.0.0 与宠物 API 1）、渲染器、画布、帧率、已知动画槽、必需槽（`idle`、`thinking`、`working`、`waiting`、`success`、`error`、`dragging`，每个提供帧或 `ref`）、不含 `..` 的包内相对 `.webp` / `.png` 路径、引用目标与循环，以及 persona 块，并一次返回全部问题。`resolvePetClip` 沿 `ref` 与槽位回落链解析，最终落到 `idle`。当前运行时只渲染 `frames` 渲染器；`spritesheet`、Spine 与 Live2D 包会被拒绝。
 
+内置角色及其媒体来自 PC2005-cloud 的 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)。其代码为 MIT；素材仅限非商业使用，衍生作品须在任何介绍、展示、分发的地方附上 <https://github.com/PC2005-cloud/dsh-pet>。[UPSTREAM_ASSET_TERMS.md](packs/whaletail-maid/UPSTREAM_ASSET_TERMS.md) 逐字引用上游条款并记录固定的上游提交；包内 `pet.json` 的 `license.assets` 指向这些条款。
+
 开发宠物包时，设置 `DSH_PET_DEV=1` 与 `DSH_PET_DEV_PACKS=<dir>` 后，`pet.pack()` 会从 `<dir>` 的子目录（按名称排序）中提供第一个有效包，不校验签名，标记为 `dev: true`，帧以 data URL 形式提供（单张图最多 4 MiB，每个包最多 30 MiB）。被跳过的目录及原因放在 `problems` 中返回。该目录每次 Host 运行只读取一次。未开启时，存在 `webServer` 则提供内置媒体，否则 `pet.pack()` 返回 `{ pack: null, problems: [] }` 并使用内嵌回退帧。尚未加载来自 studio-cloud 的签名包。
 
 -----
@@ -91,7 +93,7 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 - **宠物包** — 开发包使用 `frames` 渲染器，内置媒体另外支持视频和图集片段；不支持 studio-cloud 签名包、内容包、换装、脚本与声音。`lines.json` 随包提供并有测试检查，但尚未用于台词。
 - **Host 侧不做审批决定** — 从 Host 决定需要 user-approval 能取消已转发给 Client 的请求；因此改由 Client 回答。
 
-存在 `webServer` 时，`pet.pack()` 会提供内置媒体及回退帧清单。`/pet-motion` 仅提供允许列表中的随包媒体，支持 GET、HEAD 和单段字节范围请求，并随所属插件卸载而移除路由。16 段透明 VP9 视频保留全部 3,444 帧导入素材，另有十四组共 666 个实际帧、按每动作 6～10 fps 播放的生成图集，包含四套重制及十套新增。图集元数据支持从零开始的 `startFrame` 和播放帧数，让睡眠及移动的进入／循环／退出片段共用同一个资源地址；地址附加内容摘要，避免素材更新后继续使用旧浏览器缓存。来源和编码记录位于 `packs/whaletail-maid/motion.json`，上游 MIT 许可证随 `MOTION_LICENSE.txt` 提供。有效开发包优先。
+存在 `webServer` 时，`pet.pack()` 会提供内置媒体及回退帧清单。`/pet-motion` 仅提供允许列表中的随包媒体，支持 GET、HEAD 和单段字节范围请求，并随所属插件卸载而移除路由。16 段透明 VP9 视频保留全部 3,444 帧导入素材，另有十四组共 666 个实际帧、按每动作 6～10 fps 播放的生成图集，包含四套重制及十套新增。图集元数据支持从零开始的 `startFrame` 和播放帧数，让睡眠及移动的进入／循环／退出片段共用同一个资源地址；地址附加内容摘要，避免素材更新后继续使用旧浏览器缓存。来源和编码记录位于 `packs/whaletail-maid/motion.json`；`MOTION_LICENSE.txt` 保留适用于代码的上游 MIT 文本，素材条款见[宠物包](#pet-packs)。有效开发包优先。
 
 <a id="dev-note"></a>
 ### 开发备注

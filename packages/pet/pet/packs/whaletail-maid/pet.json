@@ -10,7 +10,7 @@
   "author": "PC2005-cloud / QCYTSN (port: dsh studio)",
   "license": {
     "code": "MIT",
-    "assets": "MIT",
+    "assets": "PC2005-cloud/dsh-pet asset terms: non-commercial use only; derivative works must credit https://github.com/PC2005-cloud/dsh-pet (UPSTREAM_ASSET_TERMS.md)",
     "source": "https://github.com/PC2005-cloud/dsh-pet"
   },
   "engines": {
