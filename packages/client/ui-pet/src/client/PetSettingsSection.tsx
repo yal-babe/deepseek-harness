@@ -184,6 +184,10 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
           </Row>
         })}
       </details>
+      <Row title={t('settings.occasions')} hint={t('settings.occasionsHint')}>
+        <Switch checked={preferences.occasions !== false} label={t('settings.occasions')}
+          onChange={(occasions) => { props.setPreferences({ occasions }) }} />
+      </Row>
       <Row title={t('settings.interactive')} hint={t('settings.interactiveHint')}>
         <Switch checked={preferences.interactive === true} label={t('settings.interactive')}
           onChange={(interactive) => { props.setPreferences({ interactive }) }} />

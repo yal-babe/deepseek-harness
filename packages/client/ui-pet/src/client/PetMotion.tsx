@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
 import {
-  idleDelay, mirrorsClip, nextAutonomousClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, standsAside, taskClip, travelAt,
-  travelScale, walkDirection, type PetActionRequest,
+  chainCooldown, idleDelay, mirrorsClip, nextAutonomousClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, standsAside, taskClip,
+  travelAt, travelScale, walkDirection, type PetActionRequest,
 } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { useMotionPhases } from './useMotionPhases.ts'
@@ -54,7 +54,9 @@ export interface PetWalkSurface {
 }
 
 /** Media is downloaded only when selected; a failed clip falls back to the built-in still frames. */
-export function PetMotion({ motion, state, activity, action, dragging, preferences, paused, movement, poster, onFailure, walk }: {
+export function PetMotion({
+  motion, state, activity, action, dragging, preferences, paused, movement, poster, onFailure, walk, festivals,
+}: {
   readonly motion: PetMotionView
   readonly state: PetAgentState
   readonly activity?: PetWorkActivity | undefined
@@ -67,6 +69,8 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   readonly onFailure: () => void
   /** Surface movement for walking clips; without it measured gaits play in place and are not chosen autonomously. */
   readonly walk?: PetWalkSurface | undefined
+  /** Festivals whose window covers the Host's local date, for the pack's time-bound clips. */
+  readonly festivals?: readonly string[] | undefined
 }) {
   const walker = useRef(walk)
   walker.current = walk
@@ -95,6 +99,10 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   const [facingRight, setFacingRight] = useState(false)
   const wasDragging = useRef(false)
   const cooldown = useRef(0)
+  // Cooldown groups of the autonomous chain (such as dances, talents, and games), epoch ms until which each rests.
+  const cooldowns = useRef(new Map<string, number>())
+  const festivalList = useRef(festivals ?? [])
+  festivalList.current = festivals ?? []
   const handledAction = useRef<PetActionRequest | undefined>(undefined)
   const reduced = systemReduced || preferences.reducedMotion === true
   const idle = petIsIdle(state)
@@ -147,15 +155,19 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
           const distance = Math.abs(move.travel.at(-1) ?? 0) * travelScale(motion, size)
           return surface.room(walkDirection(move, mirrorsClip(motion, candidate, facingRight)), distance)
         },
-      }, preferences.clips)
+      }, preferences.clips, {
+        now: Date.now(), festivals: festivalList.current, occasions: preferences.occasions !== false, cooldowns: cooldowns.current,
+      })
       if (name === undefined) return
       previousIdle.current = name
+      const pause = chainCooldown(motion, name, preferences.activity ?? 'normal')
+      if (pause !== undefined) cooldowns.current.set(pause.group, Date.now() + pause.ms)
       setDecoration({ name: smoothClip(name, motion), serial: Date.now(), ...clipEffect(name) })
     }, idleDelay(preferences.activity ?? 'normal', Math.random()) * (preferences.life === 'play' ? 0.75 : 1))
     return () => { clearTimeout(timer) }
   }, [
     canDecorate, decoration, preferences.activity, preferences.actions, preferences.clips, preferences.life, preferences.size, motion,
-    facingRight,
+    facingRight, preferences.occasions,
   ])
   // Decorative idle is deliberately finite even though the source idle clip loops.
   useEffect(() => {

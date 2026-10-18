@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetMotion } from '../src/client/PetMotion.tsx'
 import { PetSprite } from '../src/client/PetSprite.tsx'
 import {
-  autonomousPackClips, availableActions, balanceTier, clickArea, clickClip, clipAllowed, eventClip, idleDelay, lifeActions, mirrorsClip,
-  nextAutonomousClip,
+  autonomousPackClips, availableActions, balanceTier, chainCooldown, clickArea, clickClip, clipAllowed, eventClip, idleDelay, lifeActions,
+  mirrorsClip, nextAutonomousClip, scheduleAllows, scheduleRuleOpen, type PetChainMoment,
   nextChainClip, nextIdleClip, PET_ACTIONS, roamDelay, smoothClip, standsAside, taskClip, travelAt, travelScale, walkDirection,
 } from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
@@ -420,5 +420,108 @@ describe('measured walking', () => {
     expect(view.container.querySelector<HTMLElement>('[data-pet-clip]')!.dataset.petClip).toBe('crab')
     // After the turn the character faces right, so the walk is checked to the right over the scaled distance.
     expect(room).toHaveBeenCalledWith('right', expect.closeTo(20 * 168 / 412))
+  })
+})
+
+describe('time-bound clips and cooldowns', () => {
+  const label = { zh: '甲', en: 'A' }
+  const timed: PetMotionView = {
+    ...motion,
+    clips: { ...motion.clips, lunch: clip('lunch'), mooncake: clip('mooncake'), snowman: clip('snowman'), dance: clip('dance'), violin: clip('violin') },
+    categories: [
+      { id: 'small', label, weight: 20, life: ['idle'], clips: ['idle_stretch'] },
+      { id: 'dance', label, weight: 10, life: ['idle', 'play'], clips: ['dance'], cooldown: { group: 'fun', ms: 180000 } },
+      { id: 'talent', label, weight: 10, life: ['idle', 'play'], clips: ['violin'], cooldown: { group: 'fun', ms: 180000 } },
+      { id: 'eat', label, weight: 10, life: ['idle', 'play'], clips: ['lunch'], cooldown: { group: 'eat', ms: 1200000 } },
+      { id: 'festival', label, weight: 10, life: ['idle', 'play'], clips: ['mooncake', 'snowman'] },
+    ],
+    schedule: { rules: [
+      { id: 'lunch', hours: [[11, 13]], clips: ['lunch'] },
+      { id: 'mid-autumn', festivals: ['mid-autumn'], clips: ['mooncake'] },
+      { id: 'winter', months: [12, 1, 2], clips: ['snowman'] },
+    ] },
+  }
+  const at = (date: Date, extra: Partial<PetChainMoment> = {}): PetChainMoment =>
+    ({ now: date.getTime(), festivals: [], occasions: true, cooldowns: new Map(), ...extra })
+  /** Every clip the chain can draw at a moment, found by sweeping the category and clip draws. */
+  const reachable = (moment: PetChainMoment | undefined, life: 'idle' | 'play' = 'idle'): string[] => {
+    const found = new Set<string>()
+    for (let category = 0; category < 1; category += 0.01) {
+      for (const pick of [0, 0.99]) {
+        const values = [category, pick]
+        const name = nextChainClip(timed, life, undefined, undefined, () => values.shift() ?? 0, undefined, moment)
+        if (name !== undefined) found.add(name)
+      }
+    }
+    return [...found].sort()
+  }
+
+  it('opens a rule from the first hour up to, not including, the last, in its months and festival windows', () => {
+    const rule = { id: 'r', hours: [[11, 13]] as [number, number][], clips: [] }
+    const at = (hour: number) => new Date(2026, 9, 1, Math.floor(hour), Math.round((hour % 1) * 60))
+    expect([10.99, 11, 12.5, 13].map(hour => scheduleRuleOpen(rule, at(hour), [])))
+      .toEqual([false, true, true, false])
+    expect(scheduleRuleOpen({ id: 'w', months: [12, 1], clips: [] }, new Date(2027, 0, 5), [])).toBe(true)
+    expect(scheduleRuleOpen({ id: 'w', months: [12, 1], clips: [] }, new Date(2027, 1, 5), [])).toBe(false)
+    expect(scheduleRuleOpen({ id: 'f', festivals: ['qixi'], clips: [] }, new Date(2026, 7, 19), ['qixi', 'summer-break'])).toBe(true)
+    expect(scheduleRuleOpen({ id: 'f', festivals: ['qixi'], months: [9], clips: [] }, new Date(2026, 7, 19), ['qixi'])).toBe(false)
+  })
+
+  it('keeps listed clips out without a moment or with the switch off, and never restricts unlisted clips', () => {
+    const noon = at(new Date(2026, 9, 1, 12))
+    expect(scheduleAllows(timed, 'idle_stretch', undefined)).toBe(true)
+    expect(scheduleAllows(timed, 'lunch', undefined)).toBe(false)
+    expect(scheduleAllows(timed, 'lunch', noon)).toBe(true)
+    expect(scheduleAllows(timed, 'lunch', { ...noon, occasions: false })).toBe(false)
+  })
+
+  it('draws meals in their hours, festival clips in their window, and seasonal clips in their months', () => {
+    expect(reachable(at(new Date(2026, 9, 1, 12)))).toEqual(['dance', 'idle_stretch', 'lunch', 'violin'])
+    expect(reachable(at(new Date(2026, 9, 1, 14)))).toEqual(['dance', 'idle_stretch', 'violin'])
+    expect(reachable(at(new Date(2026, 8, 25, 14), { festivals: ['mid-autumn'] }))).toEqual(['dance', 'idle_stretch', 'mooncake', 'violin'])
+    expect(reachable(at(new Date(2026, 11, 20, 14)))).toEqual(['dance', 'idle_stretch', 'snowman', 'violin'])
+    expect(reachable(at(new Date(2026, 11, 20, 12), { occasions: false }))).toEqual(['dance', 'idle_stretch', 'violin'])
+    // Entertainment also plays in the play life state; the small actions stay with idle.
+    expect(reachable(at(new Date(2026, 9, 1, 12)), 'play')).toEqual(['dance', 'lunch', 'violin'])
+    expect(reachable(undefined)).toEqual(['dance', 'idle_stretch', 'violin'])
+  })
+
+  it('rests every category of a cooldown group, scaled by the activity preset', () => {
+    const now = new Date(2026, 9, 1, 12)
+    expect(chainCooldown(timed, 'violin')).toEqual({ group: 'fun', ms: 180000 })
+    expect(chainCooldown(timed, 'dance', 'quiet')).toEqual({ group: 'fun', ms: 360000 })
+    expect(chainCooldown(timed, 'dance', 'lively')).toEqual({ group: 'fun', ms: 90000 })
+    expect(chainCooldown(timed, 'idle_stretch')).toBeUndefined()
+    const fun = new Map([['fun', now.getTime() + 1]])
+    expect(reachable(at(now, { cooldowns: fun }))).toEqual(['idle_stretch', 'lunch'])
+    expect(reachable(at(new Date(now.getTime() + 1), { cooldowns: fun }))).toEqual(['dance', 'idle_stretch', 'lunch', 'violin'])
+  })
+
+  it('pauses entertainment after one plays, and never starts it during work, approval, or dragging', () => {
+    vi.setSystemTime(new Date(2026, 9, 1, 14))
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const fun: PetMotionView = { ...timed, categories: [timed.categories![1]!], schedule: { rules: [] } }
+    const props = { motion: fun, state: 'IDLE' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
+    const view = render(<PetMotion {...props} />)
+    const source = () => view.container.querySelector('video')!.getAttribute('src')
+    act(() => { vi.advanceTimersByTime(16000) })
+    expect(source()).toBe('/dance.webm')
+    fireEvent.ended(view.container.querySelector('video')!)
+    act(() => { vi.advanceTimersByTime(60000) })
+    expect(source()).toBe('/idle.webm')
+    for (const state of ['WORKING', 'WAITING'] as const) {
+      view.rerender(<PetMotion {...props} state={state} />)
+      act(() => { vi.advanceTimersByTime(200000) })
+      expect(source()).not.toBe('/dance.webm')
+    }
+    view.rerender(<PetMotion {...props} dragging />)
+    act(() => { vi.advanceTimersByTime(200000) })
+    expect(source()).toBe('/dragging.webm')
+    view.rerender(<PetMotion {...props} />)
+    expect(source()).toBe('/dragging_release.webm')
+    fireEvent.ended(view.container.querySelector('video')!)
+    // The pause has long passed, so the next idle round draws entertainment again.
+    act(() => { vi.advanceTimersByTime(16000) })
+    expect(source()).toBe('/dance.webm')
   })
 })

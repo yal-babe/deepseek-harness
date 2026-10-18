@@ -133,6 +133,10 @@ describe('PetSettingsSection', () => {
     const { preferences } = mount({}, { motion })
     fireEvent.click(screen.getByRole('switch', { name: 'settings.lines' }))
     expect(preferences.snapshot.getSnapshot().lines).toBe(false)
+    // Time-bound clips are on by default; the switch keeps them menu-only.
+    expect(screen.getByRole('switch', { name: 'settings.occasions' }).getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(screen.getByRole('switch', { name: 'settings.occasions' }))
+    expect(preferences.snapshot.getSnapshot().occasions).toBe(false)
     expect(screen.getByText('settings.packClips')).toBeTruthy()
     // Named interactions keep their own switches; menu-only and event clips are never drawn, so they are not listed.
     expect(screen.queryByRole('switch', { name: 'idle_stretch' })).toBeNull()

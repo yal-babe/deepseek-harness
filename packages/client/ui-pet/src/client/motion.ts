@@ -91,26 +91,89 @@ export function lifeActions(life: PetLifeState = 'idle', enabled: readonly PetAc
   const candidates = life === 'play' ? PLAY_ACTIONS : life === 'rest' ? [] : QUIET_ACTIONS
   return enabled.filter(action => candidates.includes(action))
 }
+/** What the autonomous chain knows about now: the clock, the Host's festivals, cooldowns, and the time-bound switch. */
+export interface PetChainMoment {
+  /** Epoch milliseconds; hours and months read the device's local time. */
+  readonly now: number
+  /** Festivals whose window covers the Host's local date ({@link PetMotionView} `schedule` festival rules). */
+  readonly festivals: readonly string[]
+  /** Whether time-bound clips (festivals, seasons, meals) may play autonomously; off keeps them menu-only. */
+  readonly occasions: boolean
+  /** Epoch milliseconds until which each cooldown group rests. */
+  readonly cooldowns: ReadonlyMap<string, number>
+}
+
+type ScheduleRule = NonNullable<PetMotionView['schedule']>['rules'][number]
+
+/** Whether a schedule rule is open at a local time.
+ * @param rule - pack schedule rule.
+ * @param date - local time.
+ * @param festivals - festivals whose window covers the date.
+ * @returns true when every condition the rule states holds.
+ */
+export function scheduleRuleOpen(rule: ScheduleRule, date: Date, festivals: readonly string[]): boolean {
+  const hour = date.getHours() + date.getMinutes() / 60
+  return (rule.hours === undefined || rule.hours.some(([from, to]) => hour >= from && hour < to))
+    && (rule.months === undefined || rule.months.includes(date.getMonth() + 1))
+    && (rule.festivals === undefined || rule.festivals.some(festival => festivals.includes(festival)))
+}
+
+/** Whether the schedule lets a clip play autonomously now: unlisted clips always may; listed clips need an open rule,
+ * a known moment, and time-bound clips switched on.
+ * @param motion - available character media.
+ * @param clip - pack clip name.
+ * @param moment - chain moment, or undefined when unknown (listed clips then stay out).
+ * @returns whether the chain may draw the clip.
+ */
+export function scheduleAllows(motion: PetMotionView, clip: string, moment: PetChainMoment | undefined): boolean {
+  const rules = (motion.schedule?.rules ?? []).filter(rule => rule.clips.includes(clip))
+  if (rules.length === 0) return true
+  if (moment === undefined || !moment.occasions) return false
+  const date = new Date(moment.now)
+  return rules.some(rule => scheduleRuleOpen(rule, date, moment.festivals))
+}
+
+/** Multiplier of category cooldowns for an activity preset: quiet waits twice as long, lively half as long. */
+export const COOLDOWN_SCALE: Readonly<Record<PetActivityLevel, number>> = { quiet: 2, normal: 1, lively: 0.5 }
+
+/** Cooldown to start after the chain played a clip: its category's group and pause, scaled by the activity preset.
+ * @param motion - available character media.
+ * @param clip - clip the chain chose.
+ * @param level - activity preset.
+ * @returns the group and the pause in milliseconds, or undefined when the clip's category has none.
+ */
+export function chainCooldown(motion: PetMotionView, clip: string, level: PetActivityLevel = 'normal'):
+  { readonly group: string; readonly ms: number } | undefined {
+  const cooldown = motion.categories?.find(category => category.clips.includes(clip))?.cooldown
+  return cooldown === undefined ? undefined : { group: cooldown.group, ms: cooldown.ms * COOLDOWN_SCALE[level] }
+}
+
 /** Pick the next autonomous clip: a category by weight among those for the life state, then a fresh clip in it.
  * Packs without categories fall back to {@link lifeActions}. Every clip must pass the device allowlist
- * ({@link clipAllowed}).
+ * ({@link clipAllowed}) and the pack schedule ({@link scheduleAllows}); a category whose cooldown group still rests
+ * is skipped.
  * @param motion - available character media.
  * @param life - selected life state; resting never decorates.
  * @param enabled - device allowlist, or all actions when absent.
  * @param previous - last autonomous clip, which is not repeated when another is eligible.
  * @param random - uniform source in [0, 1), called once for the category and once for the clip.
  * @param enabledClips - allowed pack-only clips, or all when absent.
+ * @param moment - clock, festivals, and cooldowns; without it time-bound clips stay out and cooldowns are not read.
  * @returns a clip name, or undefined when nothing is eligible.
  */
 export function nextChainClip(motion: PetMotionView, life: PetLifeState = 'idle', enabled: readonly PetAction[] = PET_ACTIONS,
-  previous: string | undefined, random: () => number, enabledClips?: readonly string[]): string | undefined {
+  previous: string | undefined, random: () => number, enabledClips?: readonly string[], moment?: PetChainMoment): string | undefined {
   const allowed = (clip: string): boolean =>
     motion.clips[clip] !== undefined && !standsAside(motion, clip) && clipAllowed(clip, enabled, enabledClips)
+    && scheduleAllows(motion, clip, moment)
+  const resting = (group: string | undefined): boolean =>
+    group !== undefined && moment !== undefined && (moment.cooldowns.get(group) ?? 0) > moment.now
   if (motion.categories === undefined || motion.categories.length === 0) {
     return nextIdleClip(previous, random(), lifeActions(life, enabled).map(action => ACTION_CLIP[action]).filter(allowed))
   }
   if (life === 'rest') return undefined
-  const pools = motion.categories.filter(category => category.weight > 0 && category.life.includes(life))
+  const pools = motion.categories.filter(category =>
+    category.weight > 0 && category.life.includes(life) && !resting(category.cooldown?.group))
     .map(category => ({ weight: category.weight, clips: category.clips.filter(allowed) }))
     .filter(pool => pool.clips.length > 0)
   const total = pools.reduce((sum, pool) => sum + pool.weight, 0)
@@ -146,12 +209,14 @@ export interface PetWalkGate {
  * @param random - uniform source in [0, 1).
  * @param walk - whether and where walking is possible.
  * @param enabledClips - allowed pack-only clips, or all when absent.
+ * @param moment - clock, festivals, and cooldowns for the categories ({@link nextChainClip}).
  * @returns a clip name, or undefined when nothing is eligible.
  */
 export function nextAutonomousClip(motion: PetMotionView, life: PetLifeState = 'idle', enabled: readonly PetAction[] = PET_ACTIONS,
-  previous: string | undefined, random: () => number, walk: PetWalkGate, enabledClips?: readonly string[]): string | undefined {
+  previous: string | undefined, random: () => number, walk: PetWalkGate, enabledClips?: readonly string[],
+  moment?: PetChainMoment): string | undefined {
   const chain = motion.chain
-  const fallback = (): string | undefined => nextChainClip(motion, life, enabled, previous, random, enabledClips)
+  const fallback = (): string | undefined => nextChainClip(motion, life, enabled, previous, random, enabledClips, moment)
   if (chain === undefined || life !== 'idle') return fallback()
   const names = Object.keys(motion.clips).filter(clip => clipAllowed(clip, enabled, enabledClips))
   const turns = names.filter(name => motion.clips[name]?.turn === true)

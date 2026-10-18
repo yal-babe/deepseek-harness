@@ -24,6 +24,8 @@ export interface PetPreferences {
   readonly actions?: readonly PetAction[]
   /** Enabled pack-only clips of the autonomous chain (clips no named action plays); absent allows them all. */
   readonly clips?: readonly string[]
+  /** Whether time-bound clips (festivals, seasons, meals, and snacks) play autonomously in their windows; absent means on. */
+  readonly occasions?: boolean
   /** Whether the pet speaks local lines (time of day, task results, approvals, long idle); absent means on. */
   readonly lines?: boolean
   readonly activity?: PetActivityLevel
@@ -79,6 +81,7 @@ export function parsePreferences(raw: string | null): PetPreferences {
     ...actions !== undefined ? { actions: PET_ACTIONS.filter(action => actions.includes(action)) } : {},
     ...clips !== undefined ? { clips } : {},
     ...'lines' in value && typeof value.lines === 'boolean' ? { lines: value.lines } : {},
+    ...'occasions' in value && typeof value.occasions === 'boolean' ? { occasions: value.occasions } : {},
     ...'activity' in value && (value.activity === 'quiet' || value.activity === 'normal' || value.activity === 'lively') ? { activity: value.activity } : {},
     ...'effects' in value && typeof value.effects === 'boolean' ? { effects: value.effects } : {},
     ...'interactive' in value && typeof value.interactive === 'boolean' ? { interactive: value.interactive } : {},

@@ -89,6 +89,8 @@ it('keeps valid unique pack clip names and the lines switch', () => {
   expect(parsePreferences(JSON.stringify({ clips: many })).clips).toHaveLength(256)
   expect(parsePreferences('{"clips":"all","lines":"no"}')).toEqual({ notify: false, snoozeUntil: undefined })
   expect(parsePreferences('{"clips":[]}').clips).toEqual([])
+  expect(parsePreferences('{"occasions":false}').occasions).toBe(false)
+  expect(parsePreferences('{"occasions":"no"}').occasions).toBeUndefined()
 })
 
 it('throws by default, never under reduced motion, and not when turned off', () => {

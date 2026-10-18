@@ -106,7 +106,7 @@ function useCharacterDrag(onDrag: ((phase: PetDragPhase) => void) | undefined, o
  */
 export function PetCharacter({
   state, label, name, onClick, onMenu, onDrag, pack = BUILTIN_FRAME_SET, badge, action, preferences,
-  paused = false, activity, onInteract, movement, walk,
+  paused = false, activity, onInteract, movement, walk, festivals,
 }: {
   readonly state: PetAgentState
   readonly label: string
@@ -127,6 +127,8 @@ export function PetCharacter({
   readonly onDrag?: (phase: PetDragPhase) => void
   /** Surface movement for walking clips. */
   readonly walk?: PetWalkSurface | undefined
+  /** Festivals covering the Host's local date, for time-bound clips. */
+  readonly festivals?: readonly string[] | undefined
 }): ReactNode {
   const clip = clipFor(state)
   const frames = pack.frames[clip]
@@ -199,7 +201,7 @@ export function PetCharacter({
         data-direction={movement?.direction}>
         {pack.motion !== undefined && playingMotion
           ? <PetMotion motion={pack.motion} state={state} activity={activity} action={action} dragging={dragging}
-            movement={movement} poster={frames[0]} walk={walk}
+            movement={movement} poster={frames[0]} walk={walk} festivals={festivals}
             preferences={preferences ?? { notify: false, snoozeUntil: undefined }} paused={paused}
             onFailure={() => { setFailedMotion(pack.key) }} />
           : <img src={frames[index % frames.length]} alt="" draggable={false} /> }
@@ -858,6 +860,7 @@ export function PetOverlay(props: PetProps): ReactNode {
   } = usePanel(props)
   const pack = props.usePack(current => current)
   const preferences = props.usePreferences(current => current)
+  const festivals = props.useView(view => view.snapshot?.moment?.festivals)
   const activity = props.useView(view =>
     view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId)?.activity)
   const systemReduced = useSystemReducedMotion()
@@ -892,7 +895,8 @@ export function PetOverlay(props: PetProps): ReactNode {
           onClose={() => { setMenu(false) }} />}
       </div>
       <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })} onClick={toggle}
-        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} walk={walk} movement={{ moving: position.wandering, direction: position.direction }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} walk={walk} movement={{ moving: position.wandering, direction: position.direction }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined}
+        festivals={festivals} />
     </div>
   )
 }
@@ -911,6 +915,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
   const movement = props.useMovement(value => value)
   const pack = props.usePack(current => current)
   const preferences = props.usePreferences(current => current)
+  const festivals = props.useView(view => view.snapshot?.moment?.festivals)
   const activity = props.useView(view =>
     view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId)?.activity)
   const shortcutAction = useRef(act)
@@ -973,7 +978,8 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         </div>
         <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })}
           onClick={toggle} onMenu={() => { setMenu(!menu) }}
-          movement={movement} onDrag={thrower.drag} walk={walk} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+          movement={movement} onDrag={thrower.drag} walk={walk} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined}
+          festivals={festivals} />
       </div>
     </div>
   )
