@@ -11,6 +11,7 @@ import { isSnoozed, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import { PetMotion } from './PetMotion.tsx'
+import { pickPetLine, petMomentTriggers, type PetLine } from '@deepseek-ai/dsh-pet/lines'
 import { clipAction, PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest } from './motion.ts'
 import { Button, Menu, MenuItemButton, MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
 import { usePagePosition } from './usePagePosition.ts'
@@ -647,12 +648,50 @@ function usePanel(props: PetProps): PanelState {
   }
 }
 
-/** Compact, event-derived status when the full panel is collapsed. */
-function PetStatus({ state, useView, t }: Pick<PetProps, 'useView' | 't'> & {
+/** How long a greeting or festival line stays in the bubble, in milliseconds. */
+export const PET_LINE_MS = 8000
+
+/**
+ * Speak the pack's local line when the time-of-day slot or festival of the
+ * Host moment changes, including the first moment after start. A change
+ * while the pet is busy, waiting, or showing a panel or menu is skipped,
+ * never queued.
+ * @param props - pet props.
+ * @param quiet - whether the pet must not speak now.
+ * @returns the line in the dictionary language while it is shown.
+ */
+function useMomentLine(props: PetProps, quiet: boolean): string | undefined {
+  const table = props.usePack(pack => pack.lines)
+  const moment = props.useView(view => view.snapshot?.moment)
+  const key = moment === undefined ? undefined : `${moment.slot}:${moment.festival?.id ?? ''}:${moment.festival?.phase ?? ''}`
+  const [line, setLine] = useState<PetLine | undefined>(undefined)
+  const spoken = useRef<{ key?: string; line?: PetLine }>({})
+  useEffect(() => {
+    // Wait for the pack's table, which may arrive after the first snapshot.
+    if (key === undefined || moment === undefined || table === undefined || key === spoken.current.key) return
+    spoken.current.key = key
+    if (quiet) return
+    const pick = pickPetLine(table, petMomentTriggers(moment), Math.random, spoken.current.line)
+    if (pick === undefined) return
+    spoken.current.line = pick.line
+    setLine(pick.line)
+  }, [key, table])
+  useEffect(() => {
+    if (line === undefined) return
+    const timer = setTimeout(() => { setLine(undefined) }, PET_LINE_MS)
+    return () => { clearTimeout(timer) }
+  }, [line])
+  useEffect(() => { if (quiet) setLine(undefined) }, [quiet])
+  return line === undefined ? undefined : line[props.t('locale') === 'en' ? 'en' : 'zh']
+}
+
+/** Compact, event-derived status when the full panel is collapsed; an idle pet may speak a local line. */
+function PetStatus({ state, useView, t, line }: Pick<PetProps, 'useView' | 't'> & {
   state: PetAgentState
+  line?: string | undefined
 }): ReactNode {
   const focus = useView(view => view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId))
-  if (petIsIdle(state)) return null
+  if (petIsIdle(state)) return line === undefined ? null : <div className={css.statusBubble} role="status" data-pet-line="">{line}</div>
   return <div className={css.statusBubble} role="status">{stateLine(t, state, focus)}</div>
 }
 
@@ -662,8 +701,9 @@ function PetStatus({ state, useView, t }: Pick<PetProps, 'useView' | 't'> & {
  */
 export function PetOverlay(props: PetProps): ReactNode {
   const {
-    open, toggle, close, state, visible, focusRequest, menu, setMenu, act, actions, categories, playClip, action, interact,
+    open, toggle, close, state, visible, waiting, focusRequest, menu, setMenu, act, actions, categories, playClip, action, interact,
   } = usePanel(props)
+  const line = useMomentLine(props, open || menu || waiting || !petIsIdle(state))
   const pack = props.usePack(current => current)
   const preferences = props.usePreferences(current => current)
   const activity = props.useView(view =>
@@ -684,7 +724,7 @@ export function PetOverlay(props: PetProps): ReactNode {
       onPointerDownCapture={(event) => { position.begin(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect()) }}
       onPointerMoveCapture={(event) => { position.track(event.clientX, event.clientY) }}>
       <div className={css.pagePanels}>
-        {!open && <PetStatus state={state} useView={props.useView} t={props.t} />}
+        {!open && <PetStatus state={state} useView={props.useView} t={props.t} line={line} />}
         <div hidden={!open} className={css.panelMount}>
           <PetPanel {...props} focusRequest={focusRequest} onClose={close} panelVisible={open} />
         </div>
@@ -704,8 +744,10 @@ export function PetOverlay(props: PetProps): ReactNode {
  */
 export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
   const {
-    open, toggle, close, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, categories, playClip, action, interact,
+    open, toggle, close, state, visible, waiting, focusRequest: menuFocus, menu, setMenu, act, actions, categories, playClip, action,
+    interact,
   } = usePanel(props)
+  const line = useMomentLine(props, open || menu || waiting || !petIsIdle(state))
   const { controller, onQuickAsk } = props
   const movement = props.useMovement(value => value)
   const pack = props.usePack(current => current)
@@ -745,7 +787,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
       <div className={css.windowStack} onMouseEnter={() => { interactive(true) }} onMouseMove={() => { interactive(true) }}
         onMouseLeave={() => { interactive(false) }}>
         <div className={css.desktopPanels}>
-          {!open && <PetStatus state={state} useView={props.useView} t={props.t} />}
+          {!open && <PetStatus state={state} useView={props.useView} t={props.t} line={line} />}
           <div hidden={!open} className={css.panelMount}>
             <PetPanel {...props} focusRequest={menuFocus} onClose={close} panelVisible={open} />
           </div>

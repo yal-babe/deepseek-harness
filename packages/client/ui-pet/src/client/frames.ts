@@ -8,6 +8,7 @@
  */
 import type { PetAgentState, PetPackState, PetMotionView } from '@deepseek-ai/dsh-pet/types'
 import { parsePetPack, resolvePetClip, type PetPackManifest, type PetPackText } from '@deepseek-ai/dsh-pet/pack'
+import { parsePetLines, type PetLineTable } from '@deepseek-ai/dsh-pet/lines'
 import builtinManifest from '@deepseek-ai/dsh-pet/packs/whaletail-maid/pet.json'
 import idle1 from '@deepseek-ai/dsh-pet/packs/whaletail-maid/assets/frames/idle-1.webp'
 import idle2 from '@deepseek-ai/dsh-pet/packs/whaletail-maid/assets/frames/idle-2.webp'
@@ -63,6 +64,8 @@ export interface PetFrameSet {
   readonly motion?: PetMotionView
   readonly loops?: Readonly<Record<PetClip, boolean>>
   readonly dev: boolean
+  /** Local line table of the offered pack, validated again on this side. */
+  readonly lines?: PetLineTable
 }
 
 /**
@@ -168,10 +171,13 @@ export function clipFor(state: PetAgentState): PetClip {
 export function offeredFrameSet(state: PetPackState): PetFrameSet | undefined {
   const offered = state.pack
   if (offered === null) return undefined
+  // An unusable line table only silences the pet; it never rejects the pack.
+  const lines = offered.lines === undefined ? undefined : parsePetLines(offered.lines)
   try {
     return {
       ...petFrameSet(requirePetPack(offered.manifest), offered.assets, offered.dev),
       ...offered.motion === undefined ? {} : { motion: offered.motion },
+      ...lines?.ok === true ? { lines: lines.table } : {},
     }
   } catch (_unusable) {
     // An invalid manifest or a frame without an asset makes the whole pack unusable.

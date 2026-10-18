@@ -7,7 +7,7 @@ import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { AnswerableApproval } from '../src/client/approvals.ts'
 import { PetController } from '../src/client/controller.ts'
 import type { AnswerableQuestion } from '../src/client/questions.ts'
-import { APPROVAL_ARM_DELAY_MS, PetCharacter, PetOverlay, PetWindowRoot, petMenuCategories, type PetProps } from '../src/client/Pet.tsx'
+import { APPROVAL_ARM_DELAY_MS, PET_LINE_MS, PetCharacter, PetOverlay, PetWindowRoot, petMenuCategories, type PetProps } from '../src/client/Pet.tsx'
 import type { PetViewState } from '../src/client/store.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 import { BUILTIN_FRAME_SET, type PetFrameSet } from '../src/client/frames.ts'
@@ -622,4 +622,32 @@ describe('category menu', () => {
     expect(view.container.querySelector('[data-pet-clip]')?.getAttribute('data-pet-clip')).toBe('click_shy')
     vi.restoreAllMocks()
   })
+})
+
+describe('local lines', () => {
+  const lines = { formatVersion: 2 as const, lines: {
+    'greet.morning': [{ zh: '早上好', en: 'Good morning' }],
+    'greet.noon': [{ zh: '午安', en: 'Good noon' }],
+    'festival.national-day': [{ zh: '国庆快乐', en: 'Happy National Day' }],
+  } }
+  const morning = { date: '2026-10-19', slot: 'morning' as const, dayKind: 'workday' as const }
+
+  it('speaks a line when the slot or festival changes, hides it after a while, and skips busy changes', () => {
+    const { props, packStore, viewStore } = setup({ connected: true, snapshot: snapshot({ moment: morning }) })
+    render(<PetOverlay {...props} />)
+    expect(document.querySelector('[data-pet-line]')).toBeNull()
+    act(() => { packStore.set({ ...BUILTIN_FRAME_SET, lines }) })
+    expect(screen.getByRole('status').textContent).toBe('早上好')
+    act(() => { vi.advanceTimersByTime(PET_LINE_MS) })
+    expect(document.querySelector('[data-pet-line]')).toBeNull()
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 2, moment: morning }) }) })
+    expect(document.querySelector('[data-pet-line]')).toBeNull()
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 3, moment: { ...morning, festival: { id: 'national-day', phase: 'during' } } }) }) })
+    expect(screen.getByRole('status').textContent).toBe('国庆快乐')
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 4, primary: 'WORKING', moment: { ...morning, slot: 'noon' } }) }) })
+    expect(document.querySelector('[data-pet-line]')).toBeNull()
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 5, moment: { ...morning, slot: 'noon' } }) }) })
+    expect(document.querySelector('[data-pet-line]')).toBeNull()
+  })
+
 })

@@ -234,8 +234,10 @@ describe('client bundle purity gate', () => {
     expect(() => resolveId('@deepseek-ai/dsh-spill-policy/notice/internal')).toThrow(/purity/)
   })
 
-  it('admits the pure pet pack parser and built-in pack data, not the Host pet module', () => {
+  it('admits the pure pet pack and line parsers and built-in pack data, not the Host pet module', () => {
     expect(resolveId('@deepseek-ai/dsh-pet/pack')).toBeNull()
+    expect(resolveId('@deepseek-ai/dsh-pet/lines')).toBeNull()
+    expect(() => resolveId('@deepseek-ai/dsh-pet/time-context')).toThrow(/purity/)
     expect(resolveId('@deepseek-ai/dsh-pet/packs/whaletail-maid/pet.json')).toBeNull()
     expect(resolveId('@deepseek-ai/dsh-pet/packs/whaletail-maid/assets/frames/idle-1.webp')).toBeNull()
     expect(() => resolveId('@deepseek-ai/dsh-pet')).toThrow(/purity/)
