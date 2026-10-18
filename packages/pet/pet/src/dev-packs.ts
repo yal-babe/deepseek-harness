@@ -7,6 +7,7 @@
  */
 import { readdir, readFile, realpath, stat } from 'node:fs/promises'
 import { extname, join, sep } from 'node:path'
+import { parsePetLines } from './lines.ts'
 import { parsePetPack, petPackFiles } from './pack.ts'
 import type { PetPackState, PetPackView } from './types.ts'
 
@@ -56,7 +57,20 @@ async function loadPack(root: string): Promise<PetPackView> {
     const type = extname(file).toLowerCase() === '.png' ? 'image/png' : 'image/webp'
     assets[file] = `data:${type};base64,${(await readFile(real)).toString('base64')}`
   }
-  return { manifest: parsed.pack, assets, dev: true }
+  const linesFile = parsed.pack.persona?.lines
+  if (linesFile === undefined) return { manifest: parsed.pack, assets, dev: true }
+  const real = await realpath(join(root, ...linesFile.split('/'))).catch(() => undefined)
+  if (real === undefined || !real.startsWith(realRoot + sep)) throw new Error(`${linesFile} is missing or outside the pack`)
+  if ((await stat(real)).size > PET_DEV_PACK_MAX_FILE_BYTES) throw new Error(`${linesFile} exceeds ${String(PET_DEV_PACK_MAX_FILE_BYTES)} bytes`)
+  let rawLines: unknown
+  try {
+    rawLines = JSON.parse(await readFile(real, 'utf8'))
+  } catch (error) {
+    throw new Error(`${linesFile} unreadable: ${(error as Error).message}`, { cause: error })
+  }
+  const lines = parsePetLines(rawLines)
+  if (!lines.ok) throw new Error(`${linesFile}: ${lines.errors.join('; ')}`)
+  return { manifest: parsed.pack, assets, dev: true, lines: lines.table }
 }
 
 /**

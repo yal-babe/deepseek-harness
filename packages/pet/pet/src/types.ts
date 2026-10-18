@@ -10,6 +10,7 @@ import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 import type { JobId } from '@deepseek-ai/dsh-jobs/brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PetPackManifest } from './pack.ts'
+import type { PetLineTable } from './lines.ts'
 import type { PetMoment } from './time-context.ts'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -150,6 +151,8 @@ export interface PetPackView {
   readonly dev: boolean
   /** Built-in transparent video clips, loaded on demand by Chromium. */
   readonly motion?: PetMotionView
+  /** Validated local line table named by `persona.lines`; the Client picks lines from it. */
+  readonly lines?: PetLineTable
 }
 
 /** Result of `pet.pack()`: the offered pack, if any, and why other candidate packs were skipped. */

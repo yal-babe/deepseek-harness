@@ -42,6 +42,7 @@ describe('built-in motion in a Loader composition', () => {
       'play_bubbles', 'play_ball', 'play_tailspin', 'work_read', 'thinking_chin', 'thinking_idea',
       'pillow_enter', 'pillow_loop', 'pillow_wake',
     ]))
+    expect(pack.pack?.lines?.lines['greet.morning']?.length).toBeGreaterThan(0)
     expect(clips.look_around).toMatchObject({ loop: false, turn: true, label: { zh: '东张西望', en: 'Glance around' } })
     expect(pack.pack!.motion!.categories?.find(category => category.id === 'interact')?.clips)
       .toEqual(['head_pat', 'poke', 'tail', 'nuzzle', 'click_bounce', 'click_shy', 'click_huff'])

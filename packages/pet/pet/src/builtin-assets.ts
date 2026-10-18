@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { parsePetPack } from './pack.ts'
+import { parsePetLines } from './lines.ts'
 import { parsePetMotion } from './motion.ts'
 import type { PetMotionClip, PetPackState } from './types.ts'
 
@@ -21,6 +22,9 @@ export async function builtinAssets(): Promise<{
   const described = parsePetMotion(JSON.parse(await readFile(new URL('motion.json', root), 'utf8')))
   if (!described.ok) throw new Error(`pet: invalid built-in motion: ${described.errors.join('; ')}`)
   const motion = described.manifest
+  const linesFile = parsed.pack.persona?.lines
+  const lines = linesFile === undefined ? undefined : parsePetLines(JSON.parse(await readFile(new URL(linesFile, root), 'utf8')))
+  if (lines?.ok === false) throw new Error(`pet: invalid built-in lines: ${lines.errors.join('; ')}`)
   const files = new Map<string, { readonly file: URL; readonly mediaType: string }>()
   const assets: Record<string, string> = {}
   for (const clip of Object.values(parsed.pack.clips)) {
@@ -51,6 +55,7 @@ export async function builtinAssets(): Promise<{
         width: motion.width, height: motion.height, clips,
         ...motion.categories.length === 0 ? {} : { categories: motion.categories },
       },
+      ...lines === undefined ? {} : { lines: lines.table },
     },
     problems: [],
   }

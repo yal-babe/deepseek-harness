@@ -77,6 +77,22 @@ describe('loadPetDevPacks', () => {
     ])
   })
 
+  it('offers a valid persona line table and skips a pack whose table is missing or invalid', async () => {
+    const persona = (manifest: Record<string, unknown>): void => { manifest.persona = { presets: ['genki'], default: 'genki', lines: 'lines.json' } }
+    await pack('a-missing', persona)
+    const broken = await pack('b-broken', persona)
+    await writeFile(join(broken, 'lines.json'), JSON.stringify({ formatVersion: 2, lines: { 'greet.noon': [{ zh: '午安' }] } }))
+    const good = await pack('c-good', persona)
+    await writeFile(join(good, 'lines.json'), JSON.stringify({ formatVersion: 2, lines: { 'greet.noon': [{ zh: '午安', en: 'Good afternoon' }] } }))
+    const state = await loadPetDevPacks(env(root))
+    expect(state.pack?.manifest.id).toBe('c-good')
+    expect(state.pack?.lines).toEqual({ formatVersion: 2, lines: { 'greet.noon': [{ zh: '午安', en: 'Good afternoon' }] } })
+    expect(state.problems).toEqual([
+      'a-missing: lines.json is missing or outside the pack',
+      'b-broken: lines.json: trigger "greet.noon" line 0 must have exactly non-empty zh and en',
+    ])
+  })
+
   it('caps the total frame size of a pack', async () => {
     const dir = await pack('many', (manifest) => {
       const clips = manifest.clips as Record<string, { frames: string[] }>
