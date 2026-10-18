@@ -8,11 +8,19 @@
  * character or bubble. The global quick-ask shortcut is registered here.
  * "Open main window" may carry a Session id; the main process forwards it to
  * the main window renderer, which shows that Session. Dragging the character
- * moves the window; the position is remembered per display layout.
+ * moves the window; the position is remembered per display layout. A fling is
+ * thrown by the renderer, which steps the physics and asks for each window
+ * origin; this process validates, throttles, and clamps those requests, and
+ * keeps the character body (not the whole window) inside a work area so the
+ * character can reach every screen edge. While a panel or menu is open the
+ * whole window is moved on screen and put back afterwards.
  */
 import { BrowserWindow, globalShortcut, screen, type IpcMain, type IpcMainEvent } from 'electron'
 import { PET_IPC, PET_WINDOW_QUERY } from './ipc.ts'
-import { fitPetPosition, petDefaultPosition, petDisplayLayout, type PetPoint, type PetPositionStore } from './pet-position.ts'
+import {
+  fitPetBody, PET_DEFAULT_BODY, petBodyRect, petDefaultPosition, petDisplayLayout, petPlaceRequest, revealPetWindow,
+  type PetPoint, type PetPositionStore, type PetRect,
+} from './pet-position.ts'
 
 export { PET_IPC, PET_WINDOW_QUERY } from './ipc.ts'
 
@@ -21,6 +29,21 @@ export const PET_QUICK_ASK_ACCELERATOR = 'CommandOrControl+Shift+Space'
 
 /** Pet window size in DIP: room for the bubble above a 112 px character. */
 export const PET_WINDOW_SIZE = { width: 340, height: 560 } as const
+
+/** Shortest interval between window moves during a throw, in ms; later requests replace a pending one. */
+export const PET_PLACE_INTERVAL_MS = 16
+
+/** A throw without a request for this long ends where the window is, in ms (a renderer that stopped reporting). */
+export const PET_FLIGHT_IDLE_MS = 3000
+
+/** Window bounds and display geometry sent to the pet renderer, in DIP. */
+export interface PetWindowGeometry {
+  readonly window: PetRect
+  /** Work areas, one per display. */
+  readonly areas: readonly PetRect[]
+  /** Full display bounds in the same order. */
+  readonly panels: readonly PetRect[]
+}
 
 /**
  * Pet document URL for an application URL.
@@ -97,7 +120,15 @@ export class DesktopPetWindow {
   private activity: 'quiet' | 'normal' | 'lively' = 'normal'
   private direction: 'left' | 'right' = 'right'
   private interactive = false
-  private readonly relocate = (): void => { this.place() }
+  private body: PetRect = PET_DEFAULT_BODY
+  private revealed: PetPoint | undefined
+  private flight: {
+    pending: PetPoint | undefined
+    timer: ReturnType<typeof setTimeout> | undefined
+    idle: ReturnType<typeof setTimeout> | undefined
+    last: number
+  } | undefined
+  private readonly relocate = (): void => { this.place(); this.sendGeometry() }
 
   /** @param options - main-process collaborators. */
   constructor(private readonly options: DesktopPetWindowOptions) {}
@@ -135,7 +166,7 @@ export class DesktopPetWindow {
   position(): PetPoint {
     const displays = screen.getAllDisplays()
     const saved = this.options.positions?.get(petDisplayLayout(displays))
-    return (saved === undefined ? undefined : fitPetPosition(saved, displays, PET_WINDOW_SIZE))
+    return (saved === undefined ? undefined : fitPetBody(saved, displays, this.body))
       ?? petDefaultPosition(screen.getPrimaryDisplay().workArea, PET_WINDOW_SIZE)
   }
 
@@ -225,9 +256,11 @@ export class DesktopPetWindow {
     if (changed) this.options.onVisibleChange?.()
   }
 
-  /** Start moving the window with the cursor. */
+  /** Start moving the window with the cursor; catching a thrown character ends its flight. */
   dragStart(): void {
     this.stopWanderMove()
+    this.endFlight()
+    this.revealed = undefined
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
     const [x = 0, y = 0] = window.getPosition()
@@ -243,16 +276,134 @@ export class DesktopPetWindow {
     this.moveTo({ x: drag.origin.x + cursor.x - drag.cursor.x, y: drag.origin.y + cursor.y - drag.cursor.y })
   }
 
-  /** Finish a drag: keep the window on screen and remember the position for this display layout. */
-  dragEnd(): void {
+  /**
+   * Finish a drag: keep the character on screen and remember the position for this display layout.
+   * @param thrown - the renderer throws the character; the position is fitted and saved when the flight ends.
+   */
+  dragEnd(thrown = false): void {
     const window = this.window
     if (this.drag === undefined || window === undefined || window.isDestroyed()) return
     this.drag = undefined
+    if (thrown) { this.startFlight(); return }
+    const [x = 0, y = 0] = window.getPosition()
+    this.settle({ x, y })
+  }
+
+  /**
+   * Move the window to an origin the renderer computed during a throw. Moves are
+   * throttled to {@link PET_PLACE_INTERVAL_MS} and kept within reach of the
+   * displays; the final request fits the body into a work area and is saved.
+   * @param point - requested window origin.
+   * @param final - whether the flight ended.
+   */
+  placeThrown(point: PetPoint, final: boolean): void {
+    const window = this.window
+    if (this.drag !== undefined || window === undefined || window.isDestroyed()) return
+    if (final) { this.endFlight(); this.settle(point); return }
+    const flight = this.startFlight()
+    flight.pending = this.reachable(point)
+    if (flight.timer !== undefined) return
+    const wait = flight.last + PET_PLACE_INTERVAL_MS - Date.now()
+    const apply = (): void => {
+      flight.timer = undefined
+      if (this.flight !== flight || flight.pending === undefined) return
+      flight.last = Date.now()
+      this.moveTo(flight.pending)
+      flight.pending = undefined
+    }
+    if (wait <= 0) apply()
+    else flight.timer = setTimeout(apply, wait)
+  }
+
+  /**
+   * Record the character body the renderer measured, so fitting keeps the visible character on screen.
+   * @param body - body rectangle inside the window.
+   */
+  setBody(body: PetRect): void {
+    this.body = body
+    this.sendGeometry()
+  }
+
+  /**
+   * Keep the whole window, including the panel or menu, on screen while one is open; put it back afterwards.
+   * @param open - whether a panel or menu is open.
+   */
+  reveal(open: boolean): void {
+    const window = this.window
+    if (this.drag !== undefined || window === undefined || window.isDestroyed()) return
+    const [x = 0, y = 0] = window.getPosition()
+    if (open) {
+      const inside = revealPetWindow({ x, y }, screen.getAllDisplays(), PET_WINDOW_SIZE, this.body)
+      if (inside === undefined || inside.x === x && inside.y === y) return
+      this.revealed ??= { x, y }
+      this.moveTo(inside)
+    } else if (this.revealed !== undefined) {
+      const back = this.revealed
+      this.revealed = undefined
+      this.moveTo(fitPetBody(back, screen.getAllDisplays(), this.body) ?? this.position())
+    }
+    this.sendGeometry()
+  }
+
+  /** Window bounds and display geometry, or `undefined` without a live window. */
+  geometry(): PetWindowGeometry | undefined {
+    const window = this.window
+    if (window === undefined || window.isDestroyed()) return undefined
     const [x = 0, y = 0] = window.getPosition()
     const displays = screen.getAllDisplays()
-    const fitted = fitPetPosition({ x, y }, displays, PET_WINDOW_SIZE) ?? this.position()
+    return {
+      window: { x, y, ...PET_WINDOW_SIZE },
+      areas: displays.map(display => ({ ...display.workArea })),
+      panels: displays.map(display => ({ ...display.bounds })),
+    }
+  }
+
+  private sendGeometry(): void {
+    const geometry = this.geometry()
+    if (geometry !== undefined) this.window?.webContents.send(PET_IPC.geometry, geometry)
+  }
+
+  /** Fit the body into a work area, move there, remember it, and tell the renderer. */
+  private settle(point: PetPoint): void {
+    const displays = screen.getAllDisplays()
+    const fitted = fitPetBody(point, displays, this.body) ?? this.position()
     this.moveTo(fitted)
     void this.options.positions?.set(petDisplayLayout(displays), fitted)
+    this.sendGeometry()
+  }
+
+  /** Keep a mid-flight origin so the body centre stays within the hull of all displays. */
+  private reachable(point: PetPoint): PetPoint {
+    const panels = screen.getAllDisplays().map(display => display.bounds)
+    if (panels.length === 0) return point
+    const left = Math.min(...panels.map(panel => panel.x))
+    const top = Math.min(...panels.map(panel => panel.y))
+    const right = Math.max(...panels.map(panel => panel.x + panel.width))
+    const bottom = Math.max(...panels.map(panel => panel.y + panel.height))
+    const cx = this.body.x + this.body.width / 2
+    const cy = this.body.y + this.body.height / 2
+    return { x: Math.min(Math.max(point.x, left - cx), right - cx), y: Math.min(Math.max(point.y, top - cy), bottom - cy) }
+  }
+
+  /** Begin or continue a throw and re-arm its idle timeout. */
+  private startFlight(): NonNullable<DesktopPetWindow['flight']> {
+    const flight = this.flight ??= { pending: undefined, timer: undefined, idle: undefined, last: 0 }
+    if (flight.idle !== undefined) clearTimeout(flight.idle)
+    flight.idle = setTimeout(() => {
+      if (this.flight !== flight) return
+      this.endFlight()
+      const window = this.window
+      if (window === undefined || window.isDestroyed()) return
+      const [x = 0, y = 0] = window.getPosition()
+      this.settle({ x, y })
+    }, PET_FLIGHT_IDLE_MS)
+    return flight
+  }
+
+  private endFlight(): void {
+    if (this.flight?.timer !== undefined) clearTimeout(this.flight.timer)
+    if (this.flight?.idle !== undefined) clearTimeout(this.flight.idle)
+    this.flight = undefined
   }
 
   /** Schedule short movements only while the renderer reports an unobstructed idle surface. */
@@ -276,9 +427,9 @@ export class DesktopPetWindow {
       const cursor = screen.getCursorScreenPoint()
       const near = Math.hypot(cursor.x - (x + PET_WINDOW_SIZE.width - 64), cursor.y - (y + PET_WINDOW_SIZE.height - 70)) < 180
       let movementDuration = 0
-      if (!this.interactive && !near && this.drag === undefined && window.isVisible()) {
-        const target = fitPetPosition({ x: x + (Math.random() - 0.5) * 160, y: y + (Math.random() - 0.5) * 100 },
-          screen.getAllDisplays(), PET_WINDOW_SIZE)
+      if (!this.interactive && !near && this.drag === undefined && this.flight === undefined && window.isVisible()) {
+        const target = fitPetBody({ x: x + (Math.random() - 0.5) * 160, y: y + (Math.random() - 0.5) * 100 },
+          screen.getAllDisplays(), this.body)
         if (target !== undefined) {
           this.direction = target.x < x ? 'left' : 'right'
           window.webContents.send(PET_IPC.movement, { moving: true, direction: this.direction })
@@ -360,7 +511,18 @@ export class DesktopPetWindow {
       [PET_IPC.openMain, guard((value) => { this.options.openMain(petSessionId(value)) })],
       [PET_IPC.dragStart, guard(() => { this.dragStart() })],
       [PET_IPC.dragMove, guard(() => { this.dragMove() })],
-      [PET_IPC.dragEnd, guard(() => { this.dragEnd() })],
+      [PET_IPC.dragEnd, guard((value) => {
+        this.dragEnd(typeof value === 'object' && value !== null && Reflect.get(value, 'thrown') === true)
+      })],
+      [PET_IPC.place, guard((value) => {
+        const request = petPlaceRequest(value)
+        if (request !== undefined) this.placeThrown(request.point, request.final)
+      })],
+      [PET_IPC.body, guard((value) => {
+        const body = petBodyRect(value, PET_WINDOW_SIZE)
+        if (body !== undefined) this.setBody(body)
+      })],
+      [PET_IPC.reveal, guard((value) => { if (typeof value === 'boolean') this.reveal(value) })],
       [PET_IPC.wander, guard((value) => {
         if (typeof value === 'boolean') this.setWandering(value)
         else if (typeof value === 'object' && value !== null && 'active' in value && typeof value.active === 'boolean'
@@ -376,6 +538,7 @@ export class DesktopPetWindow {
   /** Release the shortcut and close the window. */
   dispose(): void {
     this.setWandering(false)
+    this.endFlight()
     this.disposed = true
     this.unregisterShortcut()
     screen.removeListener('display-added', this.relocate)
@@ -386,10 +549,11 @@ export class DesktopPetWindow {
     if (window !== undefined && !window.isDestroyed()) window.destroy()
   }
 
-  /** Move the window to the position for the current displays, unless a drag is running. */
+  /** Move the window to the position for the current displays, unless a drag or throw is running. */
   private place(): void {
     const window = this.window
-    if (this.drag !== undefined || window === undefined || window.isDestroyed()) return
+    if (this.drag !== undefined || this.flight !== undefined || window === undefined || window.isDestroyed()) return
+    this.revealed = undefined
     this.moveTo(this.position())
   }
 

@@ -55,8 +55,56 @@ export interface DesktopPetBridge {
   /**
    * Report a character drag; the main process moves the window with the cursor and remembers where it ends.
    * @param phase - drag phase.
+   * @param options - `thrown` on `end` when the renderer throws the character; older bridges ignore it.
    */
-  readonly drag: (phase: PetDragPhase) => void
+  readonly drag: (phase: PetDragPhase, options?: { readonly thrown?: boolean }) => void
+  /**
+   * Ask for a window origin during a throw; the main process throttles, clamps, and saves the final one.
+   * Absent in older bridges, which then never throw.
+   */
+  readonly place?: (point: { readonly x: number; readonly y: number }, final: boolean) => void
+  /** Report the character body inside the window, in DIP, so the main process keeps it on screen. */
+  readonly body?: (rect: PetDesktopRect) => void
+  /** Report that a panel or menu opened or closed; the main process keeps the whole window on screen meanwhile. */
+  readonly reveal?: (open: boolean) => void
+  /** Observe the window bounds and the work areas and panels of all displays. */
+  readonly onGeometry?: (listener: (geometry: unknown) => void) => () => void
+}
+
+/** Rectangle in Desktop DIP coordinates. */
+export interface PetDesktopRect {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+
+/** Window bounds and display geometry the Desktop main process reports. */
+export interface PetDesktopGeometry {
+  readonly window: PetDesktopRect
+  /** Work areas, one per display. */
+  readonly areas: readonly PetDesktopRect[]
+  /** Full display bounds in the same order. */
+  readonly panels: readonly PetDesktopRect[]
+}
+
+function isRect(value: unknown): value is PetDesktopRect {
+  if (typeof value !== 'object' || value === null) return false
+  const { x, y, width, height } = value as Record<string, unknown>
+  return [x, y, width, height].every(field => typeof field === 'number' && Number.isFinite(field)) && Number(width) > 0 && Number(height) > 0
+}
+
+/**
+ * Validate geometry received from the Desktop main process.
+ * @param value - received payload.
+ * @returns the geometry, or `undefined` when malformed or without displays.
+ */
+export function petDesktopGeometry(value: unknown): PetDesktopGeometry | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const { window, areas, panels } = value as Record<string, unknown>
+  if (!isRect(window) || !Array.isArray(areas) || !Array.isArray(panels) || areas.length === 0) return undefined
+  if (!areas.every(isRect) || !panels.every(isRect)) return undefined
+  return { window, areas, panels: panels.length === areas.length ? panels : areas }
 }
 
 /** Phase of a character drag that moves the Desktop pet window. */

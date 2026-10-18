@@ -46,7 +46,16 @@ export const PET_IPC = {
   /** Pet window to the main process: a character drag starts, moves, or ends; the main process reads the cursor itself. */
   dragStart: 'dsh-pet:drag-start',
   dragMove: 'dsh-pet:drag-move',
+  /** Payload `{ thrown: true }` when the renderer throws the character; the flight then reports through `place`. */
   dragEnd: 'dsh-pet:drag-end',
+  /** Pet window to the main process: window origin during a throw (payload `{ x, y, final }`). */
+  place: 'dsh-pet:place',
+  /** Pet window to the main process: character body rectangle inside the window, in DIP. */
+  body: 'dsh-pet:body',
+  /** Pet window to the main process: a panel or menu opened (true) or closed (false). */
+  reveal: 'dsh-pet:reveal',
+  /** Main process to the pet window: window bounds and the work areas and panels of all displays. */
+  geometry: 'dsh-pet:geometry',
   wander: 'dsh-pet:wander',
   movement: 'dsh-pet:movement',
 } as const

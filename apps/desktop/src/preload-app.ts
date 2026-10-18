@@ -115,8 +115,19 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
         ipcRenderer.on(PET_IPC.requestVisible, handle)
         return () => { ipcRenderer.off(PET_IPC.requestVisible, handle) }
       },
-      drag: (phase: 'start' | 'move' | 'end') => {
-        ipcRenderer.send(phase === 'start' ? PET_IPC.dragStart : phase === 'move' ? PET_IPC.dragMove : PET_IPC.dragEnd)
+      drag: (phase: 'start' | 'move' | 'end', options?: { thrown?: boolean }) => {
+        if (phase === 'end') ipcRenderer.send(PET_IPC.dragEnd, { thrown: options?.thrown === true })
+        else ipcRenderer.send(phase === 'start' ? PET_IPC.dragStart : PET_IPC.dragMove)
+      },
+      place: (point: { x: number; y: number }, final: boolean) => { ipcRenderer.send(PET_IPC.place, { x: point.x, y: point.y, final }) },
+      body: (rect: { x: number; y: number; width: number; height: number }) => {
+        ipcRenderer.send(PET_IPC.body, { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+      },
+      reveal: (open: boolean) => { ipcRenderer.send(PET_IPC.reveal, open) },
+      onGeometry: (listener: (geometry: unknown) => void) => {
+        const handle = (_event: unknown, geometry: unknown): void => { listener(geometry) }
+        ipcRenderer.on(PET_IPC.geometry, handle)
+        return () => { ipcRenderer.off(PET_IPC.geometry, handle) }
       },
     })
   }

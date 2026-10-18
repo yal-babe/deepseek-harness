@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import {
-  fitPetPosition, PET_POSITION_LAYOUT_LIMIT, petDefaultPosition, petDisplayLayout, PetPositionStore, type PetDisplay,
+  fitPetBody, fitPetPosition, PET_DEFAULT_BODY, PET_POSITION_LAYOUT_LIMIT, petBodyRect, petDefaultPosition, petDisplayLayout,
+  petPlaceRequest, PetPositionStore, revealPetWindow, type PetDisplay,
 } from '../src/pet-position.ts'
 
 const SIZE = { width: 340, height: 560 }
@@ -30,6 +31,34 @@ describe('display layouts and fitting', () => {
     expect(fitPetPosition({ x: 4000, y: 0 }, [primary, left], SIZE)).toBeUndefined()
     const tiny: PetDisplay = { ...left, workArea: { x: 0, y: 0, width: 100, height: 100 }, bounds: { x: 0, y: 0, width: 400, height: 600 } }
     expect(fitPetPosition({ x: 10, y: 10 }, [tiny], SIZE)).toEqual({ x: 0, y: 0 })
+  })
+})
+
+describe('body fitting and renderer requests', () => {
+  it('keeps the body inside the work area holding the body centre, letting the bubble room leave the screen', () => {
+    expect(fitPetBody({ x: -214, y: -412 }, [primary, left], PET_DEFAULT_BODY)).toEqual({ x: -164, y: 40 - 412 })
+    expect(fitPetBody({ x: -1500, y: -412 }, [primary, left], PET_DEFAULT_BODY)).toEqual({ x: -1280 - 164, y: -412 })
+    expect(fitPetBody({ x: 1600, y: 560 }, [primary, left], PET_DEFAULT_BODY)).toEqual({ x: 1588, y: 528 })
+    // Above the primary work area (taskbar strip at the top) the body is pushed down below it.
+    expect(fitPetBody({ x: 100, y: -440 }, [primary, left], PET_DEFAULT_BODY)).toEqual({ x: 100, y: 40 - 412 })
+    expect(fitPetBody({ x: 5000, y: 0 }, [primary, left], PET_DEFAULT_BODY)).toBeUndefined()
+  })
+
+  it('reveals the whole window on the display of the body, even when the window centre is off screen', () => {
+    expect(revealPetWindow({ x: -100, y: -400 }, [primary, left], SIZE, PET_DEFAULT_BODY)).toEqual({ x: 0, y: 40 })
+    expect(revealPetWindow({ x: -1500, y: -400 }, [primary, left], SIZE, PET_DEFAULT_BODY)).toEqual({ x: -1280, y: 0 })
+    expect(revealPetWindow({ x: 5000, y: 0 }, [primary, left], SIZE, PET_DEFAULT_BODY)).toBeUndefined()
+  })
+
+  it('accepts only finite non-empty bodies inside the window and finite bounded origins', () => {
+    expect(petBodyRect({ x: 164, y: 412, width: 168, height: 140 }, SIZE)).toEqual(PET_DEFAULT_BODY)
+    for (const bad of [null, 'x', { x: 0, y: 0, width: 0, height: 1 }, { x: 0, y: 0, width: 341.5, height: 1 }, { x: Number.NaN, y: 0, width: 1, height: 1 },
+      { x: -5, y: 0, width: 1, height: 1 }, { x: '0', y: 0, width: 1, height: 1 }]) {
+      expect(petBodyRect(bad, SIZE)).toBeUndefined()
+    }
+    expect(petPlaceRequest({ x: 1, y: 2 })).toEqual({ point: { x: 1, y: 2 }, final: false })
+    expect(petPlaceRequest({ x: 1, y: 2, final: true })).toEqual({ point: { x: 1, y: 2 }, final: true })
+    for (const bad of [null, { x: 1 }, { x: Infinity, y: 0 }, { x: 0, y: -2e6 }]) expect(petPlaceRequest(bad)).toBeUndefined()
   })
 })
 

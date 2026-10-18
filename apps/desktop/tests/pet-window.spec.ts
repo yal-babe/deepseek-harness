@@ -263,9 +263,10 @@ describe('DesktopPetWindow', () => {
     expect(plain.position()).toEqual({ x: 1564, y: 464 })
   })
 
-  it('clamps a remembered position into the work area and ignores one on a missing display', () => {
-    const near = setup({ [LAYOUT]: { x: 1700, y: -100 } })
-    expect(near.pet.position()).toEqual({ x: 1580, y: 0 })
+  it('clamps a remembered position so the character body is in the work area, and ignores one on a missing display', () => {
+    // Only the body must be on screen: the bubble room above it may extend past the top edge.
+    const near = setup({ [LAYOUT]: { x: 1650, y: -450 } })
+    expect(near.pet.position()).toEqual({ x: 1588, y: -412 })
     const gone = setup({ [LAYOUT]: { x: 5000, y: 100 } })
     expect(gone.pet.position()).toEqual({ x: 1564, y: 464 })
   })
@@ -286,13 +287,13 @@ describe('DesktopPetWindow', () => {
     pet.dragMove()
     expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1464, y: 514, width: 340, height: 560 })
     pet.dragEnd()
-    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1464, y: 480, width: 340, height: 560 })
-    expect(positions.set).toHaveBeenCalledWith(LAYOUT, { x: 1464, y: 480 })
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1464, y: 488, width: 340, height: 560 })
+    expect(positions.set).toHaveBeenCalledWith(LAYOUT, { x: 1464, y: 488 })
     pet.dragStart()
     native.state.cursor = { x: 9000, y: 650 }
     pet.dragMove()
     pet.dragEnd()
-    expect(positions.set).toHaveBeenLastCalledWith(LAYOUT, { x: 1464, y: 480 })
+    expect(positions.set).toHaveBeenLastCalledWith(LAYOUT, { x: 1464, y: 488 })
     await Promise.resolve()
   })
 
@@ -408,5 +409,106 @@ describe('DesktopPetWindow', () => {
     expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1464, y: 464, width: 340, height: 560 })
     send(PET_IPC.dragEnd, undefined, fake.webContents)
     expect(positions.set).toHaveBeenCalledWith(LAYOUT, { x: 1464, y: 464 })
+  })
+
+  it('applies thrown positions at most once per interval, keeps them reachable, and saves only the landing', () => {
+    vi.useFakeTimers()
+    const { pet, positions } = setup()
+    try {
+      pet.open()
+      const fake = native.windows[0]!
+      native.state.cursor = { x: 1600, y: 600 }
+      pet.dragStart()
+      pet.dragEnd(true)
+      expect(positions.set).not.toHaveBeenCalled()
+      pet.placeThrown({ x: 1000, y: 100 }, false)
+      expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1000, y: 100, width: 340, height: 560 })
+      pet.placeThrown({ x: 1010, y: 110 }, false)
+      pet.placeThrown({ x: 99999, y: 120 }, false)
+      expect(fake.setBounds).toHaveBeenCalledOnce()
+      vi.advanceTimersByTime(16)
+      // The latest request wins, held so the body centre stays within the displays.
+      expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 1920 - 248, y: 120, width: 340, height: 560 })
+      pet.placeThrown({ x: -200, y: 520 }, true)
+      expect(fake.setBounds).toHaveBeenLastCalledWith({ x: -164, y: 488, width: 340, height: 560 })
+      expect(positions.set).toHaveBeenCalledExactlyOnceWith(LAYOUT, { x: -164, y: 488 })
+      expect(fake.webContents.send).toHaveBeenCalledWith(PET_IPC.geometry, {
+        window: { x: -164, y: 488, width: 340, height: 560 }, areas: [native.primary.workArea], panels: [native.primary.bounds],
+      })
+      expect(vi.getTimerCount()).toBe(0)
+    } finally { pet.dispose(); vi.useRealTimers() }
+  })
+
+  it('ends a throw where the window is when the renderer stops reporting, and a drag catches it', () => {
+    vi.useFakeTimers()
+    const { pet, positions } = setup()
+    try {
+      pet.open()
+      const fake = native.windows[0]!
+      pet.dragStart()
+      pet.dragEnd(true)
+      pet.placeThrown({ x: 800, y: 300 }, false)
+      pet.setWandering(true, 'lively')
+      vi.advanceTimersByTime(2999)
+      expect(positions.set).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(positions.set).toHaveBeenCalledExactlyOnceWith(LAYOUT, { x: 800, y: 300 })
+      pet.setWandering(false)
+      pet.dragStart()
+      pet.dragEnd(true)
+      pet.placeThrown({ x: 700, y: 300 }, false)
+      native.state.cursor = { x: 10, y: 10 }
+      pet.dragStart()
+      pet.placeThrown({ x: 100, y: 100 }, false)
+      expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 700, y: 300, width: 340, height: 560 })
+      expect(vi.getTimerCount()).toBe(0)
+    } finally { pet.dispose(); vi.useRealTimers() }
+  })
+
+  it('fits with the reported body and moves the whole window on screen while a panel is open', () => {
+    const { pet } = setup()
+    pet.open()
+    const fake = native.windows[0]!
+    pet.setBody({ x: 100, y: 300, width: 200, height: 200 })
+    expect(fake.webContents.send).toHaveBeenLastCalledWith(PET_IPC.geometry, expect.objectContaining({ areas: [native.primary.workArea] }))
+    pet.placeThrown({ x: -180, y: -330 }, true)
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: -100, y: -300, width: 340, height: 560 })
+    pet.reveal(true)
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 340, height: 560 })
+    pet.reveal(true)
+    pet.reveal(false)
+    expect(fake.setBounds).toHaveBeenLastCalledWith({ x: -100, y: -300, width: 340, height: 560 })
+    const calls = fake.setBounds.mock.calls.length
+    pet.reveal(false)
+    // Already fully visible: nothing to move or restore.
+    pet.placeThrown({ x: 500, y: 200 }, true)
+    pet.reveal(true)
+    pet.reveal(false)
+    expect(fake.setBounds).toHaveBeenCalledTimes(calls + 1)
+  })
+
+  it('routes throw messages from the pet window and drops malformed ones', () => {
+    const { pet, positions } = setup()
+    pet.open()
+    const fake = native.windows[0]!
+    const { send } = ipcBench(pet)
+    send(PET_IPC.dragStart, undefined, fake.webContents)
+    send(PET_IPC.dragEnd, { thrown: true }, fake.webContents)
+    expect(positions.set).not.toHaveBeenCalled()
+    for (const bad of [undefined, { x: 'a', y: 1 }, { x: Infinity, y: 1 }, { x: 2e6, y: 0 }]) send(PET_IPC.place, bad, fake.webContents)
+    expect(fake.setBounds).not.toHaveBeenCalled()
+    send(PET_IPC.place, { x: 10, y: 20, final: true }, fake.webContents)
+    expect(positions.set).toHaveBeenCalledWith(LAYOUT, { x: 10, y: 20 })
+    const sent = fake.webContents.send.mock.calls.length
+    for (const bad of [null, { x: 0, y: 0, width: 0, height: 5 }, { x: 0, y: 0, width: 400, height: 5 }]) {
+      send(PET_IPC.body, bad, fake.webContents)
+    }
+    expect(fake.webContents.send).toHaveBeenCalledTimes(sent)
+    send(PET_IPC.body, { x: 0, y: 0, width: 340, height: 560 }, fake.webContents)
+    expect(fake.webContents.send)
+      .toHaveBeenLastCalledWith(PET_IPC.geometry, expect.objectContaining({ window: { x: 10, y: 20, width: 340, height: 560 } }))
+    send(PET_IPC.reveal, 'yes', fake.webContents)
+    send(PET_IPC.reveal, true, { id: 999, mainFrame: {} })
+    expect(fake.setBounds).toHaveBeenCalledOnce()
   })
 })

@@ -29,6 +29,13 @@ export interface PetDisplay {
   readonly scaleFactor: number
 }
 
+/**
+ * Character body inside the pet window at 100% size, in window DIP: the clip
+ * box at the bottom-right corner with the 8 px padding. Used until the
+ * renderer reports the measured body.
+ */
+export const PET_DEFAULT_BODY: PetRect = { x: 164, y: 412, width: 168, height: 140 }
+
 /** Gap between the default position and the work-area corner, in DIP. */
 export const PET_EDGE_MARGIN = 16
 
@@ -84,10 +91,79 @@ export function fitPetPosition(point: PetPoint, displays: readonly PetDisplay[],
   }
 }
 
+/**
+ * Keep the character body inside the work area of the display that holds the
+ * body centre. The rest of the window (bubble room) may extend past the edge,
+ * so the character can sit in any corner.
+ * @param point - wanted window origin.
+ * @param displays - all connected displays.
+ * @param body - body rectangle relative to the window origin.
+ * @returns the clamped origin, or `undefined` when no display holds the body centre.
+ */
+export function fitPetBody(point: PetPoint, displays: readonly PetDisplay[], body: PetRect): PetPoint | undefined {
+  const cx = point.x + body.x + body.width / 2
+  const cy = point.y + body.y + body.height / 2
+  const display = displays.find(({ bounds: b }) => cx >= b.x && cx < b.x + b.width && cy >= b.y && cy < b.y + b.height)
+  if (display === undefined) return undefined
+  const area = display.workArea
+  return {
+    x: Math.round(clamp(point.x, area.x - body.x, area.x + area.width - body.x - body.width)),
+    y: Math.round(clamp(point.y, area.y - body.y, area.y + area.height - body.y - body.height)),
+  }
+}
+
+/**
+ * Move the whole window inside the work area of the display that holds the
+ * body centre, so an open panel or menu is fully visible.
+ * @param point - current window origin.
+ * @param displays - all connected displays.
+ * @param size - window size.
+ * @param body - body rectangle relative to the window origin.
+ * @returns the clamped origin, or `undefined` when no display holds the body centre.
+ */
+export function revealPetWindow(point: PetPoint, displays: readonly PetDisplay[],
+  size: { readonly width: number; readonly height: number }, body: PetRect): PetPoint | undefined {
+  const cx = point.x + body.x + body.width / 2
+  const cy = point.y + body.y + body.height / 2
+  const display = displays.find(({ bounds: b }) => cx >= b.x && cx < b.x + b.width && cy >= b.y && cy < b.y + b.height)
+  if (display === undefined) return undefined
+  const area = display.workArea
+  return {
+    x: Math.round(clamp(point.x, area.x, area.x + area.width - size.width)),
+    y: Math.round(clamp(point.y, area.y, area.y + area.height - size.height)),
+  }
+}
+
+/**
+ * Validate a body rectangle reported by the renderer.
+ * @param value - untrusted value.
+ * @param size - window size the body must lie in.
+ * @returns the rectangle, or `undefined` when it is not a finite non-empty rectangle inside the window.
+ */
+export function petBodyRect(value: unknown, size: { readonly width: number; readonly height: number }): PetRect | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const { x, y, width, height } = value as Record<string, unknown>
+  if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number') return undefined
+  if (![x, y, width, height].every(Number.isFinite) || width <= 0 || height <= 0) return undefined
+  if (x < -1 || y < -1 || x + width > size.width + 1 || y + height > size.height + 1) return undefined
+  return { x, y, width, height }
+}
+
 function isPoint(value: unknown): value is PetPoint {
   if (typeof value !== 'object' || value === null) return false
   const { x, y } = value as Record<string, unknown>
   return Number.isFinite(x) && Number.isFinite(y)
+}
+
+/**
+ * Validate a window origin the renderer requests during a throw.
+ * @param value - untrusted `{ x, y, final }`.
+ * @returns the origin and whether the flight ended, or `undefined`.
+ */
+export function petPlaceRequest(value: unknown): { readonly point: PetPoint; readonly final: boolean } | undefined {
+  if (!isPoint(value) || Math.abs(value.x) > 1e6 || Math.abs(value.y) > 1e6) return undefined
+  const final = Reflect.get(value, 'final')
+  return { point: { x: value.x, y: value.y }, final: final === true }
 }
 
 /** Reads and writes `pet-window.json`; writes are serialized and atomic. */

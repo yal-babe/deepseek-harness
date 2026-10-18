@@ -15,6 +15,7 @@ import { pickPetLine, petMomentTriggers, type PetLine } from '@deepseek-ai/dsh-p
 import { clipAction, PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest } from './motion.ts'
 import { Button, Menu, MenuItemButton, MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
 import { usePagePosition } from './usePagePosition.ts'
+import { PET_BODY_ATTRIBUTE, useDesktopThrow } from './useDesktopThrow.ts'
 import css from './Pet.module.css'
 
 /** Milliseconds the approval buttons stay disabled after a card appears, against accidental clicks. */
@@ -187,7 +188,7 @@ export function PetCharacter({
       }}
       aria-haspopup={onMenu === undefined ? undefined : 'menu'}
       onContextMenu={onMenu === undefined ? undefined : (event) => { event.preventDefault(); onMenu() }}>
-      <span className={css.characterVisual} data-moving={movement?.moving === true && preferences?.reducedMotion !== true && !swimMotion}
+      <span className={css.characterVisual} {...{ [PET_BODY_ATTRIBUTE]: '' }} data-moving={movement?.moving === true && preferences?.reducedMotion !== true && !swimMotion}
         data-direction={movement?.direction}>
         {pack.motion !== undefined && playingMotion
           ? <PetMotion motion={pack.motion} state={state} activity={activity} action={action} dragging={dragging}
@@ -770,6 +771,16 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
     view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId)?.activity)
   const shortcutAction = useRef(act)
   shortcutAction.current = act
+  const systemReduced = useSystemReducedMotion()
+  const thrower = useDesktopThrow(controller, controller.canThrow && throwEnabled(preferences, systemReduced), preferences.size ?? 100)
+  // Keep the whole window on screen while a panel or menu is open; the character may otherwise sit at an edge.
+  const revealed = useRef(false)
+  useEffect(() => {
+    const showing = open || menu
+    if (showing === revealed.current) return
+    revealed.current = showing
+    controller.reveal(showing)
+  }, [controller, open, menu])
   const visibleNow = useRef(visible)
   visibleNow.current = visible
   useEffect(() => {
@@ -799,7 +810,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
   return (
     <div className={css.window} data-surface="window" data-pet-root="" style={{ '--pet-character-height': `${142 * (preferences.size ?? 100) / 100}px` } as CSSProperties}>
       <div className={css.windowStack} onMouseEnter={() => { interactive(true) }} onMouseMove={() => { interactive(true) }}
-        onMouseLeave={() => { interactive(false) }}>
+        onMouseLeave={() => { interactive(false) }} onPointerMoveCapture={(event) => { thrower.track(event) }}>
         <div className={css.desktopPanels}>
           {!open && <PetStatus state={state} useView={props.useView} t={props.t} line={line} />}
           <div hidden={!open} className={css.panelMount}>
@@ -810,7 +821,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         </div>
         <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })}
           onClick={toggle} onMenu={() => { setMenu(!menu) }}
-          movement={movement} onDrag={(phase) => { controller.drag(phase) }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+          movement={movement} onDrag={thrower.drag} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
       </div>
     </div>
   )

@@ -52,6 +52,7 @@ function controllerStub(view: ObservableSnapshot<PetViewState>, preferences: Pet
     openMain: vi.spyOn(controller, 'openMain').mockImplementation(() => {}),
     setInteractive: vi.spyOn(controller, 'setInteractive').mockImplementation(() => {}),
     drag: vi.spyOn(controller, 'drag').mockImplementation(() => {}),
+    reveal: vi.spyOn(controller, 'reveal').mockImplementation(() => {}),
     show: vi.spyOn(controller, 'show').mockResolvedValue(undefined),
     setNotify: vi.spyOn(controller, 'setNotify').mockResolvedValue(true),
     snooze: vi.spyOn(controller, 'snooze'),
@@ -488,10 +489,14 @@ describe('PetWindowRoot', () => {
     act(() => { fire?.() })
     expect(screen.getByRole('form')).toBeTruthy()
     expect(document.activeElement).toBe(screen.getAllByLabelText('quickAskLabel')[1])
+    // Opening the panel asks the main process to keep the whole window on screen; closing puts it back.
+    expect(controller.reveal).toHaveBeenLastCalledWith(true)
     fireEvent.click(screen.getByRole('button', { name: /characterLabel/u }))
     expect(screen.queryByRole('form')).toBeNull()
+    expect(controller.reveal).toHaveBeenLastCalledWith(false)
     fireEvent.click(screen.getByRole('button', { name: /characterLabel/u }))
     expect(screen.getByRole('form')).toBeTruthy()
+    expect(controller.reveal).toHaveBeenCalledTimes(3)
     unmount()
     expect(fire).toBeUndefined()
   })

@@ -8,7 +8,7 @@ import { sendQuickAsk, type QuickAskDeps, type QuickAskOutcome, type QuickAskTar
 import { setDeviceNotify, type NotificationSink } from './notifier.ts'
 import { PET_SNOOZE_MS, type PetPreferences, type PetPreferenceStore } from './preferences.ts'
 import type { PetViewState } from './store.ts'
-import type { DesktopPetBridge, PetDragPhase } from './surface.ts'
+import { petDesktopGeometry, type DesktopPetBridge, type PetDesktopGeometry, type PetDesktopRect, type PetDragPhase } from './surface.ts'
 
 /** Session status source slice: `uiSession.sessionStatus`. */
 export type SessionStatusSource = ObservableSnapshot<
@@ -213,8 +213,53 @@ export class PetController {
   /**
    * Move the Desktop pet window with a character drag; no-op elsewhere.
    * @param phase - drag phase.
+   * @param thrown - on `end`: the renderer throws the character and reports the flight through {@link place}.
    */
-  drag(phase: PetDragPhase): void {
-    this.deps.bridge?.drag(phase)
+  drag(phase: PetDragPhase, thrown = false): void {
+    if (phase === 'end' && thrown) this.deps.bridge?.drag(phase, { thrown })
+    else this.deps.bridge?.drag(phase)
+  }
+
+  /** Whether this Desktop bridge lets the renderer throw the window. */
+  get canThrow(): boolean {
+    const bridge = this.deps.bridge
+    return bridge?.place !== undefined && bridge.onGeometry !== undefined
+  }
+
+  /**
+   * Ask for a Desktop window origin during a throw.
+   * @param point - window origin in DIP.
+   * @param final - whether the flight ended.
+   */
+  place(point: { readonly x: number; readonly y: number }, final: boolean): void {
+    this.deps.bridge?.place?.(point, final)
+  }
+
+  /**
+   * Report the character body inside the Desktop pet window.
+   * @param rect - body in window DIP.
+   */
+  reportBody(rect: PetDesktopRect): void {
+    this.deps.bridge?.body?.(rect)
+  }
+
+  /**
+   * Report that a panel or menu opened or closed in the Desktop pet window.
+   * @param open - whether one is open.
+   */
+  reveal(open: boolean): void {
+    this.deps.bridge?.reveal?.(open)
+  }
+
+  /**
+   * Observe Desktop window and display geometry; malformed reports are dropped.
+   * @param listener - called with each valid report.
+   * @returns unsubscribe.
+   */
+  onGeometry(listener: (geometry: PetDesktopGeometry) => void): () => void {
+    return this.deps.bridge?.onGeometry?.((value) => {
+      const geometry = petDesktopGeometry(value)
+      if (geometry !== undefined) listener(geometry)
+    }) ?? (() => {})
   }
 }
