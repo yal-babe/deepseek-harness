@@ -6,7 +6,7 @@ import { PetSprite } from '../src/client/PetSprite.tsx'
 import {
   autonomousPackClips, availableActions, balanceTier, clickArea, clickClip, clipAllowed, eventClip, idleDelay, lifeActions, mirrorsClip,
   nextAutonomousClip,
-  nextChainClip, nextIdleClip, PET_ACTIONS, roamDelay, smoothClip, taskClip, travelAt, travelScale, walkDirection,
+  nextChainClip, nextIdleClip, PET_ACTIONS, roamDelay, smoothClip, standsAside, taskClip, travelAt, travelScale, walkDirection,
 } from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
@@ -210,6 +210,23 @@ describe('action slots without their clips', () => {
       'idle', 'thinking', 'mystery'])
     expect(smoothClip('play_ball', { ...videos, clips: { ...videos.clips, play_ball: clip('play_ball') } })).toBe('play_ball')
     expect(smoothClip('bubbles', motion)).toBe('idle')
+  })
+
+  it('lets upstream stand-ins fill reserved slots until the AI-video clip arrives', () => {
+    const small = { id: 'small', label: { zh: '小', en: 'Small' }, weight: 1, life: ['idle' as const], clips: ['whisper_daydream', 'idle_daydream'] }
+    const stand: PetMotionView = {
+      ...videos, categories: [small],
+      clips: { ...videos.clips, whisper_daydream: clip('whisper_daydream'), thinking_deep: clip('thinking_deep') },
+    }
+    expect(smoothClip('idle_daydream', stand)).toBe('whisper_daydream')
+    expect(smoothClip('thinking_chin', stand)).toBe('thinking_deep')
+    expect(standsAside(stand, 'whisper_daydream')).toBe(false)
+    expect(nextChainClip(stand, 'idle', undefined, undefined, () => 0)).toBe('whisper_daydream')
+    const filled: PetMotionView = { ...stand, clips: { ...stand.clips, idle_daydream: clip('idle_daydream'), thinking_chin: clip('thinking_chin') } }
+    expect(standsAside(filled, 'whisper_daydream')).toBe(true)
+    expect(standsAside(filled, 'thinking_deep')).toBe(true)
+    expect([0, 0.99].map(value => nextChainClip(filled, 'idle', undefined, undefined, () => value))).toEqual(['idle_daydream', 'idle_daydream'])
+    expect(smoothClip('thinking_chin', filled)).toBe('thinking_chin')
   })
 
   it('plays the success clip for a menu celebration the pack cannot show', () => {

@@ -54,6 +54,22 @@ export function clipAllowed(clip: string, enabled: readonly PetAction[] = PET_AC
   return action !== undefined ? enabled.includes(action) : enabledClips === undefined || enabledClips.includes(clip)
 }
 
+/**
+ * Upstream clips that stand in for a reserved AI-video slot. When the pack has the slot's own clip, the stand-in
+ * steps aside in autonomous play and the thinking rotation, so the AI-video clip takes precedence.
+ */
+export const SLOT_STAND_INS: Readonly<Record<string, string>> = { whisper_daydream: 'idle_daydream', thinking_deep: 'thinking_chin' }
+
+/** Whether a stand-in clip yields to the slot clip it stands in for.
+ * @param motion - available character media.
+ * @param clip - pack clip name.
+ * @returns true when the pack has the clip of the slot that `clip` stands in for.
+ */
+export function standsAside(motion: PetMotionView, clip: string): boolean {
+  const slot = SLOT_STAND_INS[clip]
+  return slot !== undefined && motion.clips[slot] !== undefined
+}
+
 /** Pack-only clips the autonomous chain can draw: members of categories with a life state, turns, and walks.
  * @param motion - available character media.
  * @returns clip names in pack order, without named interactions.
@@ -88,7 +104,8 @@ export function lifeActions(life: PetLifeState = 'idle', enabled: readonly PetAc
  */
 export function nextChainClip(motion: PetMotionView, life: PetLifeState = 'idle', enabled: readonly PetAction[] = PET_ACTIONS,
   previous: string | undefined, random: () => number, enabledClips?: readonly string[]): string | undefined {
-  const allowed = (clip: string): boolean => motion.clips[clip] !== undefined && clipAllowed(clip, enabled, enabledClips)
+  const allowed = (clip: string): boolean =>
+    motion.clips[clip] !== undefined && !standsAside(motion, clip) && clipAllowed(clip, enabled, enabledClips)
   if (motion.categories === undefined || motion.categories.length === 0) {
     return nextIdleClip(previous, random(), lifeActions(life, enabled).map(action => ACTION_CLIP[action]).filter(allowed))
   }
@@ -320,9 +337,9 @@ export function balanceTier(usedPercent: number): number {
  */
 export const CLIP_SUBSTITUTES: Readonly<Record<string, readonly string[]>> = {
   bubbles: ['click_bounce', 'idle'], celebrate: ['success'], nuzzle: ['head_pat'], sleep: ['idle_yawn'], rest_pillow: ['idle_yawn'],
-  idle_daydream: ['idle_yawn'], idle_observe: ['look_around'], idle_groom: ['idle_stretch'], swim: ['idle'],
+  idle_daydream: ['whisper_daydream', 'idle_yawn'], idle_observe: ['look_around'], idle_groom: ['idle_stretch'], swim: ['idle'],
   play_bubbles: ['click_bounce'], play_ball: ['click_bounce'], play_tailspin: ['turn_run', 'click_bounce'],
-  work_read: ['thinking'], thinking_chin: ['thinking'], thinking_idea: ['thinking'],
+  work_read: ['thinking'], thinking_chin: ['thinking_deep', 'thinking'], thinking_idea: ['thinking'],
 }
 
 /** Clip to play for a requested animation: the clip itself, or an available substitute when the pack lacks it or

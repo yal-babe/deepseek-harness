@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
 import {
-  idleDelay, mirrorsClip, nextAutonomousClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, taskClip, travelAt, travelScale,
-  walkDirection, type PetActionRequest,
+  idleDelay, mirrorsClip, nextAutonomousClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, standsAside, taskClip, travelAt,
+  travelScale, walkDirection, type PetActionRequest,
 } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { useMotionPhases } from './useMotionPhases.ts'
@@ -77,7 +77,8 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   const [systemReduced, setSystemReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true)
   const resultClip = useRef('success')
   const [thinkingName, setThinkingName] = useState('thinking')
-  const thinkingCandidates = ['thinking', 'thinking_chin', 'thinking_idea', 'work_read'].filter(name => motion.clips[name] !== undefined)
+  const thinkingCandidates = ['thinking', 'thinking_chin', 'thinking_idea', 'work_read', 'thinking_deep']
+    .filter(name => motion.clips[name] !== undefined && !standsAside(motion, name))
   useEffect(() => {
     if (state === 'THINKING') setThinkingName(previous => nextIdleClip(previous, Math.random(), thinkingCandidates) ?? 'thinking')
   }, [state, motion])

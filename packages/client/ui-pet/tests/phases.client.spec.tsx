@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, renderHook } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 import { PetSprite } from '../src/client/PetSprite.tsx'
-import { hasTravelPhases, restFamily, useMotionPhases } from '../src/client/useMotionPhases.ts'
+import { familyExit, hasTravelPhases, restFamily, useMotionPhases } from '../src/client/useMotionPhases.ts'
 
 const motion: PetMotionView = { width: 208, height: 208, clips: Object.fromEntries([
   'swim_start', 'swim_loop', 'swim_stop', 'pillow_enter', 'pillow_loop', 'pillow_wake',
@@ -69,6 +69,28 @@ describe('persistent motion phases', () => {
     expect(restFamily(with_('idle', 'sleep'))).toBeUndefined()
     expect(restFamily(with_('idle'))?.loop).toBe('idle')
     expect(restFamily(with_('working'))).toBeUndefined()
+    const doze = ['idle', 'doze_enter', 'doze_loop', 'doze_wake', 'doze_startle']
+    expect(restFamily(with_(...doze))?.loop).toBe('doze_loop')
+    expect(restFamily(with_(...doze, 'sleep'))?.loop).toBe('doze_loop')
+    // AI-video sleeping clips take precedence over the upstream nap.
+    expect(restFamily(with_(...doze, 'sleep_enter', 'sleep_loop', 'sleep_wake'))?.loop).toBe('sleep_loop')
+  })
+
+  it('naps on the upstream doze clips and wakes gently or startled', () => {
+    const clip = { url: '/x.webm', durationMs: 1000, loop: false }
+    const nap: PetMotionView = { width: 1, height: 1, clips: Object.fromEntries(
+      ['idle', 'doze_enter', 'doze_loop', 'doze_wake', 'doze_startle'].map(name => [name, clip])) }
+    const family = restFamily(nap)
+    expect(familyExit(nap, family, () => 0)).toBe('doze_wake')
+    expect(familyExit(nap, family, () => 0.99)).toBe('doze_startle')
+    const { doze_startle: _, ...gentle } = nap.clips
+    expect(familyExit({ ...nap, clips: gentle }, family, () => 0.99)).toBe('doze_wake')
+    const view = renderHook(props => useMotionPhases(nap, props), { initialProps: { ...options, resting: true, random: () => 0.99 } })
+    expect(view.result.current.clip).toBe('doze_enter')
+    act(() => { view.result.current.finish('doze_enter') })
+    expect(view.result.current.clip).toBe('doze_loop')
+    view.rerender({ ...options, resting: false, random: () => 0.99 })
+    expect(view.result.current.clip).toBe('doze_startle')
   })
 })
 
