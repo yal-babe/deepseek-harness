@@ -26,6 +26,7 @@ import type {
   PetSnapshot,
   PetWorkActivity,
 } from './types.ts'
+import type { PetMoment } from './time-context.ts'
 
 /** Session facts the fold reads besides the event itself. */
 export interface PetSessionMeta {
@@ -74,6 +75,8 @@ export interface PetSnapshotInputs {
   readonly pinnedSessionId: SessionId | undefined
   /** Shared pet settings; they also decide `restrictedInPet` of each pending approval. */
   readonly settings: PetSettingsView
+  /** Host-local time context, computed by the caller from its clock. */
+  readonly moment?: PetMoment
 }
 
 /**
@@ -333,6 +336,7 @@ export class PetReducer {
       jobs: [...this.jobs.values()].sort((left, right) => left.startedAt - right.startedAt),
       visible: inputs.visible,
       settings: inputs.settings,
+      ...(inputs.moment === undefined ? {} : { moment: inputs.moment }),
     }
   }
 

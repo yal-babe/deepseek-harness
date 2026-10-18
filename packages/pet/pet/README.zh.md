@@ -63,6 +63,7 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 - 开启 `holdCompletionsWhileBusy`（默认开启）时，若会话的子代理后代（会话头 `parentSession` 指向它且 `origin: 'subagent'` 的子会话，以及它们的子会话）仍在运行轮次或持有未结束的作业，成功结果会先等待。期间会话读作 `WORKING`；后代安静 `completionQuietMs`（默认 1500 ms）后，结果连同通知一起落定。会话自己的作业（例如开发服务器）与错误不等待；分叉会话不算后代。
 - 目标轮次只播报最终结果。`goal/change` 与归属目标的 `user/message` 按结构读取，不导入 dsh-goal：目标仍需后续轮次时，成功的一轮读作 `IDLE`，不标记未读结果；完成目标的一轮读作 `SUCCESS`；目标在某轮中被阻塞，或在轮次之间因轮数上限被阻塞，读作 `ERROR`。轮次之间暂停或清除目标不会播报。
 - `approval/asked` 与 `approval/decided`（user-approval 写入的审计事件）跟踪待审批项，包括本身未被跟踪的子代理会话。只要存在待审批项，角色即为 `WAITING`。
+- 每个快照都携带 `moment`，即 Host 本地的时段、日类型与节日（`@deepseek-ai/dsh-pet/time-context`）；到期定时器也会在下一个时段边界触发，使 moment 无需事件也保持最新。
 - `todo/write` 提供进度，`session/title` 提供标题，`job/registered` / `job/settled` 列出运行中的作业。
 
 角色优先级为 `WAITING > ERROR > SUCCESS > WORKING > THINKING > IDLE`。被钉住的会话获得焦点，除非 `waitingPreempts` 让 `WAITING` 会话抢占。`watch()` 在 `snapshotDebounceMs` 内合并变化。汇总失败只记录日志，绝不影响会话追加路径。
@@ -94,7 +95,7 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 <a id="known-limitations-and-deferred-work"></a>
 
 - **MVP 范围** — 未实现 `TALKING`、压缩与重试状态。除可见性、工具限制与通知类别以外的设置（气泡、性格、快捷键、更新）未实现。
-- **宠物包** — 开发包使用 `frames` 渲染器，内置媒体另外支持视频和图集片段；不支持 studio-cloud 签名包、内容包、换装、脚本与声音。`lines.json` 随包提供并有测试检查，但尚未用于台词。
+- **宠物包** — 开发包使用 `frames` 渲染器，内置媒体另外支持视频和图集片段；不支持 studio-cloud 签名包、内容包、换装、脚本与声音。`lines.json` 随包提供并有测试检查，快照也携带用于选择问候与节日台词的 `moment`，但尚无 Client 说出这些台词。
 - **Host 侧不做审批决定** — 从 Host 决定需要 user-approval 能取消已转发给 Client 的请求；因此改由 Client 回答。
 
 存在 `webServer` 时，`pet.pack()` 会提供内置媒体及回退帧清单。`/pet-motion` 仅提供允许列表中的随包媒体，支持 GET、HEAD 和单段字节范围请求，并随所属插件卸载而移除路由。16 段透明 VP9 视频保留全部 3,444 帧导入素材，另有十四组共 666 个实际帧、按每动作 6～10 fps 播放的生成图集，包含四套重制及十套新增。图集元数据支持从零开始的 `startFrame` 和播放帧数，让睡眠及移动的进入／循环／退出片段共用同一个资源地址；地址附加内容摘要，避免素材更新后继续使用旧浏览器缓存。来源和编码记录位于 `packs/whaletail-maid/motion.json`；`MOTION_LICENSE.txt` 保留适用于代码的上游 MIT 文本，素材条款见[宠物包](#pet-packs)。有效开发包优先。

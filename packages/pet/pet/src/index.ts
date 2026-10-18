@@ -9,6 +9,7 @@ import Schema from '@deepseek-ai/schemastery'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { PET_COMPLETION_QUIET_MS, PetReducer } from './reducer.ts'
+import { nextPetMomentChange, petMomentOf } from './time-context.ts'
 import type { PetSessionMeta } from './reducer.ts'
 import { loadPetDevPacks } from './dev-packs.ts'
 import { builtinAssets, PET_MEDIA_PATH } from './builtin-assets.ts'
@@ -171,8 +172,11 @@ export class PetService extends TypertRemoteService {
   private armExpiry(now: number): void {
     if (this.expiryTimer !== undefined) clearTimeout(this.expiryTimer)
     this.expiryTimer = undefined
-    const expiry = this.reducer.nextExpiry(now)
-    if (expiry === undefined || this.closed) return
+    if (this.closed) return
+    // The time of day and festival change without events; re-emit at the next slot boundary.
+    const hold = this.reducer.nextExpiry(now)
+    const moment = nextPetMomentChange(now)
+    const expiry = hold === undefined ? moment : Math.min(hold, moment)
     this.expiryTimer = setTimeout(() => {
       this.expiryTimer = undefined
       this.changed()
@@ -188,11 +192,13 @@ export class PetService extends TypertRemoteService {
     const now = Date.now()
     this.revision += 1
     this.armExpiry(now)
+    const moment = petMomentOf(new Date(now))
     return this.reducer.snapshot(now, {
       revision: this.revision,
       visible: this.visibleOverride ?? this.config.visible.get(),
       pinnedSessionId: this.pinned,
       settings: this.settings(),
+      ...(moment === undefined ? {} : { moment }),
     })
   }
 

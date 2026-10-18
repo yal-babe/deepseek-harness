@@ -154,6 +154,21 @@ describe('PetService', () => {
     expect(frame.value.primary).toBe('IDLE')
   })
 
+  it('publishes the local moment and re-emits at the next time-of-day boundary', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 1, 12, 59, 0))
+    const { pet } = await setup()
+    const iterator = pet.watch(new AbortController().signal)[Symbol.asyncIterator]()
+    const first = await iterator.next()
+    if (first.done === true) throw new Error('stream ended early')
+    expect(first.value.moment).toEqual({ date: '2026-10-01', slot: 'noon', dayKind: 'workday', festival: { id: 'national-day', phase: 'today' } })
+    const next = iterator.next()
+    await vi.advanceTimersByTimeAsync(60_000)
+    const frame = await next
+    if (frame.done === true) throw new Error('stream ended early')
+    expect(frame.value.moment?.slot).toBe('afternoon')
+  })
+
   it('re-arms one expiry timer across reads and clears it on dispose', async () => {
     vi.useFakeTimers()
     const { ctx, pet, dispose } = await setup({ successHoldMs: 1000 })

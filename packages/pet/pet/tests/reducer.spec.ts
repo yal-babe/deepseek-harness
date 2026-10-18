@@ -91,6 +91,11 @@ describe('PetReducer turn lifecycle', () => {
     expect(fold.snapshot(5, INPUTS).sessions[0]?.progress).toBeUndefined()
   })
 
+  it('carries the caller-supplied moment', () => {
+    const moment = { date: '2026-10-01', slot: 'noon', dayKind: 'workday', festival: { id: 'national-day', phase: 'today' } } as const
+    expect(reducer().snapshot(0, { ...INPUTS, moment }).moment).toEqual(moment)
+  })
+
   it('ignores unrelated events', () => {
     const fold = reducer()
     expect(fold.apply(top(S1), ev('step/end', 1, { turn: 1, step: 1 }))).toBe(false)

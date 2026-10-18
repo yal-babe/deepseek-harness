@@ -10,6 +10,7 @@ import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 import type { JobId } from '@deepseek-ai/dsh-jobs/brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PetPackManifest } from './pack.ts'
+import type { PetMoment } from './time-context.ts'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
@@ -135,6 +136,8 @@ export interface PetSnapshot {
   readonly visible: boolean
   /** Shared pet settings. */
   readonly settings: PetSettingsView
+  /** Host-local time of day, day kind, and festival that select greeting and festival lines. */
+  readonly moment?: PetMoment
 }
 
 /** Character pack and optional media offered by the Host. */
