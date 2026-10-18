@@ -28,7 +28,9 @@ This tool owns exactly the clips whose source kind is "dsh-pet-webm" and the
 top-level "categories", "chain", "events" (event tiers), and "clicks" (click
 responses by body area) entries. It never rewrites clips of other kinds, and the
 other import tools preserve what it writes. Clips it imported earlier but no
-longer lists are removed together with their media.
+longer lists are removed together with their media. Category members that
+tools/import-ai-video.py added (clips of kind "ai-video") are kept after the
+recipe's members, and categories holding only such clips are kept as they are.
 """
 import hashlib
 import json
@@ -211,7 +213,23 @@ for area, names in recipe['clicks'].items():
     if area != 'note' and any(name not in clips for name in names):
         raise SystemExit(f'click area {area} names unknown clips')
 manifest['formatVersion'] = 2
-manifest['categories'] = recipe['categories']
+
+
+def merge_categories(listed: list, existing: list, clips: dict) -> list:
+    """Recipe categories, keeping the AI-video members and categories another tool added."""
+    def added(name: str) -> bool:
+        return clips.get(name, {}).get('source', {}).get('kind') == 'ai-video'
+    previous = {category['id']: category for category in existing}
+    merged = []
+    for category in listed:
+        extra = [name for name in previous.get(category['id'], {}).get('clips', []) if added(name) and name not in category['clips']]
+        merged.append({**category, 'clips': [*category['clips'], *extra]})
+    ids = {category['id'] for category in listed}
+    merged += [category for category in existing if category['id'] not in ids and category['clips'] and all(map(added, category['clips']))]
+    return merged
+
+
+manifest['categories'] = merge_categories(recipe['categories'], manifest.get('categories', []), clips)
 manifest['chain'] = recipe['chain']
 manifest['events'] = recipe['events']
 manifest['clicks'] = {area: names for area, names in recipe['clicks'].items() if area != 'note'}

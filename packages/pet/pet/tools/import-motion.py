@@ -7,8 +7,8 @@ covers code; it does not relicense those assets.
 
 Usage: python3 tools/import-motion.py /path/to/dsh-dafeiyu
 Requires ffmpeg with libvpx-vp9. The clips listed in the dsh-dafeiyu manifest are
-overwritten deterministically; clips with a source kind (generated sheets, dsh-pet
-webm, AI video), the categories, chain weights, event tiers, click areas, and the
+overwritten deterministically; clips with a source kind (dsh-pet webm, AI video,
+or a pack sheet), the categories, chain weights, event tiers, click areas, and the
 recorded upstream baseline (upstreamBaseline) are kept from the existing motion.json.
 """
 import hashlib
@@ -23,7 +23,7 @@ manifest = json.loads((source / 'assets/pet-manifest.json').read_text(encoding='
 output = pack / 'assets/motion'
 output.mkdir(parents=True, exist_ok=True)
 existing = json.loads((pack / 'motion.json').read_text(encoding='utf-8')) if (pack / 'motion.json').exists() else {}
-# Clips with a source kind belong to other import tools (generated sheets, dsh-pet webm, AI video).
+# Clips with a source kind belong to other import tools (dsh-pet webm, AI video) or ship as pack sheets.
 clips = {name: clip for name, clip in existing.get('clips', {}).items() if clip.get('source', {}).get('kind') is not None}
 for name, clip in manifest['clips'].items():
     frames = clip['frames']
