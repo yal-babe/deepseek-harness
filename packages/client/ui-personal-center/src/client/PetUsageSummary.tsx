@@ -4,15 +4,17 @@ import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UsageTokenTotals } from '@deepseek-ai/dsh-usage-stats/types'
 import type { PersonalCenterPageProps } from './PersonalCenterPage.tsx'
+import { petBalanceReadings } from './petBalance.ts'
 import css from './PetUsageSummary.module.css'
 
 /**
  * Reuse the local usage fold and provider account queries without a second counter.
- * @param props - pet visibility and focus, plus the existing personal-center data owner.
+ * A pet balance request refreshes them and reports the readings the pet animates.
+ * @param props - pet visibility, focus, and balance request, plus the existing personal-center data owner.
  * @returns a compact usage and balance summary.
  */
-export function PetUsageSummary({ visible, sessionId, taskState, t, controller, useSnapshot }:
-  Pick<PropsRuntime<'pet.panel.metrics'>, 'visible' | 'sessionId' | 'taskState'> & PersonalCenterPageProps) {
+export function PetUsageSummary({ visible, sessionId, taskState, balanceRequest, reportBalance, t, controller, useSnapshot }:
+  Pick<PropsRuntime<'pet.panel.metrics'>, 'visible' | 'sessionId' | 'taskState' | 'balanceRequest' | 'reportBalance'> & PersonalCenterPageProps) {
   const state = useSnapshot(value => value)
   const previous = useRef({ visible: false, taskState })
   useEffect(() => {
@@ -21,6 +23,14 @@ export function PetUsageSummary({ visible, sessionId, taskState, t, controller, 
     previous.current = { visible, taskState }
     if (visible && (opened || completed)) void controller.load()
   }, [visible, controller, taskState])
+  // A balance request from the pet refreshes the same owner data, then reports what it can animate.
+  const answered = useRef(balanceRequest)
+  useEffect(() => {
+    if (balanceRequest === undefined || balanceRequest === answered.current) return
+    answered.current = balanceRequest
+    const report = (): void => { reportBalance?.(petBalanceReadings(controller.store.getSnapshot(), t)) }
+    void controller.load().then(report, report)
+  }, [balanceRequest, controller])
   const number = (tokens: UsageTokenTotals): string =>
     (tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens).toLocaleString(t('numberLocale'))
   const current = state.usage?.sessions.find(row => row.sessionId === sessionId)
