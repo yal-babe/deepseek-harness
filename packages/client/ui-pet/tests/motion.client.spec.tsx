@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetMotion } from '../src/client/PetMotion.tsx'
 import { PetSprite } from '../src/client/PetSprite.tsx'
-import { idleDelay, nextIdleClip, roamDelay, taskClip } from '../src/client/motion.ts'
+import { idleDelay, lifeActions, nextIdleClip, roamDelay, taskClip } from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
 const clip = (name: string, loop = false) => ({ url: `/${name}.webm`, durationMs: 1000, loop })
@@ -20,6 +20,27 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers() })
 
 describe('motion scheduling', () => {
+  it('reserves play activities for entertainment and honors the device allowlist', () => {
+    expect(lifeActions('idle')).toEqual(['stretch', 'yawn', 'daydream', 'observe', 'groom'])
+    expect(lifeActions('play')).toEqual(['bubbles', 'celebrate', 'chaseBubbles', 'playBall', 'tailSpin'])
+    expect(lifeActions('play', ['yawn', 'playBall'])).toEqual(['playBall'])
+    expect(lifeActions('play', [])).toEqual([])
+    expect(lifeActions('rest')).toEqual([])
+  })
+
+  it('plays different autonomous clips in idle and entertainment', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const withPlay = { ...motion, clips: { ...motion.clips, play_ball: clip('play_ball') } }
+    const props = { motion: withPlay, state: 'IDLE' as const, dragging: false, paused: false, onFailure: vi.fn() }
+    const view = render(<PetMotion {...props} preferences={{ ...preferences, life: 'idle' }} />)
+    act(() => { vi.advanceTimersByTime(8000) })
+    expect(view.container.querySelector('video')!.getAttribute('src')).toBe('/idle_stretch.webm')
+    fireEvent.ended(view.container.querySelector('video')!)
+    view.rerender(<PetMotion {...props} preferences={{ ...preferences, life: 'play', actions: ['playBall'] }} />)
+    act(() => { vi.advanceTimersByTime(6000) })
+    expect(view.container.querySelector('video')!.getAttribute('src')).toBe('/play_ball.webm')
+  })
+
   it('uses distinct rest intervals and does not repeat the last idle action', () => {
     expect(idleDelay('quiet', 0)).toBe(20000)
     expect(idleDelay('lively', 1)).toBe(7000)
@@ -30,7 +51,7 @@ describe('motion scheduling', () => {
 
   it('rests after the idle clip ends and immediately returns to a new task', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0)
-    const props = { motion, state: 'IDLE' as const, dragging: false, preferences: { ...preferences, actions: ['stretch', 'headPat'] as const }, paused: false, onFailure: vi.fn() }
+    const props = { motion, state: 'IDLE' as const, dragging: false, preferences: { ...preferences, actions: ['stretch', 'yawn'] as const }, paused: false, onFailure: vi.fn() }
     const view = render(<PetMotion {...props} />)
     const source = () => view.container.querySelector('video')!.getAttribute('src')
     expect(source()).toBe('/idle.webm')

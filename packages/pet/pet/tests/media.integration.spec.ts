@@ -32,7 +32,10 @@ describe('built-in motion in a Loader composition', () => {
     await ctx.loader.await()
     const pack = await ctx.pet.pack()
     expect(pack.pack?.dev).toBe(false)
+    expect(pack.pack?.motion).toMatchObject({ width: 412, height: 344 })
     const clips = pack.pack!.motion!.clips
+    expect(clips.bubbles!.durationMs).toBe(7000)
+    expect(clips.sleep_enter!.durationMs).toBe(2167)
     expect(Object.keys(clips)).toEqual(expect.arrayContaining([
       'bubbles', 'celebrate', 'nuzzle', 'sleep_enter', 'sleep_loop', 'sleep_wake',
       'idle_daydream', 'idle_observe', 'idle_groom', 'swim_start', 'swim_loop', 'swim_stop',

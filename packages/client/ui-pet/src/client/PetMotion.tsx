@@ -1,7 +1,7 @@
 /** Full-length transparent clips, idle scheduling, and bounded decorative effects. */
 import { useEffect, useRef, useState } from 'react'
 import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
-import { ACTION_CLIP, idleDelay, nextIdleClip, petIsIdle, smoothClip, taskClip, type PetActionRequest } from './motion.ts'
+import { ACTION_CLIP, idleDelay, lifeActions, nextIdleClip, petIsIdle, smoothClip, taskClip, type PetActionRequest } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { useMotionPhases } from './useMotionPhases.ts'
 import { PetSprite } from './PetSprite.tsx'
@@ -106,8 +106,7 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   useEffect(() => {
     if (!canDecorate || decoration !== undefined) return
     const timer = setTimeout(() => {
-      const allowed = (preferences.actions ?? Object.keys(ACTION_CLIP) as (keyof typeof ACTION_CLIP)[])
-        .filter(action => preferences.life !== 'play' || !['sleep', 'yawn'].includes(action))
+      const allowed = lifeActions(preferences.life, preferences.actions)
         .map(action => ACTION_CLIP[action]).filter(name => motion.clips[name] !== undefined)
       const name = nextIdleClip(previousIdle.current, Math.random(), allowed)
       if (name === undefined) return

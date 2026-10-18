@@ -158,7 +158,7 @@ for entry in recipe['animations']:
             raise ValueError(f"Invalid segment in {entry['name']}")
         manifest['clips'][segment['name']] = {
             'file': f"assets/motion/{entry['name']}.png", 'loop': segment['loop'],
-            'durationMs': round(count * 1000 / 24), 'frames': count,
+            'durationMs': round(count * 1000 / entry['fps']), 'frames': count,
             'sheet': {'columns': columns, 'rows': rows, 'frames': count, 'startFrame': start},
             'sha256': digest,
             'source': {'kind': 'generated', 'description': entry['description'],
@@ -166,7 +166,7 @@ for entry in recipe['animations']:
                        'actualFrames': len(frames), 'uniquePixelFrames': len(set(hashes)),
                        'sourceSize': {'width': image.width, 'height': image.height},
                        'rowColumnEdges': [entry.get('columnEdges', [round(column * image.width / count) for column in range(count + 1)]) for count in row_columns],
-                       'rowEdges': edges, 'rowColumns': row_columns, 'rowExtraction': extraction, 'rowHeightCalibration': row_factors, 'fps': 24, 'normalization': 'alpha-island-extraction-row-calibration-ground-anchor'},
+                       'rowEdges': edges, 'rowColumns': row_columns, 'rowExtraction': extraction, 'rowHeightCalibration': row_factors, 'fps': entry['fps'], 'normalization': 'alpha-island-extraction-row-calibration-ground-anchor'},
         }
     print(entry['name'], len(frames), 'frames;', len(set(hashes)), 'unique;', destination.stat().st_size, 'bytes', flush=True)
 manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')

@@ -3,14 +3,14 @@ Built-in Dafeiyu motion assets
 The 16 .webm files are re-encoded from qcytsn/dsh-dafeiyu's MIT-licensed
 whale-tail maid frames, originally by PC2005-cloud. motion.json records the
 pinned repository revision, source video hashes, frame counts, durations and
-output hashes. MOTION_LICENSE.txt preserves the upstream MIT license.
+output hashes. Videos retain the original 412x344 frame resolution. MOTION_LICENSE.txt preserves the upstream MIT license.
 
 Four replacement sheets (bubbles, celebrate, nuzzle, sleep) and ten new sheets
 (idle_daydream, idle_observe, swim, idle_groom, play_bubbles, play_ball,
 play_tailspin, work_read, thinking_chin, rest_pillow) were generated for DSH
 Studio on 2026-10-18 using the approved character reference. The replacements
 have respectively 56, 56, 56, 40 actual frames. The new sheets have respectively 48, 48, 40, 48,
-48, 40, 48, 48, 48, 42 actual frames: 666 in total, played at 24 fps.
+48, 40, 48, 48, 48, 42 actual frames: 666 in total, played at per-action 6–10 fps from the import recipe.
 No repeated or interpolated frames were added to meet a requested count.
 
 Actual generated layouts differ from requested grids. The import recipe in

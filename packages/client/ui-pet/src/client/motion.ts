@@ -22,6 +22,18 @@ export const ACTION_CLIP: Readonly<Record<PetAction, string>> = {
   playBall: 'play_ball', tailSpin: 'play_tailspin', readBook: 'work_read', ponder: 'thinking_chin', pillowNap: 'rest_pillow',
 }
 const IDLE = PET_ACTIONS.map(action => ACTION_CLIP[action])
+const PLAY_ACTIONS: readonly PetAction[] = ['bubbles', 'celebrate', 'chaseBubbles', 'playBall', 'tailSpin']
+const QUIET_ACTIONS: readonly PetAction[] = ['stretch', 'yawn', 'daydream', 'observe', 'groom']
+
+/** Select autonomous actions for the life state, respecting the device allowlist.
+ * @param life - selected life state.
+ * @param enabled - device allowlist, or all actions when absent.
+ * @returns eligible action names.
+ */
+export function lifeActions(life: PetLifeState = 'idle', enabled: readonly PetAction[] = PET_ACTIONS): readonly PetAction[] {
+  const candidates = life === 'play' ? PLAY_ACTIONS : life === 'rest' ? [] : QUIET_ACTIONS
+  return enabled.filter(action => candidates.includes(action))
+}
 const INTERVAL: Readonly<Record<PetActivityLevel, readonly [number, number]>> = {
   quiet: [20000, 40000], normal: [8000, 16000], lively: [3000, 7000],
 }
@@ -81,7 +93,7 @@ export function taskClip(state: PetAgentState, activity?: PetWorkActivity): stri
  */
 export function smoothClip(name: string, motion: PetMotionView): string {
   const clip = motion.clips[name]
-  if (clip?.sheet === undefined || clip.sheet.frames * 1000 / clip.durationMs >= 12) return name
+  if (clip?.sheet === undefined || clip.sheet.frames > 8) return name
   const substitute = ({ bubbles: 'idle', sleep: 'idle_yawn', nuzzle: 'head_pat', celebrate: 'success' } as Readonly<Record<string, string>>)[name]
   return substitute !== undefined && motion.clips[substitute] !== undefined ? substitute : name
 }

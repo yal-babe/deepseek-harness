@@ -628,7 +628,7 @@ export function PetOverlay(props: PetProps): ReactNode {
     )
   }
   return (
-    <div className={`${css.overlay} ${css.positioned}`} data-surface="page" data-pet-root="" data-below={position.below} style={position.style}
+    <div className={`${css.overlay} ${css.positioned}`} data-surface="page" data-pet-root="" data-below={position.below} style={{ ...position.style, '--pet-scale': (preferences.size ?? 100) / 100 } as CSSProperties}
       onPointerDownCapture={(event) => { position.begin(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect()) }}
       onPointerMoveCapture={(event) => { position.track(event.clientX, event.clientY) }}>
       <div className={css.pagePanels}>

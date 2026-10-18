@@ -15,7 +15,8 @@
         1044
       ],
       "description": "Blowing and following one small soap bubble.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "celebrate",
@@ -32,7 +33,8 @@
         1168
       ],
       "description": "Cheerful raised-hand celebration and gentle bounce.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 10
     },
     {
       "name": "nuzzle",
@@ -49,7 +51,8 @@
         1247
       ],
       "description": "Affectionate cheek nuzzle and tiny tail wag.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "sleep",
@@ -99,7 +102,8 @@
         7,
         7,
         7
-      ]
+      ],
+      "fps": 6
     },
     {
       "name": "idle_daydream",
@@ -115,7 +119,8 @@
         1086
       ],
       "description": "Daydreaming, blinking and observing a drifting star.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "idle_observe",
@@ -131,7 +136,8 @@
         1086
       ],
       "description": "Curious left and right head tilts and observation.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "swim",
@@ -175,7 +181,8 @@
           "frames": 8,
           "loop": false
         }
-      ]
+      ],
+      "fps": 10
     },
     {
       "name": "idle_groom",
@@ -191,7 +198,8 @@
         1086
       ],
       "description": "Straightening headband, hair and apron.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "play_bubbles",
@@ -207,7 +215,8 @@
         1086
       ],
       "description": "Following and catching a drifting bubble.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "play_ball",
@@ -225,7 +234,8 @@
         1586
       ],
       "description": "Nudging, catching and hugging a small blue toy ball.",
-      "stabilizeStanding": false
+      "stabilizeStanding": false,
+      "fps": 8
     },
     {
       "name": "play_tailspin",
@@ -241,7 +251,8 @@
         1086
       ],
       "description": "Turning to chase the whale tail, twirling and returning forward.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "work_read",
@@ -257,7 +268,8 @@
         1086
       ],
       "description": "Opening a book, reading, turning a page and closing it.",
-      "stabilizeStanding": true
+      "stabilizeStanding": true,
+      "fps": 8
     },
     {
       "name": "thinking_chin",
@@ -287,7 +299,8 @@
           "frames": 24,
           "loop": false
         }
-      ]
+      ],
+      "fps": 8
     },
     {
       "name": "rest_pillow",
@@ -330,7 +343,8 @@
           "frames": 12,
           "loop": false
         }
-      ]
+      ],
+      "fps": 6
     }
   ]
 }

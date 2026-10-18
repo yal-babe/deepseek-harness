@@ -255,6 +255,7 @@
 
 .pagePanels {
   position: absolute;
+  z-index: 1;
   left: var(--pet-panel-left, 0px);
   bottom: calc(100% + 8px);
   display: flex;
@@ -273,6 +274,7 @@
 
 .desktopPanels {
   position: absolute;
+  z-index: 1;
   right: 8px;
   bottom: 100%;
   display: flex;

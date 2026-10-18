@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "renderer": "vp9-alpha",
-  "width": 206,
-  "height": 172,
+  "width": 412,
+  "height": 344,
   "repository": "https://github.com/qcytsn/dsh-dafeiyu",
   "revision": "43542f8fc9567f45ce98534d407abca2ff4ff74e",
   "upstream": {
@@ -24,7 +24,7 @@
       "loop": true,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "cf92b5e0bfb14898f2e326ea12bbc59ca7db942a938b86f5785e60bd7d09a91a",
+      "sha256": "d11a6944076a79aac2b47101044778ac27725d723ef8461d30565189ff61a2cf",
       "source": {
         "file": "待机呼吸休闲.webm",
         "sha256": "deb965d05a85dacf5ff4a20faa757846f0d11679598c3ec578a5571487660395",
@@ -38,7 +38,7 @@
       "loop": true,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "91ab3c938888b6de6f5692d77acdc5276ef3f99ad7c61855894a73b3076438c0",
+      "sha256": "534844965084ef30fb9c45c61061ee431b085a794e8c3fb63d4d7c43a1a638ec",
       "source": {
         "file": "工作状态-原地踱步张望.webm",
         "sha256": "a56c17ef901fa531324a46a04def2381f65922d319ec83dadde34d2a4669e411",
@@ -52,7 +52,7 @@
       "loop": true,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "64b9568c05440b5a4cd6d23d63ec33f8b99e56f03ccfaf3968fd8dbb95048a59",
+      "sha256": "085bfd05fb014da39d22a51b6538530be96dbb27bf268566106469fb1e61b4ef",
       "source": {
         "file": "工作状态-思考冒泡.webm",
         "sha256": "b4a36cfa28ea5d7089e362a01972c6e880297c6dcd0d39f1994efd889a3c1be5",
@@ -66,7 +66,7 @@
       "loop": true,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "f0f91b3af3859c1968fe7e6a5895077a4a5df9e735d77f2dcfeb4f62832ed3bd",
+      "sha256": "156d178dd722c1272c945b57e2c29542bc409d5af91384193987795ede0787af",
       "source": {
         "file": "工作状态-忙碌点按.webm",
         "sha256": "b5d702e0c04adb7b255ac702001c24da36c8bf95efc891f693f4976986ab2435",
@@ -80,7 +80,7 @@
       "loop": true,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "fcc28bf143b9a262cdbbc7a5f8e8d0093b5b3369858b2387712ff29d3cbb7f9e",
+      "sha256": "a4412b69b876e326cea78f053e7222f3c9847ebdef684bb6ac0e917d64a3fe0f",
       "source": {
         "file": "工作状态-原地踱步张望.webm",
         "sha256": "a56c17ef901fa531324a46a04def2381f65922d319ec83dadde34d2a4669e411",
@@ -94,7 +94,7 @@
       "loop": true,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "0acc429d241b2a34eaa55178e748ec50e52e7da5ebace853f3abb1a0e0b8d9c9",
+      "sha256": "ecd1bb04920100274bf90840166562cded99e871087f9e508ef0f5985f71043b",
       "source": {
         "file": "工作状态-清点归档.webm",
         "sha256": "8c84f58f3a9e7b912e1cbfd89f77eb3652053fc9b2844295c8440cb636305d3b",
@@ -108,7 +108,7 @@
       "loop": false,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "d65e5d76e2d9d7776797e6003f172778d46f8cf7fe916990c2dbf60715f21c29",
+      "sha256": "64d2b441bd1af26581f298e280949ffd74eabdbfb23c02b0efdc4ce529524feb",
       "source": {
         "file": "工作状态-雀跃庆祝.webm",
         "sha256": "3ff681051a0bb4f152d7535d64b7f3194c30298bf56d41e521216a278f135d3e",
@@ -122,7 +122,7 @@
       "loop": false,
       "durationMs": 4956,
       "frames": 118,
-      "sha256": "9e946f61094a398d95eb2df3b4f4070b0308da14270744b01a5878858d44ae76",
+      "sha256": "2f4d88a426a05c8eb303f7c1b848a99347ac6f331981d843a058399c7e002f19",
       "source": {
         "file": "工作状态-垂头叹气冒汗.webm",
         "sha256": "ab00c844e62221905574b4c070e0d7b6fa14fb2afa1064c27a160f10e25f7196",
@@ -136,7 +136,7 @@
       "loop": true,
       "durationMs": 6048,
       "frames": 144,
-      "sha256": "6e31c9ed8bec439dc4db84288f42ceac91de9774c718ad8033b0924907f536c9",
+      "sha256": "2623d69803d87402a2047c8d4d73e80c04e64d3b22c9913cff771dbd694757a4",
       "source": {
         "file": "被鼠标拖拽悬空反馈.webm",
         "sha256": "31373a86026636eecc890db763760309360310eb095cf5575b13c9ca2a6cc80e",
@@ -150,7 +150,7 @@
       "loop": false,
       "durationMs": 2058,
       "frames": 49,
-      "sha256": "150e77794f2100ac613410a747fe5e4c4f1f19a11e0909dfdf653833b4971ab7",
+      "sha256": "3502ca5a426cf332265e35760bb3babc06396a31bb1b2c3e86b189d2a3887956",
       "source": {
         "file": "被鼠标拖拽悬空反馈.webm",
         "sha256": "31373a86026636eecc890db763760309360310eb095cf5575b13c9ca2a6cc80e",
@@ -164,7 +164,7 @@
       "loop": false,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "c5387090355970746f9ad54d54bfed80137ce5fb09a2bfead0bd7507ab597a9e",
+      "sha256": "6761941fb191f31ac760e6d867decc87d842b4b633812bc7e56eea239d0a7032",
       "source": {
         "file": "点击回应-挠痒咯咯笑.webm",
         "sha256": "f228279219f4084323ca1bfef1604f7c77bb3f505d45a8d1747b5ac3f9f2393b",
@@ -178,7 +178,7 @@
       "loop": false,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "7bd582a5f54b70ab89f6ad1dda625e3b0056b32c06606048f40deaea930b4505",
+      "sha256": "a710f5baa2b3cc9cb13ba3ff2926695148f9a1eebac061e5da79a16f1e4bbdac",
       "source": {
         "file": "点击回应-元气挥手.webm",
         "sha256": "48cd729ccdcf746369942ea954d242e9afdd5643e1dac3827fa5e67450eb8776",
@@ -192,7 +192,7 @@
       "loop": false,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "9089168846f617a6cb10088a6c5d439322c75367cf70d6ddc21d4ba106d5f596",
+      "sha256": "1a5dd9d11803b0fa7a1e97976ff23196f5c4bc9a5ce786ff0b796f7a4bd4ff48",
       "source": {
         "file": "鲸鱼吐泡泡特效.webm",
         "sha256": "d64d02059dc1602f7de5aa3135d381351363f021b2bceed47655db322cc71db3",
@@ -206,7 +206,7 @@
       "loop": false,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "e7c778b49d6ded971f830d972dfc3a37d14152093f045cf2b39c9485da07ca58",
+      "sha256": "f53a2e73e65a97202fbc260223799231a509754e4bd168180b3020a4f68ee284",
       "source": {
         "file": "吃Token.webm",
         "sha256": "d46ef798fb189cd7652f63d03a35e6f314e5a598b4a65f76202ec95852eb719c",
@@ -220,7 +220,7 @@
       "loop": false,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "64048cdd495a0fdded6eca3b09122bd8aad7f10ee1e34f3078400754405d69bd",
+      "sha256": "9fd4d065f64133ab33f0056939773cfcde28b5afddb59557b59647ec391945bd",
       "source": {
         "file": "超大伸懒腰.webm",
         "sha256": "0ac66d918cc5efd49be1273c3830de73eae5f9bdcd5fcb968d1b2f9b487705ad",
@@ -234,7 +234,7 @@
       "loop": false,
       "durationMs": 10122,
       "frames": 241,
-      "sha256": "41013d59de8a570012cbe583a931a17b2749c894df064fa96570a489f41e400b",
+      "sha256": "b555f3d787531d76079135fd4506018632fa79eb6c07eab10e6292d25e95205e",
       "source": {
         "file": "哈欠连天.webm",
         "sha256": "2b23372e1ff2bc2f9078c09740708c960d4ea021f9fc3cca294d9df11e393ec8",
@@ -246,7 +246,7 @@
     "bubbles": {
       "file": "assets/motion/bubbles.png",
       "loop": false,
-      "durationMs": 2333,
+      "durationMs": 7000,
       "frames": 56,
       "sheet": {
         "columns": 8,
@@ -381,14 +381,14 @@
           1.0068493150684932,
           1.0000919371150134
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "sleep": {
       "file": "assets/motion/sleep.png",
       "loop": false,
-      "durationMs": 1667,
+      "durationMs": 6667,
       "frames": 40,
       "sheet": {
         "columns": 7,
@@ -500,14 +500,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "nuzzle": {
       "file": "assets/motion/nuzzle.png",
       "loop": false,
-      "durationMs": 2333,
+      "durationMs": 7000,
       "frames": 56,
       "sheet": {
         "columns": 8,
@@ -642,14 +642,14 @@
           0.9721590909090909,
           1.0936789772727273
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "celebrate": {
       "file": "assets/motion/celebrate.png",
       "loop": false,
-      "durationMs": 2333,
+      "durationMs": 5600,
       "frames": 56,
       "sheet": {
         "columns": 8,
@@ -784,14 +784,14 @@
           1.0123456790123457,
           0.9940828402366864
         ],
-        "fps": 24,
+        "fps": 10,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "sleep_enter": {
       "file": "assets/motion/sleep.png",
       "loop": false,
-      "durationMs": 542,
+      "durationMs": 2167,
       "frames": 13,
       "sheet": {
         "columns": 7,
@@ -903,14 +903,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "sleep_loop": {
       "file": "assets/motion/sleep.png",
       "loop": true,
-      "durationMs": 542,
+      "durationMs": 2167,
       "frames": 13,
       "sheet": {
         "columns": 7,
@@ -1022,14 +1022,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "sleep_wake": {
       "file": "assets/motion/sleep.png",
       "loop": false,
-      "durationMs": 583,
+      "durationMs": 2333,
       "frames": 14,
       "sheet": {
         "columns": 7,
@@ -1141,14 +1141,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "idle_daydream": {
       "file": "assets/motion/idle_daydream.png",
       "loop": false,
-      "durationMs": 2000,
+      "durationMs": 6000,
       "frames": 48,
       "sheet": {
         "columns": 8,
@@ -1268,14 +1268,14 @@
           1.0810810810810811,
           1.0063684251906595
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "idle_observe": {
       "file": "assets/motion/idle_observe.png",
       "loop": false,
-      "durationMs": 2000,
+      "durationMs": 6000,
       "frames": 48,
       "sheet": {
         "columns": 8,
@@ -1395,14 +1395,14 @@
           0.9834554334554334,
           1.0169823232323232
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "swim": {
       "file": "assets/motion/swim.png",
       "loop": false,
-      "durationMs": 1667,
+      "durationMs": 4000,
       "frames": 40,
       "sheet": {
         "columns": 5,
@@ -1528,14 +1528,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 10,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "swim_start": {
       "file": "assets/motion/swim.png",
       "loop": false,
-      "durationMs": 333,
+      "durationMs": 800,
       "frames": 8,
       "sheet": {
         "columns": 5,
@@ -1661,14 +1661,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 10,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "swim_loop": {
       "file": "assets/motion/swim.png",
       "loop": true,
-      "durationMs": 1000,
+      "durationMs": 2400,
       "frames": 24,
       "sheet": {
         "columns": 5,
@@ -1794,14 +1794,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 10,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "swim_stop": {
       "file": "assets/motion/swim.png",
       "loop": false,
-      "durationMs": 333,
+      "durationMs": 800,
       "frames": 8,
       "sheet": {
         "columns": 5,
@@ -1927,14 +1927,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 10,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "idle_groom": {
       "file": "assets/motion/idle_groom.png",
       "loop": false,
-      "durationMs": 2000,
+      "durationMs": 6000,
       "frames": 48,
       "sheet": {
         "columns": 8,
@@ -2054,14 +2054,14 @@
           1.0670391061452513,
           1.2402597402597402
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "play_bubbles": {
       "file": "assets/motion/play_bubbles.png",
       "loop": false,
-      "durationMs": 2000,
+      "durationMs": 6000,
       "frames": 48,
       "sheet": {
         "columns": 8,
@@ -2181,14 +2181,14 @@
           1.0113636363636362,
           1.0406330749354005
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "play_ball": {
       "file": "assets/motion/play_ball.png",
       "loop": false,
-      "durationMs": 1667,
+      "durationMs": 5000,
       "frames": 40,
       "sheet": {
         "columns": 5,
@@ -2314,14 +2314,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "play_tailspin": {
       "file": "assets/motion/play_tailspin.png",
       "loop": false,
-      "durationMs": 2000,
+      "durationMs": 6000,
       "frames": 48,
       "sheet": {
         "columns": 8,
@@ -2441,14 +2441,14 @@
           1.005586592178771,
           1.0170137125444387
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "work_read": {
       "file": "assets/motion/work_read.png",
       "loop": false,
-      "durationMs": 2000,
+      "durationMs": 6000,
       "frames": 48,
       "sheet": {
         "columns": 8,
@@ -2568,14 +2568,14 @@
           0.9943827160493827,
           1.0113008577394051
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "thinking_chin": {
       "file": "assets/motion/thinking_chin.png",
       "loop": false,
-      "durationMs": 1000,
+      "durationMs": 3000,
       "frames": 24,
       "sheet": {
         "columns": 8,
@@ -2695,14 +2695,14 @@
           1.1436501996007984,
           1.1301945546737213
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "thinking_idea": {
       "file": "assets/motion/thinking_chin.png",
       "loop": false,
-      "durationMs": 1000,
+      "durationMs": 3000,
       "frames": 24,
       "sheet": {
         "columns": 8,
@@ -2822,14 +2822,14 @@
           1.1436501996007984,
           1.1301945546737213
         ],
-        "fps": 24,
+        "fps": 8,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "rest_pillow": {
       "file": "assets/motion/rest_pillow.png",
       "loop": false,
-      "durationMs": 1750,
+      "durationMs": 7000,
       "frames": 42,
       "sheet": {
         "columns": 6,
@@ -2950,14 +2950,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "pillow_enter": {
       "file": "assets/motion/rest_pillow.png",
       "loop": false,
-      "durationMs": 500,
+      "durationMs": 2000,
       "frames": 12,
       "sheet": {
         "columns": 6,
@@ -3078,14 +3078,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "pillow_loop": {
       "file": "assets/motion/rest_pillow.png",
       "loop": true,
-      "durationMs": 750,
+      "durationMs": 3000,
       "frames": 18,
       "sheet": {
         "columns": 6,
@@ -3206,14 +3206,14 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     },
     "pillow_wake": {
       "file": "assets/motion/rest_pillow.png",
       "loop": false,
-      "durationMs": 500,
+      "durationMs": 2000,
       "frames": 12,
       "sheet": {
         "columns": 6,
@@ -3334,7 +3334,7 @@
           1.0,
           1.0
         ],
-        "fps": 24,
+        "fps": 6,
         "normalization": "alpha-island-extraction-row-calibration-ground-anchor"
       }
     }
