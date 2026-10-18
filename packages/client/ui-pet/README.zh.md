@@ -54,7 +54,7 @@ web-app bundle 将本插件与 Host `pet` 模块一同挂载。打开任意 Web 
 
 - 快速提问依次执行 `session.create`（新会话时）、对每个拖入的文件执行 `fileUpload.upload`，再以 queue 模式执行 `session.prompt`。
 - Desktop bridge（`window.dshDesktopPet`）在指针进入或离开角色与气泡时切换点击穿透，跟随 Host 可见性，并转发全局快捷键。
-- 帧：来自 [`@deepseek-ai/dsh-pet/packs/whaletail-maid`](../../pet/pet/README.zh.md#pet-packs) 的内置包 `whaletail-maid@1.0.0`，idle、thinking、working、waiting、success、error 片段各取六帧，裁剪并缩放到 160 px。bundle 加载时用 `parsePetPack` 校验其 `pet.json`，帧以 data URL 形式内嵌。这些帧以 MIT 许可发布，Copyright (c) 2026 PC2005-cloud；许可证是包内的 `LICENSE`。Host 通过 `pet.pack()`（`DSH_PET_DEV`）提供开发包时，Client 会再次校验并渲染它，角色下方显示"开发包"标记；无效或不完整的包会保留内置包。
+- 帧：来自 [`@deepseek-ai/dsh-pet/packs/whaletail-maid`](../../pet/pet/README.zh.md#pet-packs) 的内置包 `whaletail-maid@1.0.0`，idle、thinking、working、waiting、success、error 片段各取六帧，裁剪并缩放到 160 px。bundle 加载时用 `parsePetPack` 校验其 `pet.json`，帧以 data URL 形式内嵌。角色及其帧与媒体来自 [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet)；其素材仅限非商业使用，衍生作品须附上该地址（[条款](../../pet/pet/README.zh.md#pet-packs)）。设置页末尾的“角色来源”一行链接到内置 `pet.json` 的 `license.source` 地址。Host 通过 `pet.pack()`（`DSH_PET_DEV`）提供开发包时，Client 会再次校验并渲染它，角色下方显示"开发包"标记；无效或不完整的包会保留内置包。
 
 </details>
 

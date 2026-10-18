@@ -4,6 +4,7 @@ import { Button, Input, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { PET_CHARACTER_SOURCE } from './credits.ts'
 import { PET_ACTIONS } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { addRestrictedTool, removeRestrictedTool, type PetSettingsFields, type PetSettingsSwitch, type PetSettingsWriteState } from './settings.ts'
@@ -103,8 +104,8 @@ function ToolList({ t, tools, disabled, onChange }: {
 }
 
 /**
- * Render the pet settings: visibility, notification categories, and the
- * restricted-tool list. Host fields show the accepted value; a refused write
+ * Render the pet settings: visibility, notification categories, the
+ * restricted-tool list, and the character credit. Host fields show the accepted value; a refused write
  * leaves it unchanged and shows a failure line.
  * @param props - injected form, writers, and copy.
  * @returns the section element tree.
@@ -115,7 +116,15 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
   const write = props.useWrite(value => value)
   const preferences = props.usePreferences(value => value)
   const deviceNotify = preferences.notify
-  if (form.status === 'unavailable') return <div className={css.section}><div className={css.description}>{t('settings.unavailable')}</div></div>
+  const credit = (
+    <>
+      <h3 className={css.group}>{t('settings.credit')}</h3>
+      <div className={css.note}>
+        {t('settings.creditText')} <a href={PET_CHARACTER_SOURCE} target="_blank" rel="noopener noreferrer">{PET_CHARACTER_SOURCE}</a>
+      </div>
+    </>
+  )
+  if (form.status === 'unavailable') return <div className={css.section}><div className={css.description}>{t('settings.unavailable')}</div>{credit}</div>
   const value = form.value
   const locked = value === undefined || !form.writable || write.busy
   const toggle = (field: PetSettingsSwitch, label: string): ReactNode => (
@@ -189,6 +198,7 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
       {value?.restrictTools === true && (
         <ToolList t={t} tools={value.restrictedTools} disabled={locked} onChange={(tools) => { void props.setRestrictedTools(tools) }} />
       )}
+      {credit}
       {write.failed && <div className={css.error} role="alert">{t('settings.saveFailed')}</div>}
     </div>
   )

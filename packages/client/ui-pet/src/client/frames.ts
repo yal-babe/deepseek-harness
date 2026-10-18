@@ -1,7 +1,8 @@
 /**
  * Character frames of the pet. The built-in pack `whaletail-maid@1.0.0` lives
- * in `@deepseek-ai/dsh-pet/packs/whaletail-maid` (MIT, Copyright (c) 2026
- * PC2005-cloud; see its LICENSE); its `pet.json` is validated here like any
+ * in `@deepseek-ai/dsh-pet/packs/whaletail-maid`; its character assets follow
+ * the PC2005-cloud/dsh-pet terms (non-commercial, credit required; see the
+ * pack's UPSTREAM_ASSET_TERMS.md). Its `pet.json` is validated here like any
  * other pack, and its frames are bundled as data URLs. A development pack the
  * Host offers replaces it at runtime.
  */

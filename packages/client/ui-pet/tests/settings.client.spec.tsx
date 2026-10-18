@@ -89,6 +89,14 @@ describe('PetSettingsSection', () => {
     expect(screen.queryByRole('textbox', { name: 'settings.toolName' })).toBeNull()
   })
 
+  it('credits the upstream character source with a link', () => {
+    mount()
+    expect(screen.getByText('settings.credit')).toBeTruthy()
+    const link = screen.getByRole('link', { name: 'https://github.com/PC2005-cloud/dsh-pet' })
+    expect(link.getAttribute('href')).toBe('https://github.com/PC2005-cloud/dsh-pet')
+    expect(link.getAttribute('target')).toBe('_blank')
+  })
+
   it('changes local animation options without writing Host configuration', () => {
     const { set } = mount()
     fireEvent.click(screen.getByRole('button', { name: 'settings.lively' }))
