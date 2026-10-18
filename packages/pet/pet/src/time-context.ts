@@ -15,8 +15,11 @@
  *   `ca-chinese`). Without that calendar, lunar festivals and the
  *   Spring Festival Eve are skipped; solar festivals and breaks still apply.
  *   ICU places the first lunar month one day off when the new moon falls within
- *   minutes of midnight UTC+8: 2027-02-06 and 2030-02-03 are each read one day
- *   late or early (upstream measured 2 of 445 month starts in 2025–2060).
+ *   minutes of midnight UTC+8 (upstream measured 2 of 445 month starts in
+ *   2025–2060: ICU starts the first month on 2027-02-07 and 2030-02-02 instead
+ *   of 2027-02-06 and 2030-02-03; upstream checked 2027 against the Hong Kong
+ *   Observatory table).
+ *   {@link LUNAR_NEW_YEAR_FIXES} corrects those two months.
  * - School breaks use fixed approximate ranges (winter 1-20 to 2-18, summer
  *   7-1 to 8-29); provincial calendars differ.
  * - Workday means Monday to Friday; statutory make-up workdays are not known.
@@ -98,6 +101,8 @@ export interface PetMoment {
   readonly dayKind: PetDayKind
   /** Highest-priority festival whose window covers the date, if any. */
   readonly festival?: PetFestivalMoment
+  /** Every festival whose window covers the date, by priority; absent when none does. */
+  readonly festivals?: readonly PetFestivalId[]
 }
 
 /** Slot starts, latest first; the first start not after the hour wins. */
@@ -245,7 +250,44 @@ function getLunarFormatter(): Intl.DateTimeFormat | undefined {
   return lunarFormatter ?? undefined
 }
 
+/**
+ * First days of a lunar year that ICU misplaces by a day: `icu` is the day ICU reads as the first of the
+ * first month, `actual` the true one (local `YYYY-MM-DD`). The ICU reading of the rest of that month is
+ * shifted by the same day; the second month starts correctly.
+ */
+export const LUNAR_NEW_YEAR_FIXES: readonly { readonly icu: string; readonly actual: string }[] = [
+  { icu: '2027-02-07', actual: '2027-02-06' },
+  { icu: '2030-02-02', actual: '2030-02-03' },
+]
+
+function localDay(text: string): number {
+  const [year = 1970, month = 1, day = 1] = text.split('-').map(Number)
+  return Date.UTC(year, month - 1, day) / DAY_MS
+}
+
+/** Correct the ICU reading inside a misplaced first lunar month; other dates pass through. */
+function fixNewYear(date: Date, parts: LunarParts): LunarParts {
+  const today = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS
+  for (const fix of LUNAR_NEW_YEAR_FIXES) {
+    const offset = today - localDay(fix.actual)
+    if (offset < -1 || offset > 30) continue
+    // On the true first day ICU may still read the twelfth month; inside the month it reads month 1.
+    if (offset >= 0 && (parts.month === 1 || (parts.month === 12 && offset === 0))) return { month: 1, day: offset + 1 }
+    // ICU starts the month a day early: the day before the true first day is still the twelfth month.
+    if (offset === -1 && parts.month === 1 && parts.day === 1) {
+      const before = rawLunarPartsOf(new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1))
+      if (before?.month === 12) return { month: 12, day: before.day + 1 }
+    }
+  }
+  return parts
+}
+
 function lunarPartsOf(date: Date): LunarParts | undefined {
+  const parts = rawLunarPartsOf(date)
+  return parts === undefined ? undefined : fixNewYear(date, parts)
+}
+
+function rawLunarPartsOf(date: Date): LunarParts | undefined {
   const formatter = getLunarFormatter()
   if (formatter === undefined) return undefined
   const parts = formatter.formatToParts(date)
@@ -338,6 +380,20 @@ function breakCandidate(date: Date): Candidate | undefined {
   return undefined
 }
 
+function candidatesOf(date: Date): Candidate[] {
+  const found: Candidate[] = []
+  for (let delta = -MAX_LOOKBACK; delta <= MAX_AHEAD; delta++) {
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate() + delta)
+    for (const ranked of rulesAt(day)) {
+      const candidate = dayCandidate(ranked, delta)
+      if (candidate !== undefined) found.push(candidate)
+    }
+  }
+  const season = breakCandidate(date)
+  if (season !== undefined) found.push(season)
+  return found
+}
+
 /**
  * Highest-priority festival whose window covers a local date.
  * @param date - any time on the date; only its local calendar date is read.
@@ -345,15 +401,24 @@ function breakCandidate(date: Date): Candidate | undefined {
  */
 export function petFestivalOf(date: Date): PetFestivalMoment | undefined {
   let best: Candidate | undefined
-  const keep = (candidate: Candidate | undefined): void => {
-    if (candidate !== undefined && (best === undefined || candidate.priority < best.priority)) best = candidate
+  for (const candidate of candidatesOf(date)) {
+    if (best === undefined || candidate.priority < best.priority) best = candidate
   }
-  for (let delta = -MAX_LOOKBACK; delta <= MAX_AHEAD; delta++) {
-    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate() + delta)
-    for (const ranked of rulesAt(day)) keep(dayCandidate(ranked, delta))
-  }
-  keep(breakCandidate(date))
   return best?.festival
+}
+
+/**
+ * Every festival whose window (days ahead, the holiday itself, and the days after) covers a local date, so
+ * time-bound clips can follow festivals that a higher-priority one hides from {@link petFestivalOf}.
+ * @param date - any time on the date; only its local calendar date is read.
+ * @returns festival identities in {@link PET_FESTIVALS} priority order, each once.
+ */
+export function petFestivalsOf(date: Date): PetFestivalId[] {
+  const priorities = new Map<PetFestivalId, number>()
+  for (const { festival, priority } of candidatesOf(date)) {
+    if (!priorities.has(festival.id)) priorities.set(festival.id, priority)
+  }
+  return [...priorities].sort((left, right) => left[1] - right[1]).map(([id]) => id)
 }
 
 /**
@@ -364,12 +429,14 @@ export function petFestivalOf(date: Date): PetFestivalMoment | undefined {
 export function petMomentOf(date: Date): PetMoment | undefined {
   if (Number.isNaN(date.getTime())) return undefined
   const festival = petFestivalOf(date)
+  const festivals = petFestivalsOf(date)
   const pad = (value: number): string => String(value).padStart(2, '0')
   return {
     date: `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
     slot: petDaySlotOf(date.getHours()),
     dayKind: petDayKindOf(date.getDay()),
     ...festival === undefined ? {} : { festival },
+    ...festivals.length === 0 ? {} : { festivals },
   }
 }
 

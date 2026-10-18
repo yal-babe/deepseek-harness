@@ -161,7 +161,9 @@ describe('PetService', () => {
     const iterator = pet.watch(new AbortController().signal)[Symbol.asyncIterator]()
     const first = await iterator.next()
     if (first.done === true) throw new Error('stream ended early')
-    expect(first.value.moment).toEqual({ date: '2026-10-01', slot: 'noon', dayKind: 'workday', festival: { id: 'national-day', phase: 'today' } })
+    expect(first.value.moment).toEqual({
+      date: '2026-10-01', slot: 'noon', dayKind: 'workday', festival: { id: 'national-day', phase: 'today' }, festivals: ['national-day'],
+    })
     const next = iterator.next()
     await vi.advanceTimersByTimeAsync(60_000)
     const frame = await next

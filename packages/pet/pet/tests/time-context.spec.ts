@@ -3,7 +3,7 @@
 // so expectations do not depend on the time zone of the test machine.
 import { describe, expect, it } from 'vitest'
 import {
-  nextPetMomentChange, petDayKindOf, petDaySlotOf, petFestivalOf, petMomentOf,
+  nextPetMomentChange, petDayKindOf, petDaySlotOf, petFestivalOf, petFestivalsOf, petMomentOf,
   type PetDaySlot, type PetFestivalId, type PetFestivalPhase,
 } from '../src/time-context.ts'
 
@@ -48,6 +48,7 @@ describe('petMomentOf', () => {
   it('includes the festival and rejects an invalid date', () => {
     expect(petMomentOf(on(2026, 10, 1, 12))).toEqual({
       date: '2026-10-01', slot: 'noon', dayKind: 'workday', festival: { id: 'national-day', phase: 'today' },
+      festivals: ['national-day'],
     })
     expect(petMomentOf(new Date('not a date'))).toBeUndefined()
   })
@@ -173,5 +174,38 @@ describe('petFestivalOf — priority order', () => {
     expectFestival(on(2026, 2, 18, 12), 'spring-festival', 'during')
     expectFestival(on(2026, 8, 19, 12), 'qixi', 'today')
     expectFestival(on(2026, 7, 1, 12), 'summer-break', 'today')
+  })
+})
+
+describe('petFestivalsOf', () => {
+  it('lists every festival window covering a date, by priority', () => {
+    expect(petFestivalsOf(on(2026, 8, 19))).toEqual(['qixi', 'summer-break'])
+    expect(petFestivalsOf(on(2027, 2, 20))).toEqual(['lantern-festival', 'spring-festival', 'winter-break'])
+    expect(petFestivalsOf(on(2026, 10, 18))).toEqual(['double-ninth'])
+    expect(petFestivalsOf(on(2026, 11, 10))).toEqual([])
+  })
+
+  it('finds the lunar festivals on their ICU dates', () => {
+    expectFestival(on(2026, 2, 17), 'spring-festival', 'today')
+    expectFestival(on(2026, 3, 3), 'lantern-festival', 'today')
+    expectFestival(on(2026, 6, 19), 'dragon-boat', 'today')
+    expectFestival(on(2026, 8, 19), 'qixi', 'today')
+    expectFestival(on(2026, 9, 25), 'mid-autumn', 'today')
+    expectFestival(on(2026, 10, 18), 'double-ninth', 'today')
+    expectFestival(on(2027, 1, 15), 'laba', 'today')
+  })
+
+  it('corrects the two first lunar months ICU misplaces', () => {
+    // ICU starts 2027 on 02-07; upstream checked 02-06 with the Hong Kong Observatory, so the eve is 02-05 and the Lantern 02-20.
+    expectFestival(on(2027, 2, 5), 'spring-festival-eve', 'today')
+    expectFestival(on(2027, 2, 6), 'spring-festival', 'today')
+    expectFestival(on(2027, 2, 20), 'lantern-festival', 'today')
+    // ICU starts 2030 on 02-02; the true first day is 02-03.
+    expectFestival(on(2030, 2, 2), 'spring-festival-eve', 'today')
+    expectFestival(on(2030, 2, 3), 'spring-festival', 'today')
+    expectFestival(on(2030, 2, 17), 'lantern-festival', 'today')
+    // ICU starts the second month correctly, so Longtaitou (2-2) keeps its ICU dates.
+    expectFestival(on(2027, 3, 9), 'longtaitou', 'today')
+    expectFestival(on(2030, 3, 5), 'longtaitou', 'today')
   })
 })
