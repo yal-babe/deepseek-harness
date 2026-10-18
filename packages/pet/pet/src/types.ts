@@ -215,4 +215,16 @@ export interface PetMotionView {
   readonly categories?: readonly PetMotionCategoryView[]
   /** Top-level chain weights of the idle state: draw from the categories (`idle`), turn, or walk. */
   readonly chain?: { readonly idle: number; readonly turn: number; readonly move: number }
+  /**
+   * Event tiers: candidate clips per tier. `balance` has six tiers by used
+   * balance, `workStatus` six tiers (thinking, working, result, waiting,
+   * success, error), and `whisper` the candidates of an idle-trigger line.
+   */
+  readonly events?: {
+    readonly balance?: readonly (readonly string[])[]
+    readonly workStatus?: readonly (readonly string[])[]
+    readonly whisper?: readonly string[]
+  }
+  /** Click responses by body area, top to bottom; one candidate plays per click. */
+  readonly clicks?: { readonly head?: readonly string[]; readonly body?: readonly string[]; readonly tail?: readonly string[] }
 }

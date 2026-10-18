@@ -35,7 +35,8 @@ describe('built-in motion.json', () => {
   it('records the pinned upstream commit, source digest, and generation of every dsh-pet clip', () => {
     const imported = Object.entries(builtin().clips).filter(([, clip]) => clip.source.kind === 'dsh-pet-webm')
     expect(imported.map(([name]) => name).sort())
-      .toEqual(['click_bounce', 'click_huff', 'click_shy', 'crab_walk', 'float_step', 'look_around', 'turn_run'])
+      .toEqual(['balance_empty', 'balance_frown', 'balance_full', 'balance_jingle', 'balance_low', 'balance_steady',
+        'click_bounce', 'click_huff', 'click_shy', 'crab_walk', 'float_step', 'look_around', 'turn_run'])
     for (const [name, clip] of imported) {
       expect(clip.source, name).toMatchObject({
         repository: 'https://github.com/PC2005-cloud/dsh-pet', commit: UPSTREAM_COMMIT, crop: [100, 0, 412, 344], fps: 24,
@@ -61,6 +62,17 @@ describe('built-in motion.json', () => {
     }
     // The run turns away and steps on the spot; its feet show no consistent travel.
     expect(clips.turn_run?.move).toBeUndefined()
+  })
+
+  it('records the upstream event tiers and splits the click responses by body area', () => {
+    const { events, clicks, categories } = builtin()
+    expect(events?.balance).toEqual([['balance_full'], ['balance_jingle'], ['balance_steady'], ['balance_frown'], ['balance_low'], ['balance_empty']])
+    expect(events?.workStatus).toEqual([['thinking'], ['working'], ['working_command'], ['waiting'], ['success'], ['error']])
+    expect(events?.whisper).toBeUndefined()
+    expect(clicks).toEqual({ head: ['head_pat', 'click_shy'], body: ['poke', 'click_bounce', 'click_huff'], tail: ['tail'] })
+    // Event clips play on events only; the autonomous chain and the menu never draw them.
+    const members = new Set(categories.flatMap(category => category.clips))
+    expect(events!.balance!.flat().filter(name => members.has(name))).toEqual([])
   })
 
   it('puts every menu action into one category and keeps the autonomous chain to idle and play', () => {
@@ -126,6 +138,28 @@ describe('parsePetMotion', () => {
     ])
     const sprite = parsePetMotion(minimal({}, { move: { direction: 'left', travel: [0], leadMs: 0, tailMs: 0 } }))
     expect(sprite.ok ? [] : sprite.errors).toContain('clip "idle": move needs a video clip with frames')
+  })
+
+  it('checks event tiers and click areas against the known clips', () => {
+    const tiers = (count: number): string[][] => Array.from({ length: count }, () => ['idle'])
+    const ok = parsePetMotion(minimal({
+      events: { balance: tiers(6), workStatus: tiers(6), whisper: ['idle'], statedIn: 'config' }, clicks: { head: ['idle'], tail: ['idle'] },
+    }))
+    expect(ok.ok && ok.manifest.events).toEqual({ balance: tiers(6), workStatus: tiers(6), whisper: ['idle'], statedIn: 'config' })
+    expect(ok.ok && ok.manifest.clicks).toEqual({ head: ['idle'], tail: ['idle'] })
+    const bad = parsePetMotion(minimal({
+      events: { balance: tiers(5), workStatus: [...tiers(5), ['ghost']], whisper: [], chatter: [] }, clicks: { paw: ['idle'], body: ['ghost'] },
+    }))
+    expect(bad.ok ? [] : bad.errors).toEqual([
+      'events has unknown entries: chatter',
+      'event balance needs exactly 6 tiers',
+      'event workStatus tier 5 names unknown clips: ghost',
+      'event whisper must list clip names',
+      'clicks: unknown body area "paw"',
+      'clicks body names unknown clips: ghost',
+    ])
+    const malformed = parsePetMotion(minimal({ events: [], clicks: 'head' }))
+    expect(malformed.ok ? [] : malformed.errors).toEqual(['events must be an object', 'clicks must be an object'])
   })
 
   it('checks categories: ids, labels, weights, life states, known clips, and single membership', () => {

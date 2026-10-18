@@ -25,7 +25,8 @@ contacts, or whose backward shifts do not outnumber forward ones by
 MIN_AGREEMENT plays in place with no "move" record.
 
 This tool owns exactly the clips whose source kind is "dsh-pet-webm" and the
-top-level "categories" and "chain" entries. It never rewrites clips of other kinds, and the
+top-level "categories", "chain", "events" (event tiers), and "clicks" (click
+responses by body area) entries. It never rewrites clips of other kinds, and the
 other import tools preserve what it writes. Clips it imported earlier but no
 longer lists are removed together with their media.
 """
@@ -200,7 +201,18 @@ for category in recipe['categories']:
     missing = [name for name in category['clips'] if name not in clips]
     if missing:
         raise SystemExit(f'category {category["id"]} names unknown clips: {missing}')
+for event, tiers in recipe['events'].items():
+    if event == 'statedIn':
+        continue
+    missing = [name for tier in tiers for name in tier if name not in clips]
+    if missing:
+        raise SystemExit(f'event {event} names unknown clips: {missing}')
+for area, names in recipe['clicks'].items():
+    if area != 'note' and any(name not in clips for name in names):
+        raise SystemExit(f'click area {area} names unknown clips')
 manifest['formatVersion'] = 2
 manifest['categories'] = recipe['categories']
 manifest['chain'] = recipe['chain']
+manifest['events'] = recipe['events']
+manifest['clicks'] = {area: names for area, names in recipe['clicks'].items() if area != 'note'}
 manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

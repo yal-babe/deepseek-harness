@@ -1,7 +1,8 @@
 /**
  * Validated media description of a pack (`motion.json`, format version 2):
  * playable clips, the categories the weighted animation chain and the action
- * menu draw from, and where every clip came from. Browser-safe and pure; the
+ * menu draw from, event tiers, click responses by body area, and where every
+ * clip came from. Browser-safe and pure; the
  * Host reads the shipped file through it before serving any media.
  *
  * Source records distinguish four producers, each owned by one import tool so
@@ -110,6 +111,32 @@ export interface PetMotionChain {
   readonly statedIn?: string
 }
 
+/** Upstream work-status tiers in order (`animations.events.workStatus`); the index is the tier. */
+export const PET_WORK_STATUS_TIERS = ['thinking', 'working', 'result', 'waiting', 'success', 'error'] as const
+
+/** Number of balance tiers (`animations.events.balance`): five 20% bands of used balance and "all used". */
+export const PET_BALANCE_TIERS = 6
+
+/**
+ * Clips played by events rather than the autonomous chain (upstream
+ * `animations.events`). Each tier lists candidate clips; one is drawn per event.
+ */
+export interface PetMotionEvents {
+  /** Six tiers by used balance: `[0,20)`, `[20,40)`, `[40,60)`, `[60,80)`, `[80,100)`, and exactly 100. */
+  readonly balance?: readonly (readonly string[])[]
+  /** Six tiers in {@link PET_WORK_STATUS_TIERS} order. */
+  readonly workStatus?: readonly (readonly string[])[]
+  /** Candidates played with an idle-trigger line (upstream whisper clips). */
+  readonly whisper?: readonly string[]
+  readonly statedIn?: string
+}
+
+/** Body areas a click can land on, top to bottom. */
+export const PET_CLICK_AREAS = ['head', 'body', 'tail'] as const
+
+/** Click responses by body area; one candidate is drawn per click. */
+export type PetMotionClicks = Partial<Readonly<Record<typeof PET_CLICK_AREAS[number], readonly string[]>>>
+
 /** One playable clip. */
 export interface PetMotionEntry {
   /** Pack-relative media path (`.webm` or sprite `.png`). */
@@ -154,6 +181,10 @@ export interface PetMotionManifest {
   readonly categories: readonly PetMotionCategory[]
   /** Top-level chain weights; absent means the categories alone. */
   readonly chain?: PetMotionChain
+  /** Event tiers; absent events use the Client's built-in clip choice. */
+  readonly events?: PetMotionEvents
+  /** Click responses by body area; absent areas use the Client's built-in interaction. */
+  readonly clicks?: PetMotionClicks
 }
 
 /** Result of {@link parsePetMotion}: the manifest, or every problem found. */
@@ -325,6 +356,65 @@ function chain(value: unknown, errors: string[]): PetMotionChain | undefined {
   }
 }
 
+function clipList(value: unknown, clips: Readonly<Record<string, PetMotionEntry>>, where: string, errors: string[]): string[] | undefined {
+  if (!Array.isArray(value) || value.length === 0 || !value.every(name => typeof name === 'string')) {
+    errors.push(`${where} must list clip names`)
+    return undefined
+  }
+  const unknown = (value as string[]).filter(name => clips[name] === undefined)
+  if (unknown.length > 0) errors.push(`${where} names unknown clips: ${unknown.join(', ')}`)
+  return unknown.length > 0 ? undefined : value as string[]
+}
+
+function tiers(value: unknown, size: number, clips: Readonly<Record<string, PetMotionEntry>>, where: string,
+  errors: string[]): string[][] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value) || value.length !== size) {
+    errors.push(`${where} needs exactly ${String(size)} tiers`)
+    return undefined
+  }
+  const parsed = value.map((tier, index) => clipList(tier, clips, `${where} tier ${String(index)}`, errors))
+  return parsed.every(tier => tier !== undefined) ? parsed : undefined
+}
+
+function events(value: unknown, clips: Readonly<Record<string, PetMotionEntry>>, errors: string[]): PetMotionEvents | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) {
+    errors.push('events must be an object')
+    return undefined
+  }
+  const unknown = Object.keys(value).filter(key => !['balance', 'workStatus', 'whisper', 'statedIn'].includes(key))
+  if (unknown.length > 0) errors.push(`events has unknown entries: ${unknown.join(', ')}`)
+  if (value['statedIn'] !== undefined && !isText(value['statedIn'])) errors.push('events statedIn must be text')
+  const balance = tiers(value['balance'], PET_BALANCE_TIERS, clips, 'event balance', errors)
+  const workStatus = tiers(value['workStatus'], PET_WORK_STATUS_TIERS.length, clips, 'event workStatus', errors)
+  const whisper = value['whisper'] === undefined ? undefined : clipList(value['whisper'], clips, 'event whisper', errors)
+  return {
+    ...balance === undefined ? {} : { balance },
+    ...workStatus === undefined ? {} : { workStatus },
+    ...whisper === undefined ? {} : { whisper },
+    ...isText(value['statedIn']) ? { statedIn: value['statedIn'] } : {},
+  }
+}
+
+function clicks(value: unknown, clips: Readonly<Record<string, PetMotionEntry>>, errors: string[]): PetMotionClicks | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) {
+    errors.push('clicks must be an object')
+    return undefined
+  }
+  const result: Partial<Record<typeof PET_CLICK_AREAS[number], string[]>> = {}
+  for (const [area, names] of Object.entries(value)) {
+    if (!(PET_CLICK_AREAS as readonly string[]).includes(area)) {
+      errors.push(`clicks: unknown body area "${area}"`)
+      continue
+    }
+    const parsed = clipList(names, clips, `clicks ${area}`, errors)
+    if (parsed !== undefined) result[area as typeof PET_CLICK_AREAS[number]] = parsed
+  }
+  return result
+}
+
 function clip(name: string, value: unknown, errors: string[]): PetMotionEntry | undefined {
   const where = `clip "${name}"`
   if (!NAME.test(name)) errors.push(`${where}: name must be lowercase snake_case`)
@@ -432,12 +522,16 @@ export function parsePetMotion(value: unknown): PetMotionParseResult {
   }
   const parsedCategories = categories(value['categories'], clips, errors)
   const parsedChain = chain(value['chain'], errors)
+  const parsedEvents = events(value['events'], clips, errors)
+  const parsedClicks = clicks(value['clicks'], clips, errors)
   if (errors.length > 0) return { ok: false, errors }
   return {
     ok: true,
     manifest: {
       formatVersion: 2, renderer: 'vp9-alpha', width: value['width'] as number, height: value['height'] as number,
       clips, categories: parsedCategories, ...parsedChain === undefined ? {} : { chain: parsedChain },
+      ...parsedEvents === undefined ? {} : { events: parsedEvents },
+      ...parsedClicks === undefined ? {} : { clicks: parsedClicks },
     },
   }
 }

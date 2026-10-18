@@ -58,6 +58,12 @@ export async function builtinAssets(): Promise<{
         width: motion.width, height: motion.height, clips,
         ...motion.categories.length === 0 ? {} : { categories: motion.categories },
         ...motion.chain === undefined ? {} : { chain: { idle: motion.chain.idle, turn: motion.chain.turn, move: motion.chain.move } },
+        ...motion.events === undefined ? {} : { events: {
+          ...motion.events.balance === undefined ? {} : { balance: motion.events.balance },
+          ...motion.events.workStatus === undefined ? {} : { workStatus: motion.events.workStatus },
+          ...motion.events.whisper === undefined ? {} : { whisper: motion.events.whisper },
+        } },
+        ...motion.clicks === undefined ? {} : { clicks: motion.clicks },
       },
       ...lines === undefined ? {} : { lines: lines.table },
     },

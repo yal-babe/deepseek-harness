@@ -29,7 +29,7 @@ The upstream `LICENSE` files (repository root and `dsh-pet/`) contain the standa
 ## How these terms apply to this pack
 
 - The 16 `.webm` clips are cropped, scaled, and re-encoded from upstream animations through qcytsn/dsh-dafeiyu frames. They are upstream assets under the terms above.
-- The 7 further `.webm` clips (click_bounce, click_shy, click_huff, look_around, crab_walk, float_step, turn_run) are cropped and re-encoded directly from the upstream `assets/webm` files at the merge baseline. They are upstream assets under the terms above.
+- The 13 further `.webm` clips (click_bounce, click_shy, click_huff, look_around, crab_walk, float_step, turn_run, and the six balance_* tiers) are cropped and re-encoded directly from the upstream `assets/webm` files at the merge baseline. They are upstream assets under the terms above.
 - The `assets/frames/*.webp` fallback frames show the same upstream character; this pack does not record their exact import path, and treats them as upstream assets under the terms above.
 - The 14 generated sprite sheets were generated for dsh studio from a reference of the same character. This pack treats them as derivative works of the upstream character and applies the same terms, including the credit requirement.
 - qcytsn/dsh-dafeiyu labels these assets MIT; the upstream README terms above are more restrictive, and this pack follows the upstream terms.

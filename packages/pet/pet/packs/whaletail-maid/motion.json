@@ -4106,6 +4106,222 @@
           "statedIn": "README.md, section 从零生成你自己的宠物"
         }
       }
+    },
+    "balance_full": {
+      "file": "assets/motion/balance_full.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "12cc27b6a65aeafa0341f1a0fb946dd997b9087f157beb053610f8104d59bac7",
+      "label": {
+        "zh": "钱袋满溢",
+        "en": "Overflowing purse"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/余额-钱袋满溢.webm",
+        "sha256": "dddd6ffc4e763b77360e49c0ccee0987a43c3d253a23e3133c334aabb598b362",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "余额-钱袋满溢",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "balance_jingle": {
+      "file": "assets/motion/balance_jingle.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "d4505a41e51fff0400a2bd52fb22f86405e3745d5c5ef567c2b19bc5ce25998e",
+      "label": {
+        "zh": "金袋叮当",
+        "en": "Jingling purse"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/余额-金袋叮当.webm",
+        "sha256": "6fda0c4ae013cf7906afa1cb846717d097db576343dab11006f14ca5c7a9a34f",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "余额-金袋叮当",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "balance_steady": {
+      "file": "assets/motion/balance_steady.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "c77cf678b95de6f584304bd2860cf6cfb86c909b23b9dc5973ff7bd201c432d9",
+      "label": {
+        "zh": "钱袋如常",
+        "en": "Purse as usual"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/余额-钱袋如常.webm",
+        "sha256": "f6cb9aa1c829fcbc62478dbddd0e0fcd7beb47433cea751d18b81ccccbec95d3",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "余额-钱袋如常",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "balance_frown": {
+      "file": "assets/motion/balance_frown.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "4901389414cbd15e407dcc90682e05f69f447a255225e01a5d16dfc8c4579043",
+      "label": {
+        "zh": "数金皱眉",
+        "en": "Counting coins, frowning"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/余额-数金皱眉.webm",
+        "sha256": "94a7e0ee8e1012aadec33492301c893c2d1c5df7e36049dbada8c4a264bf1810",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "余额-数金皱眉",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "balance_low": {
+      "file": "assets/motion/balance_low.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "b5f0038413fb85118d237d060136a1ec1db1daef4eca1199d88fd52526648d5b",
+      "label": {
+        "zh": "袋空如洗",
+        "en": "Nearly empty purse"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/余额-袋空如洗.webm",
+        "sha256": "3db780bbc96bb362ced36078fecacfb63b9d292c06b533cfb61797adb553a7f8",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "余额-袋空如洗",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "balance_empty": {
+      "file": "assets/motion/balance_empty.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "eab11cdce78a121100bbb748e12f9d45e8a9d13f8b074cb74521653d822202cc",
+      "label": {
+        "zh": "分文不剩",
+        "en": "Not a coin left"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/余额-分文不剩.webm",
+        "sha256": "b232349bdbd962bad7f3a15cfce539c6fadadfd0a286b7f03b03e59cf7aca7a8",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "余额-分文不剩",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
     }
   },
   "categories": [
@@ -4223,5 +4439,62 @@
     "turn": 5,
     "move": 5,
     "statedIn": "dsh-pet/assets/config.jsonc, animationWeights"
+  },
+  "events": {
+    "statedIn": "dsh-pet/assets/config.jsonc, animations.events",
+    "balance": [
+      [
+        "balance_full"
+      ],
+      [
+        "balance_jingle"
+      ],
+      [
+        "balance_steady"
+      ],
+      [
+        "balance_frown"
+      ],
+      [
+        "balance_low"
+      ],
+      [
+        "balance_empty"
+      ]
+    ],
+    "workStatus": [
+      [
+        "thinking"
+      ],
+      [
+        "working"
+      ],
+      [
+        "working_command"
+      ],
+      [
+        "waiting"
+      ],
+      [
+        "success"
+      ],
+      [
+        "error"
+      ]
+    ]
+  },
+  "clicks": {
+    "head": [
+      "head_pat",
+      "click_shy"
+    ],
+    "body": [
+      "poke",
+      "click_bounce",
+      "click_huff"
+    ],
+    "tail": [
+      "tail"
+    ]
   }
 }
