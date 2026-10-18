@@ -18,6 +18,9 @@
 import { BrowserWindow, globalShortcut, screen, type IpcMain, type IpcMainEvent } from 'electron'
 import { PET_IPC, PET_WINDOW_QUERY } from './ipc.ts'
 import {
+  decidePetIgnore, PET_POINTER_POLL_MS, PET_TOPMOST_TICK_MS, petPointerZone, shouldReassertTopmost, type PetWindowsFallbacks,
+} from './pet-fallbacks.ts'
+import {
   fitPetBody, PET_DEFAULT_BODY, petBodyRect, petDefaultPosition, petDisplayLayout, petPlaceRequest, petTravelRequest, revealPetWindow,
   type PetPoint, type PetPositionStore, type PetRect,
 } from './pet-position.ts'
@@ -104,6 +107,8 @@ export interface DesktopPetWindowOptions {
   readonly positions?: PetPositionStore
   /** Called when the Host visibility the renderer reports changes, so the tray can relabel. */
   readonly onVisibleChange?: () => void
+  /** Windows safeguards (click-through poll, keep-on-top watchdog); see `pet-fallbacks.ts`. Default: none. */
+  readonly fallbacks?: PetWindowsFallbacks
 }
 
 /** Owns the pet BrowserWindow, its IPC, and the global shortcut. */
@@ -124,6 +129,11 @@ export class DesktopPetWindow {
   private revealed: PetPoint | undefined
   /** Unrounded window x during a walk, so sub-pixel steps accumulate. */
   private walkX: number | undefined
+  private panelOpen = false
+  private pointerPoll: ReturnType<typeof setInterval> | undefined
+  private marginSince: number | undefined
+  private topmostTimer: ReturnType<typeof setInterval> | undefined
+  private lastTopmost = 0
   private flight: {
     pending: PetPoint | undefined
     timer: ReturnType<typeof setTimeout> | undefined
@@ -209,8 +219,10 @@ export class DesktopPetWindow {
     window.setIgnoreMouseEvents(true, { forward: true })
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     window.once('ready-to-show', () => { if (!window.isDestroyed()) window.showInactive() })
-    window.on('closed', () => { if (this.window === window) this.window = undefined })
+    window.on('closed', () => { if (this.window === window) { this.window = undefined; this.stopSafeguards() } })
     this.window = window
+    this.interactive = false
+    this.startSafeguards(window)
     void window.loadURL(petWindowUrl(this.options.applicationUrl)).catch((error: unknown) => {
       console.warn('desktop pet: window failed to load', error)
     })
@@ -357,6 +369,7 @@ export class DesktopPetWindow {
    * @param open - whether a panel or menu is open.
    */
   reveal(open: boolean): void {
+    this.panelOpen = open
     const window = this.window
     if (this.drag !== undefined || window === undefined || window.isDestroyed()) return
     const [x = 0, y = 0] = window.getPosition()
@@ -411,6 +424,50 @@ export class DesktopPetWindow {
     const cx = this.body.x + this.body.width / 2
     const cy = this.body.y + this.body.height / 2
     return { x: Math.min(Math.max(point.x, left - cx), right - cx), y: Math.min(Math.max(point.y, top - cy), bottom - cy) }
+  }
+
+  /** Start the enabled Windows safeguards for a new window. */
+  private startSafeguards(window: BrowserWindow): void {
+    this.stopSafeguards()
+    const fallbacks = this.options.fallbacks
+    if (fallbacks?.pointerPoll === true) this.pointerPoll = setInterval(() => { this.pollPointer(window) }, PET_POINTER_POLL_MS)
+    if (fallbacks?.topmostWatchdog === true) {
+      this.lastTopmost = Date.now()
+      this.topmostTimer = setInterval(() => {
+        const now = Date.now()
+        const destroyed = window.isDestroyed()
+        const visible = !destroyed && window.isVisible()
+        if (!shouldReassertTopmost({ nowMs: now, lastAssertMs: this.lastTopmost, destroyed, visible, paused: false })) return
+        this.lastTopmost = now
+        window.setAlwaysOnTop(true, 'floating')
+      }, PET_TOPMOST_TICK_MS)
+    }
+  }
+
+  private stopSafeguards(): void {
+    if (this.pointerPoll !== undefined) clearInterval(this.pointerPoll)
+    if (this.topmostTimer !== undefined) clearInterval(this.topmostTimer)
+    this.pointerPoll = undefined
+    this.topmostTimer = undefined
+    this.marginSince = undefined
+  }
+
+  /** Click-through fallback: follow the real cursor when the forwarded mouse moves stop arriving. */
+  private pollPointer(window: BrowserWindow): void {
+    if (window.isDestroyed() || !window.isVisible()) return
+    const [x = 0, y = 0] = window.getPosition()
+    const bounds = { x, y, ...PET_WINDOW_SIZE }
+    const point = screen.getCursorScreenPoint()
+    const now = Date.now()
+    const dragging = this.drag !== undefined
+    if (!dragging && !this.panelOpen && petPointerZone(bounds, point, this.body) === 'margin') this.marginSince ??= now
+    else this.marginSince = undefined
+    const ignore = decidePetIgnore({
+      bounds, point, body: this.body, ignoring: !this.interactive, dragging, panelOpen: this.panelOpen,
+      offBodyMs: this.marginSince === undefined ? 0 : now - this.marginSince,
+    })
+    if (ignore === !this.interactive) return
+    this.setInteractive(!ignore)
   }
 
   /** Begin or continue a throw and re-arm its idle timeout. */
@@ -502,6 +559,7 @@ export class DesktopPetWindow {
     if (this.disposed) return
     const window = this.open()
     window.setIgnoreMouseEvents(false)
+    this.interactive = true
     window.show()
     window.focus()
     window.webContents.send(PET_IPC.quickAsk)
@@ -573,6 +631,7 @@ export class DesktopPetWindow {
   dispose(): void {
     this.setWandering(false)
     this.endFlight()
+    this.stopSafeguards()
     this.disposed = true
     this.unregisterShortcut()
     screen.removeListener('display-added', this.relocate)

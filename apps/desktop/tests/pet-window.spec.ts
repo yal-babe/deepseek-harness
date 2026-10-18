@@ -533,4 +533,74 @@ describe('DesktopPetWindow', () => {
     send(PET_IPC.travel, { dx: 30 }, fake.webContents)
     expect(fake.setBounds).toHaveBeenLastCalledWith({ x: -164, y: 300, width: 340, height: 560 })
   })
+
+  it('polls the cursor when enabled: input over the body, pass-through outside, never during a drag or open panel', () => {
+    vi.useFakeTimers()
+    const pet = new DesktopPetWindow({
+      preload: '', applicationUrl: 'dsh-app://app/', openMain: () => {}, fallbacks: { pointerPoll: true, topmostWatchdog: false },
+    })
+    try {
+      pet.open()
+      const fake = native.windows[0]!
+      fake.visible = true
+      fake.setIgnoreMouseEvents.mockClear()
+      const { x, y } = fake
+      native.state.cursor = { x: x + 200, y: y + 450 }
+      vi.advanceTimersByTime(60)
+      expect(fake.setIgnoreMouseEvents).toHaveBeenLastCalledWith(false)
+      vi.advanceTimersByTime(600)
+      expect(fake.setIgnoreMouseEvents).toHaveBeenCalledOnce()
+      native.state.cursor = { x: x + 10, y: y + 10 }
+      vi.advanceTimersByTime(360)
+      expect(fake.setIgnoreMouseEvents).toHaveBeenCalledOnce()
+      vi.advanceTimersByTime(120)
+      expect(fake.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true, { forward: true })
+      pet.dragStart()
+      native.state.cursor = { x: -500, y: -500 }
+      vi.advanceTimersByTime(60)
+      expect(fake.setIgnoreMouseEvents).toHaveBeenLastCalledWith(false)
+      pet.dragEnd()
+      vi.advanceTimersByTime(60)
+      expect(fake.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true, { forward: true })
+      const calls = fake.setIgnoreMouseEvents.mock.calls.length
+      pet.setInteractive(true)
+      pet.reveal(true)
+      vi.advanceTimersByTime(600)
+      expect(fake.setIgnoreMouseEvents).toHaveBeenCalledTimes(calls + 1)
+      pet.dispose()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally { pet.dispose(); vi.useRealTimers() }
+  })
+
+  it('re-asserts always-on-top every five seconds while visible when the watchdog is enabled', () => {
+    vi.useFakeTimers()
+    const pet = new DesktopPetWindow({
+      preload: '', applicationUrl: 'dsh-app://app/', openMain: () => {}, fallbacks: { pointerPoll: false, topmostWatchdog: true },
+    })
+    try {
+      pet.open()
+      const fake = native.windows[0]!
+      fake.setAlwaysOnTop.mockClear()
+      vi.advanceTimersByTime(10000)
+      expect(fake.setAlwaysOnTop).not.toHaveBeenCalled()
+      fake.visible = true
+      vi.advanceTimersByTime(1000)
+      expect(fake.setAlwaysOnTop).toHaveBeenCalledExactlyOnceWith(true, 'floating')
+      vi.advanceTimersByTime(4000)
+      expect(fake.setAlwaysOnTop).toHaveBeenCalledOnce()
+      vi.advanceTimersByTime(1000)
+      expect(fake.setAlwaysOnTop).toHaveBeenCalledTimes(2)
+      fake.destroy()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally { pet.dispose(); vi.useRealTimers() }
+  })
+
+  it('runs no safeguard timers by default', () => {
+    vi.useFakeTimers()
+    const { pet } = setup()
+    try {
+      pet.open()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally { pet.dispose(); vi.useRealTimers() }
+  })
 })
