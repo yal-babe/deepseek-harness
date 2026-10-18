@@ -1,7 +1,10 @@
 /** Full-length transparent clips, idle scheduling, and bounded decorative effects. */
 import { useEffect, useRef, useState } from 'react'
 import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
-import { idleDelay, mirrorsClip, nextChainClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, taskClip, type PetActionRequest } from './motion.ts'
+import {
+  idleDelay, mirrorsClip, nextAutonomousClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, taskClip, travelAt, travelScale,
+  walkDirection, type PetActionRequest,
+} from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { useMotionPhases } from './useMotionPhases.ts'
 import { PetSprite } from './PetSprite.tsx'
@@ -31,8 +34,27 @@ export function PetEffects({ effect }: { readonly effect: PetEffect }) {
   </span>
 }
 
+/** How the surface moves the character while a measured gait plays. */
+export interface PetWalkSurface {
+  /** Whether autonomous walking is on (the wander preference) and the surface may move now. */
+  readonly allowed: boolean
+  /**
+   * Whether there is room to travel a distance in a direction.
+   * @param direction - on-screen direction.
+   * @param px - distance in CSS pixels.
+   * @returns true when the walk fits.
+   */
+  readonly room: (direction: 'left' | 'right', px: number) => boolean
+  /**
+   * Move the character horizontally with its steps.
+   * @param dx - CSS pixels since the last call, negative to the left.
+   * @param final - the walk ended or was cancelled; the surface saves its position.
+   */
+  readonly travel: (dx: number, final: boolean) => void
+}
+
 /** Media is downloaded only when selected; a failed clip falls back to the built-in still frames. */
-export function PetMotion({ motion, state, activity, action, dragging, preferences, paused, movement, poster, onFailure }: {
+export function PetMotion({ motion, state, activity, action, dragging, preferences, paused, movement, poster, onFailure, walk }: {
   readonly motion: PetMotionView
   readonly state: PetAgentState
   readonly activity?: PetWorkActivity | undefined
@@ -43,7 +65,11 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   readonly preferences: PetPreferences
   readonly paused: boolean
   readonly onFailure: () => void
+  /** Surface movement for walking clips; without it measured gaits play in place and are not chosen autonomously. */
+  readonly walk?: PetWalkSurface | undefined
 }) {
+  const walker = useRef(walk)
+  walker.current = walk
   const video = useRef<HTMLVideoElement>(null)
   const loadedSheets = useRef(new Set<string>())
   const [decoration, setDecoration] = useState<{ name: string; serial: number; effect?: PetEffect } | undefined>(undefined)
@@ -110,13 +136,23 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   useEffect(() => {
     if (!canDecorate || decoration !== undefined) return
     const timer = setTimeout(() => {
-      const name = nextChainClip(motion, preferences.life, preferences.actions, previousIdle.current, Math.random)
+      const size = preferences.size ?? 100
+      const surface = walker.current
+      const name = nextAutonomousClip(motion, preferences.life, preferences.actions, previousIdle.current, Math.random, {
+        allowed: surface?.allowed === true,
+        room: (candidate) => {
+          const move = motion.clips[candidate]?.move
+          if (move === undefined || surface === undefined) return false
+          const distance = Math.abs(move.travel.at(-1) ?? 0) * travelScale(motion, size)
+          return surface.room(walkDirection(move, mirrorsClip(motion, candidate, facingRight)), distance)
+        },
+      })
       if (name === undefined) return
       previousIdle.current = name
       setDecoration({ name: smoothClip(name, motion), serial: Date.now(), ...clipEffect(name) })
     }, idleDelay(preferences.activity ?? 'normal', Math.random()) * (preferences.life === 'play' ? 0.75 : 1))
     return () => { clearTimeout(timer) }
-  }, [canDecorate, decoration, preferences.activity, preferences.actions, preferences.life, motion])
+  }, [canDecorate, decoration, preferences.activity, preferences.actions, preferences.life, preferences.size, motion, facingRight])
   // Decorative idle is deliberately finite even though the source idle clip loops.
   useEffect(() => {
     if (decoration?.name !== 'idle') return
@@ -126,6 +162,24 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
   const name = dragging ? 'dragging' : decoration?.name ?? lifecycle.clip ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : state === 'SUCCESS' || heldResult && idle ? resultClip.current : state === 'THINKING' ? thinkingName : taskClip(state, activity))
   const clip = motion.clips[name] ?? motion.clips.idle
   const serial = decoration?.serial ?? 0
+  // A measured gait moves the surface with the media position, so the feet do not slide; cancelling the clip ends the walk.
+  const walking = decoration !== undefined && clip?.move !== undefined && clip.sheet === undefined && name === decoration.name
+  useEffect(() => {
+    const move = clip?.move
+    const player = video.current
+    if (!walking || move === undefined || player === null || walker.current === undefined) return
+    const sign = walkDirection(move, mirrorsClip(motion, name, facingRight)) === 'left' ? -1 : 1
+    const scale = travelScale(motion, preferences.size ?? 100)
+    let last = 0
+    let frame = requestAnimationFrame(function step() {
+      const travelled = travelAt(move, clip.durationMs, player.currentTime)
+      const dx = (travelled - last) * scale * sign
+      last = travelled
+      if (dx !== 0) walker.current?.travel(dx, false)
+      frame = requestAnimationFrame(step)
+    })
+    return () => { cancelAnimationFrame(frame); walker.current?.travel(0, true) }
+  }, [walking, name, serial])
   const [ended, setEnded] = useState(false)
   useEffect(() => { setEnded(false) }, [name, serial])
   useEffect(() => {

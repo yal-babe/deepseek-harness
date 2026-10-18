@@ -10,7 +10,7 @@ import { BUILTIN_FRAME_SET, clipFor, type PetFrameSet } from './frames.ts'
 import { isSnoozed, throwEnabled, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
-import { PetMotion } from './PetMotion.tsx'
+import { PetMotion, type PetWalkSurface } from './PetMotion.tsx'
 import { pickPetLine, petMomentTriggers, type PetLine } from '@deepseek-ai/dsh-pet/lines'
 import { clipAction, PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest } from './motion.ts'
 import { Button, Menu, MenuItemButton, MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -101,7 +101,7 @@ function useCharacterDrag(onDrag: ((phase: PetDragPhase) => void) | undefined, o
  */
 export function PetCharacter({
   state, label, name, onClick, onMenu, onDrag, pack = BUILTIN_FRAME_SET, badge, action, preferences,
-  paused = false, activity, onInteract, movement,
+  paused = false, activity, onInteract, movement, walk,
 }: {
   readonly state: PetAgentState
   readonly label: string
@@ -120,6 +120,8 @@ export function PetCharacter({
   readonly onMenu?: () => void
   /** Desktop pet window only: dragging the character moves the window. */
   readonly onDrag?: (phase: PetDragPhase) => void
+  /** Surface movement for walking clips. */
+  readonly walk?: PetWalkSurface | undefined
 }): ReactNode {
   const clip = clipFor(state)
   const frames = pack.frames[clip]
@@ -192,7 +194,7 @@ export function PetCharacter({
         data-direction={movement?.direction}>
         {pack.motion !== undefined && playingMotion
           ? <PetMotion motion={pack.motion} state={state} activity={activity} action={action} dragging={dragging}
-            movement={movement} poster={frames[0]}
+            movement={movement} poster={frames[0]} walk={walk}
             preferences={preferences ?? { notify: false, snoozeUntil: undefined }} paused={paused}
             onFailure={() => { setFailedMotion(pack.key) }} />
           : <img src={frames[index % frames.length]} alt="" draggable={false} /> }
@@ -725,6 +727,9 @@ export function PetOverlay(props: PetProps): ReactNode {
   const roaming = visible && preferences.roam === true && preferences.reducedMotion !== true && petIsIdle(state) && !open && !menu
   const position = usePagePosition(roaming && preferences.life !== 'rest', preferences.size ?? 100, preferences.activity ?? 'normal',
     throwEnabled(preferences, systemReduced))
+  const walk: PetWalkSurface = {
+    allowed: roaming && !systemReduced && !position.flying, room: position.room, travel: position.travel,
+  }
   if (!visible) {
     // Only a Host snapshot can hide the pet. Web has no tray or global shortcut, so leave a small handle to bring it back.
     return (
@@ -747,7 +752,7 @@ export function PetOverlay(props: PetProps): ReactNode {
           onClose={() => { setMenu(false) }} />}
       </div>
       <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })} onClick={toggle}
-        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} movement={{ moving: position.wandering, direction: position.direction }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+        onMenu={() => { setMenu(!menu) }} onDrag={position.drag} walk={walk} movement={{ moving: position.wandering, direction: position.direction }} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
     </div>
   )
 }
@@ -773,6 +778,12 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
   shortcutAction.current = act
   const systemReduced = useSystemReducedMotion()
   const thrower = useDesktopThrow(controller, controller.canThrow && throwEnabled(preferences, systemReduced), preferences.size ?? 100)
+  const walk: PetWalkSurface = {
+    allowed: controller.canWalk && preferences.roam === true && preferences.reducedMotion !== true && !systemReduced && !thrower.flying
+      && movement.moving !== true,
+    room: thrower.room,
+    travel: (dx, final) => { controller.travel(dx, final) },
+  }
   // Keep the whole window on screen while a panel or menu is open; the character may otherwise sit at an edge.
   const revealed = useRef(false)
   useEffect(() => {
@@ -821,7 +832,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         </div>
         <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })}
           onClick={toggle} onMenu={() => { setMenu(!menu) }}
-          movement={movement} onDrag={thrower.drag} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
+          movement={movement} onDrag={thrower.drag} walk={walk} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined} />
       </div>
     </div>
   )

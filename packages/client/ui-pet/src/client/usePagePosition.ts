@@ -33,6 +33,18 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
   direction: 'left' | 'right'
   /** Whether a thrown character is in the air. */
   flying: boolean
+  /**
+   * Whether the character can travel a distance horizontally inside the viewport.
+   * @param direction - on-screen direction.
+   * @param px - distance in CSS pixels.
+   */
+  room: (direction: 'left' | 'right', px: number) => boolean
+  /**
+   * Move the character horizontally with a walking clip; stops at the viewport edge.
+   * @param dx - CSS pixels, negative to the left.
+   * @param final - the walk ended; the position is saved.
+   */
+  travel: (dx: number, final: boolean) => void
 } {
   const [point, setPoint] = useState(() => load(size))
   const [wandering, setWandering] = useState(false)
@@ -48,6 +60,7 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
   const frame = useRef<number | undefined>(undefined)
   const physics = useRef(throwing)
   physics.current = throwing
+  const walking = useRef(false)
   const move = (next: PetPagePoint): void => {
     current.current = next
     setPoint(next)
@@ -152,7 +165,7 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
     let timer: ReturnType<typeof setTimeout> | undefined
     const schedule = (): void => { timer = setTimeout(step, roamDelay(activity, Math.random())) }
     const step = (): void => {
-      if (document.hidden || media?.matches === true || origin.current !== undefined || frame.current !== undefined
+      if (document.hidden || media?.matches === true || origin.current !== undefined || frame.current !== undefined || walking.current
         || Date.now() - touched.current < 3000) {
         schedule(); return
       }
@@ -183,5 +196,20 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
     '--pet-panel-left': `${Math.max(8 - point.x, Math.min(0, viewport.width - 308 - point.x))}px`,
     '--pet-panel-height': `${Math.max(0, below ? viewport.height - point.y - PET_CHARACTER_SIZE.height * size / 100 - 24 : point.y - 16)}px`,
   } as CSSProperties
-  return { style, below, begin, track, drag, wandering, direction, flying }
+  const room = (side: 'left' | 'right', px: number): boolean => {
+    const from = current.current
+    const to = clampPetPoint({ x: from.x + (side === 'left' ? -px : px), y: from.y }, window.innerWidth, window.innerHeight, size)
+    return Math.abs(to.x - from.x) >= px - 0.5
+  }
+  const travel = (dx: number, final: boolean): void => {
+    if (final) {
+      if (walking.current) save(current.current)
+      walking.current = false
+      return
+    }
+    if (origin.current !== undefined || frame.current !== undefined) return
+    walking.current = true
+    move(clampPetPoint({ x: current.current.x + dx, y: current.current.y }, window.innerWidth, window.innerHeight, size))
+  }
+  return { style, below, begin, track, drag, wandering, direction, flying, room, travel }
 }

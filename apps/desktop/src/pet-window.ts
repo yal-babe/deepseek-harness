@@ -18,7 +18,7 @@
 import { BrowserWindow, globalShortcut, screen, type IpcMain, type IpcMainEvent } from 'electron'
 import { PET_IPC, PET_WINDOW_QUERY } from './ipc.ts'
 import {
-  fitPetBody, PET_DEFAULT_BODY, petBodyRect, petDefaultPosition, petDisplayLayout, petPlaceRequest, revealPetWindow,
+  fitPetBody, PET_DEFAULT_BODY, petBodyRect, petDefaultPosition, petDisplayLayout, petPlaceRequest, petTravelRequest, revealPetWindow,
   type PetPoint, type PetPositionStore, type PetRect,
 } from './pet-position.ts'
 
@@ -122,6 +122,8 @@ export class DesktopPetWindow {
   private interactive = false
   private body: PetRect = PET_DEFAULT_BODY
   private revealed: PetPoint | undefined
+  /** Unrounded window x during a walk, so sub-pixel steps accumulate. */
+  private walkX: number | undefined
   private flight: {
     pending: PetPoint | undefined
     timer: ReturnType<typeof setTimeout> | undefined
@@ -261,6 +263,7 @@ export class DesktopPetWindow {
     this.stopWanderMove()
     this.endFlight()
     this.revealed = undefined
+    this.walkX = undefined
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
     const [x = 0, y = 0] = window.getPosition()
@@ -313,6 +316,31 @@ export class DesktopPetWindow {
     }
     if (wait <= 0) apply()
     else flight.timer = setTimeout(apply, wait)
+  }
+
+  /**
+   * Move the window horizontally with a walking clip. The body stops at the edge
+   * of its work area; the final report saves the position.
+   * @param dx - DIP since the last report.
+   * @param final - the walk ended or was cancelled.
+   */
+  travel(dx: number, final: boolean): void {
+    const window = this.window
+    if (window === undefined || window.isDestroyed()) return
+    if (final) {
+      if (this.walkX === undefined) return
+      this.walkX = undefined
+      const [x = 0, y = 0] = window.getPosition()
+      this.settle({ x, y })
+      return
+    }
+    if (this.drag !== undefined || this.flight !== undefined || this.wanderMove !== undefined) return
+    const [x = 0, y = 0] = window.getPosition()
+    const wanted = (this.walkX ?? x) + dx
+    const fitted = fitPetBody({ x: wanted, y }, screen.getAllDisplays(), this.body)
+    if (fitted === undefined) return
+    this.walkX = fitted.x === Math.round(wanted) ? wanted : fitted.x
+    if (Math.round(this.walkX) !== x) this.moveTo({ x: this.walkX, y })
   }
 
   /**
@@ -427,7 +455,8 @@ export class DesktopPetWindow {
       const cursor = screen.getCursorScreenPoint()
       const near = Math.hypot(cursor.x - (x + PET_WINDOW_SIZE.width - 64), cursor.y - (y + PET_WINDOW_SIZE.height - 70)) < 180
       let movementDuration = 0
-      if (!this.interactive && !near && this.drag === undefined && this.flight === undefined && window.isVisible()) {
+      const busy = this.interactive || near || this.drag !== undefined || this.flight !== undefined || this.walkX !== undefined
+      if (!busy && window.isVisible()) {
         const target = fitPetBody({ x: x + (Math.random() - 0.5) * 160, y: y + (Math.random() - 0.5) * 100 },
           screen.getAllDisplays(), this.body)
         if (target !== undefined) {
@@ -443,6 +472,7 @@ export class DesktopPetWindow {
             if (progress === 1) {
               this.stopWanderMove()
               void this.options.positions?.set(petDisplayLayout(screen.getAllDisplays()), target)
+              this.sendGeometry()
             }
           }, 33)
         }
@@ -517,6 +547,10 @@ export class DesktopPetWindow {
       [PET_IPC.place, guard((value) => {
         const request = petPlaceRequest(value)
         if (request !== undefined) this.placeThrown(request.point, request.final)
+      })],
+      [PET_IPC.travel, guard((value) => {
+        const request = petTravelRequest(value)
+        if (request !== undefined) this.travel(request.dx, request.final)
       })],
       [PET_IPC.body, guard((value) => {
         const body = petBodyRect(value, PET_WINDOW_SIZE)

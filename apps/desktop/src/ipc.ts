@@ -50,6 +50,8 @@ export const PET_IPC = {
   dragEnd: 'dsh-pet:drag-end',
   /** Pet window to the main process: window origin during a throw (payload `{ x, y, final }`). */
   place: 'dsh-pet:place',
+  /** Pet window to the main process: horizontal move with a walking clip (payload `{ dx, final }`). */
+  travel: 'dsh-pet:travel',
   /** Pet window to the main process: character body rectangle inside the window, in DIP. */
   body: 'dsh-pet:body',
   /** Pet window to the main process: a panel or menu opened (true) or closed (false). */

@@ -124,6 +124,7 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
         ipcRenderer.send(PET_IPC.body, { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
       },
       reveal: (open: boolean) => { ipcRenderer.send(PET_IPC.reveal, open) },
+      travel: (dx: number, final: boolean) => { ipcRenderer.send(PET_IPC.travel, { dx, final }) },
       onGeometry: (listener: (geometry: unknown) => void) => {
         const handle = (_event: unknown, geometry: unknown): void => { listener(geometry) }
         ipcRenderer.on(PET_IPC.geometry, handle)

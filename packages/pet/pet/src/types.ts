@@ -213,6 +213,6 @@ export interface PetMotionView {
   readonly clips: Readonly<Record<string, PetMotionClip>>
   /** Categories of the weighted animation chain and the action menu, in menu order. */
   readonly categories?: readonly PetMotionCategoryView[]
-  /** Top-level chain weights beside the categories: stay idle, turn, or travel. */
+  /** Top-level chain weights of the idle state: draw from the categories (`idle`), turn, or walk. */
   readonly chain?: { readonly idle: number; readonly turn: number; readonly move: number }
 }

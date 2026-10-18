@@ -166,6 +166,21 @@ export function petPlaceRequest(value: unknown): { readonly point: PetPoint; rea
   return { point: { x: value.x, y: value.y }, final: final === true }
 }
 
+/** Largest horizontal step one walking report may move the window, in DIP. */
+export const PET_TRAVEL_STEP_LIMIT = 64
+
+/**
+ * Validate a walking step the renderer reports.
+ * @param value - untrusted `{ dx, final }`.
+ * @returns the step and whether the walk ended, or `undefined`.
+ */
+export function petTravelRequest(value: unknown): { readonly dx: number; readonly final: boolean } | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const dx = Reflect.get(value, 'dx')
+  if (typeof dx !== 'number' || !Number.isFinite(dx) || Math.abs(dx) > PET_TRAVEL_STEP_LIMIT) return undefined
+  return { dx, final: Reflect.get(value, 'final') === true }
+}
+
 /** Reads and writes `pet-window.json`; writes are serialized and atomic. */
 export class PetPositionStore {
   private readonly layouts = new Map<string, PetPoint>()

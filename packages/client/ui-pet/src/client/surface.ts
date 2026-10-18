@@ -69,6 +69,11 @@ export interface DesktopPetBridge {
   readonly reveal?: (open: boolean) => void
   /** Observe the window bounds and the work areas and panels of all displays. */
   readonly onGeometry?: (listener: (geometry: unknown) => void) => () => void
+  /**
+   * Move the window horizontally with a walking clip; the main process keeps the body on screen and saves the final position.
+   * Absent in older bridges, which then never walk autonomously.
+   */
+  readonly travel?: (dx: number, final: boolean) => void
 }
 
 /** Rectangle in Desktop DIP coordinates. */

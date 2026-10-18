@@ -1,8 +1,9 @@
 /**
- * Desktop pet-window throws. The main process moves the window during a drag;
- * on a fast release the renderer steps the shared physics over the displays'
- * work areas and asks the main process for each window origin, which it
- * throttles, clamps, and saves when the flight ends.
+ * Desktop pet-window throws and walking room. The main process moves the
+ * window during a drag; on a fast release the renderer steps the shared
+ * physics over the displays' work areas and asks the main process for each
+ * window origin, which it throttles, clamps, and saves when the flight ends.
+ * The same geometry tells whether a walking clip has room ahead.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { PetController } from './controller.ts'
@@ -32,12 +33,18 @@ function measureBody(): PetDesktopRect | undefined {
  * @param controller - pet controller with the Desktop bridge.
  * @param enabled - whether throwing is on (preference, reduced motion) and the bridge supports it.
  * @param size - character size in percent; the body is re-measured when it changes.
- * @returns a pointer tracker for drag samples, the drag reporter, and whether the character is in the air.
+ * @returns a pointer tracker for drag samples, the drag reporter, whether the character is in the air, and a walking room check.
  */
 export function useDesktopThrow(controller: PetController, enabled: boolean, size: number): {
   track: (pointer: PetThrowPointer) => void
   drag: (phase: PetDragPhase) => void
   flying: boolean
+  /**
+   * Whether the body can travel a distance inside the work area that holds it, from the last reported window position.
+   * @param direction - on-screen direction.
+   * @param px - distance in DIP.
+   */
+  room: (direction: 'left' | 'right', px: number) => boolean
 } {
   const geometry = useRef<PetDesktopGeometry | undefined>(undefined)
   const body = useRef<PetDesktopRect | undefined>(undefined)
@@ -90,6 +97,17 @@ export function useDesktopThrow(controller: PetController, enabled: boolean, siz
   }
   return {
     flying,
+    room: (direction, px) => {
+      const space = geometry.current
+      const box = body.current
+      if (space === undefined || box === undefined) return false
+      const left = space.window.x + box.x
+      const cx = left + box.width / 2
+      const cy = space.window.y + box.y + box.height / 2
+      const area = space.areas.find(rect => cx >= rect.x && cx < rect.x + rect.width && cy >= rect.y && cy < rect.y + rect.height)
+      if (area === undefined) return false
+      return direction === 'left' ? left - px >= area.x : left + box.width + px <= area.x + area.width
+    },
     track: (pointer) => {
       if (!dragging.current) return
       const now = performance.now()

@@ -117,10 +117,30 @@ describe('Desktop throws', () => {
     expect(bridge.place).toHaveBeenLastCalledWith(expect.anything(), true)
   })
 
+  it('checks walking room inside the work area that holds the body', () => {
+    const { controller, emit } = bench()
+    const { result } = renderHook(() => useDesktopThrow(controller, true, 100))
+    expect(result.current.room('left', 10)).toBe(false)
+    act(() => { vi.advanceTimersByTime(16) })
+    emit(GEOMETRY)
+    // Body spans 1164–1332 on a 1920-wide work area.
+    expect(result.current.room('left', 1164)).toBe(true)
+    expect(result.current.room('left', 1165)).toBe(false)
+    expect(result.current.room('right', 588)).toBe(true)
+    expect(result.current.room('right', 589)).toBe(false)
+    emit({ ...GEOMETRY, window: { ...GEOMETRY.window, x: 5000 } })
+    expect(result.current.room('right', 1)).toBe(false)
+  })
+
   it('needs a bridge that can place the window', () => {
     expect(bench().controller.canThrow).toBe(true)
     expect(bench({ place: undefined }).controller.canThrow).toBe(false)
     expect(bench({ onGeometry: undefined }).controller.canThrow).toBe(false)
+    expect(bench().controller.canWalk).toBe(false)
+    const walker = bench({ travel: vi.fn() })
+    expect(walker.controller.canWalk).toBe(true)
+    walker.controller.travel(3, false)
+    expect(walker.bridge.travel).toHaveBeenCalledWith(3, false)
   })
 })
 

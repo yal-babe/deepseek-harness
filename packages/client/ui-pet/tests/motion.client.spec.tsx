@@ -3,7 +3,10 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetMotion } from '../src/client/PetMotion.tsx'
 import { PetSprite } from '../src/client/PetSprite.tsx'
-import { idleDelay, lifeActions, mirrorsClip, nextChainClip, nextIdleClip, roamDelay, taskClip } from '../src/client/motion.ts'
+import {
+  idleDelay, lifeActions, mirrorsClip, nextAutonomousClip, nextChainClip, nextIdleClip, roamDelay, taskClip, travelAt, travelScale,
+  walkDirection,
+} from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
 const clip = (name: string, loop = false) => ({ url: `/${name}.webm`, durationMs: 1000, loop })
@@ -239,5 +242,82 @@ describe('categorized animation chain', () => {
     expect(content().dataset.petClip).toBe('head_pat')
     fireEvent.ended(view.container.querySelector('video')!)
     expect(content().dataset.petFacing).toBe('left')
+  })
+})
+
+describe('measured walking', () => {
+  const move = { direction: 'left' as const, travel: [0, 0, 10, 20, 20], leadMs: 0, tailMs: 0 }
+  const walking: PetMotionView = {
+    ...motion, width: 412,
+    clips: { ...motion.clips, crab: { ...clip('crab'), frames: 5, move }, look_around: { ...clip('look_around'), turn: true } },
+    categories: [{ id: 'small', label: { zh: '甲', en: 'A' }, weight: 1, life: ['idle'], clips: ['idle_stretch'] }],
+    chain: { idle: 10, turn: 5, move: 5 },
+  }
+  const sequence = (...values: number[]) => () => values.shift() ?? 0
+  const open = { allowed: true, room: () => true }
+
+  it('draws idle, turn, or move by the chain weights, turning when there is no room and idling when walking is off', () => {
+    expect(nextAutonomousClip(walking, 'idle', undefined, undefined, sequence(0.1, 0), open)).toBe('idle_stretch')
+    expect(nextAutonomousClip(walking, 'idle', undefined, undefined, sequence(0.6, 0), open)).toBe('look_around')
+    expect(nextAutonomousClip(walking, 'idle', undefined, undefined, sequence(0.9, 0), open)).toBe('crab')
+    expect(nextAutonomousClip(walking, 'idle', undefined, undefined, sequence(0.9, 0), { allowed: true, room: () => false })).toBe('look_around')
+    expect(nextAutonomousClip(walking, 'idle', undefined, undefined, sequence(0.9, 0), { allowed: false, room: () => true })).toBe('idle_stretch')
+    // Play and packs without weights keep the category chain.
+    expect(nextAutonomousClip(walking, 'play', undefined, undefined, sequence(0.9, 0), open)).toBeUndefined()
+    expect(nextAutonomousClip({ ...walking, chain: undefined }, 'idle', undefined, undefined, sequence(0.9, 0), open)).toBe('idle_stretch')
+    expect(nextAutonomousClip({ ...walking, chain: { idle: 0, turn: 0, move: 0 } }, 'idle', undefined, undefined, sequence(0.9, 0), open))
+      .toBe('idle_stretch')
+  })
+
+  it('interpolates travel by media time and converts it to screen pixels and direction', () => {
+    expect(travelAt(move, 1000, 0)).toBe(0)
+    expect(travelAt(move, 1000, 0.5)).toBe(15)
+    expect(travelAt(move, 1000, 9)).toBe(20)
+    expect(travelAt({ ...move, travel: [] }, 1000, 0.5)).toBe(0)
+    expect(travelScale(walking, 100)).toBeCloseTo(168 / 412)
+    expect(travelScale(walking, 200)).toBeCloseTo(336 / 412)
+    expect(travelScale({ width: 0 })).toBe(0)
+    expect(walkDirection(move, false)).toBe('left')
+    expect(walkDirection(move, true)).toBe('right')
+    expect(walkDirection({ direction: 'right' }, false)).toBe('right')
+  })
+
+  it('moves the surface with the playing media and ends the walk with the clip', () => {
+    vi.useRealTimers()
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'] })
+    const travel = vi.fn()
+    const props = { motion: walking, state: 'IDLE' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
+    const view = render(<PetMotion {...props} walk={{ allowed: true, room: () => true, travel }} action={{ clip: 'crab', serial: 1 }} />)
+    const video = view.container.querySelector('video')!
+    let time = 0
+    Object.defineProperty(video, 'currentTime', { configurable: true, get: () => time, set: (value: number) => { time = value } })
+    act(() => { vi.advanceTimersByTime(16) })
+    expect(travel).not.toHaveBeenCalled()
+    time = 0.5
+    act(() => { vi.advanceTimersByTime(16) })
+    time = 1
+    act(() => { vi.advanceTimersByTime(16) })
+    const moved = travel.mock.calls.filter(call => call[1] === false).reduce((sum, call) => sum + (call[0] as number), 0)
+    expect(moved).toBeCloseTo(-20 * 168 / 412)
+    fireEvent.ended(video)
+    expect(travel).toHaveBeenLastCalledWith(0, true)
+    expect(view.container.querySelector<HTMLElement>('[data-pet-clip]')!.dataset.petClip).toBe('idle')
+    view.unmount()
+  })
+
+  it('chooses a walk autonomously only when the surface allows it, otherwise turns', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.9)
+    const travel = vi.fn()
+    const props = { motion: walking, state: 'IDLE' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
+    const view = render(<PetMotion {...props} walk={{ allowed: true, room: () => false, travel }} />)
+    act(() => { vi.advanceTimersByTime(20000) })
+    expect(view.container.querySelector<HTMLElement>('[data-pet-clip]')!.dataset.petClip).toBe('look_around')
+    fireEvent.ended(view.container.querySelector('video')!)
+    const room = vi.fn(() => true)
+    view.rerender(<PetMotion {...props} walk={{ allowed: true, room, travel }} />)
+    act(() => { vi.advanceTimersByTime(20000) })
+    expect(view.container.querySelector<HTMLElement>('[data-pet-clip]')!.dataset.petClip).toBe('crab')
+    // After the turn the character faces right, so the walk is checked to the right over the scaled distance.
+    expect(room).toHaveBeenCalledWith('right', expect.closeTo(20 * 168 / 412))
   })
 })

@@ -235,6 +235,21 @@ export class PetController {
     this.deps.bridge?.place?.(point, final)
   }
 
+  /** Whether this Desktop bridge can move the window with a walking clip. */
+  get canWalk(): boolean {
+    const bridge = this.deps.bridge
+    return bridge?.travel !== undefined && bridge.onGeometry !== undefined
+  }
+
+  /**
+   * Move the Desktop pet window with a walking clip.
+   * @param dx - DIP since the last call, negative to the left.
+   * @param final - the walk ended.
+   */
+  travel(dx: number, final: boolean): void {
+    this.deps.bridge?.travel?.(dx, final)
+  }
+
   /**
    * Report the character body inside the Desktop pet window.
    * @param rect - body in window DIP.
