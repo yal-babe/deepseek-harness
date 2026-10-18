@@ -1,0 +1,36 @@
+{
+  "repository": "https://github.com/PC2005-cloud/dsh-pet",
+  "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+  "directory": "dsh-pet/assets/webm",
+  "crop": [100, 0, 412, 344],
+  "generation": {
+    "tool": "豆包 (Doubao)",
+    "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+    "statedIn": "README.md, section 从零生成你自己的宠物",
+    "promptFile": "prompts/桌面宠物 10 秒动作提示词.md"
+  },
+  "batches": [
+    {
+      "batch": 1,
+      "note": "Work states, clicks, drag, idle, and turn; 14 of these sources already ship through import-motion.py. The three moves wait for stride-measured walking.",
+      "clips": [
+        { "name": "click_bounce", "source": "点击回应-开心跃动.webm", "section": "点击回应-开心跃动", "loop": false, "label": { "zh": "开心跃动", "en": "Happy bounce" } },
+        { "name": "click_shy", "source": "点击回应-害羞惊讶.webm", "section": "点击回应-害羞惊讶", "loop": false, "label": { "zh": "害羞惊讶", "en": "Shy surprise" } },
+        { "name": "click_huff", "source": "点击回应-傲娇生气.webm", "section": "点击回应-傲娇生气", "loop": false, "label": { "zh": "傲娇生气", "en": "Pouty huff" } },
+        { "name": "look_around", "source": "东张西望.webm", "section": "东张西望", "loop": false, "turn": true, "label": { "zh": "东张西望", "en": "Glance around" } }
+      ]
+    }
+  ],
+  "categories": [
+    { "id": "small", "label": { "zh": "小动作", "en": "Small actions" }, "weight": 20, "life": ["idle"],
+      "clips": ["idle_stretch", "idle_yawn", "idle_daydream", "idle_observe", "idle_groom", "look_around"] },
+    { "id": "play", "label": { "zh": "玩耍", "en": "Play" }, "weight": 20, "life": ["play"],
+      "clips": ["bubbles", "celebrate", "play_bubbles", "play_ball", "play_tailspin"] },
+    { "id": "interact", "label": { "zh": "互动", "en": "Interactions" }, "weight": 0, "life": [],
+      "clips": ["head_pat", "poke", "tail", "nuzzle", "click_bounce", "click_shy", "click_huff"] },
+    { "id": "eat", "label": { "zh": "吃什么", "en": "Snacks" }, "weight": 0, "life": [], "clips": ["eat_token"] },
+    { "id": "rest", "label": { "zh": "休息", "en": "Rest" }, "weight": 0, "life": [], "clips": ["sleep", "rest_pillow"] },
+    { "id": "work", "label": { "zh": "工作", "en": "Work" }, "weight": 0, "life": [], "clips": ["work_read", "thinking_chin"] },
+    { "id": "move", "label": { "zh": "移动", "en": "Movement" }, "weight": 0, "life": [], "clips": ["swim"] }
+  ]
+}

@@ -6,6 +6,7 @@ import { parsePetMotion, type PetMotionManifest } from '../src/motion.ts'
 
 const BUILTIN = join(import.meta.dirname, '..', 'packs', 'whaletail-maid')
 const SHA = 'a'.repeat(64)
+const UPSTREAM_COMMIT = '091b27b40f9eeecc814bedb691fe214ec2b48299'
 
 function builtin(): PetMotionManifest {
   const result = parsePetMotion(JSON.parse(readFileSync(join(BUILTIN, 'motion.json'), 'utf8')))
@@ -29,6 +30,28 @@ describe('built-in motion.json', () => {
     for (const [file, sha256] of files) {
       expect(createHash('sha256').update(readFileSync(join(BUILTIN, file))).digest('hex'), file).toBe(sha256)
     }
+  })
+
+  it('records the pinned upstream commit, source digest, and generation of every dsh-pet clip', () => {
+    const imported = Object.entries(builtin().clips).filter(([, clip]) => clip.source.kind === 'dsh-pet-webm')
+    expect(imported.map(([name]) => name).sort()).toEqual(['click_bounce', 'click_huff', 'click_shy', 'look_around'])
+    for (const [name, clip] of imported) {
+      expect(clip.source, name).toMatchObject({
+        repository: 'https://github.com/PC2005-cloud/dsh-pet', commit: UPSTREAM_COMMIT, crop: [100, 0, 412, 344], fps: 24,
+        generation: { tool: '豆包 (Doubao)', prompt: { file: 'prompts/桌面宠物 10 秒动作提示词.md' } },
+      })
+      expect(clip.label, name).toBeDefined()
+    }
+    expect(builtin().clips.look_around?.turn).toBe(true)
+  })
+
+  it('puts every menu action into one category and keeps the autonomous chain to idle and play', () => {
+    const { categories } = builtin()
+    expect(categories.map(category => category.id)).toEqual(['small', 'play', 'interact', 'eat', 'rest', 'work', 'move'])
+    expect(categories.filter(category => category.life.length > 0).map(category => [category.id, category.life]))
+      .toEqual([['small', ['idle']], ['play', ['play']]])
+    const members = categories.flatMap(category => category.clips)
+    expect(new Set(members).size).toBe(members.length)
   })
 })
 

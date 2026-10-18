@@ -8,7 +8,7 @@ UPSTREAM_ASSET_TERMS.md quotes those terms verbatim with the pinned commits.
 MOTION_LICENSE.txt and LICENSE preserve the upstream MIT text, which covers
 code only.
 
-The 16 .webm files are cropped and re-encoded from qcytsn/dsh-dafeiyu's
+Sixteen of the .webm files are cropped and re-encoded from qcytsn/dsh-dafeiyu's
 whale-tail maid frames, which derive from PC2005-cloud/dsh-pet animations.
 dsh-dafeiyu labels those frames MIT; this pack follows the more restrictive
 upstream asset terms instead. motion.json records the pinned repository
@@ -16,6 +16,18 @@ revision, source video hashes, frame counts, durations and output hashes, plus
 the upstream merge baseline (upstreamBaseline) at which the 14 source video
 hashes were checked again. Videos retain the original 412x344 frame
 resolution.
+
+Four more .webm files (click_bounce, click_shy, click_huff, look_around) are
+the first batch cut directly from PC2005-cloud/dsh-pet's in-repository
+assets/webm at commit 091b27b40f9eeecc814bedb691fe214ec2b48299. The upstream
+green-screen source videos are only published in a release archive and were
+not used. ../../tools/import-dshpet-webm.py reads the recipe in
+../../tools/dshpet-webm.recipe.json, crops the shared 412x344 window without
+scaling, and re-encodes with the same VP9 alpha settings as the other clips.
+motion.json records each source path, SHA-256, frame count, crop, and the
+generation stated upstream: 豆包 (Doubao), manual Premiere Pro keying, and the
+prompt section in the upstream prompt file. look_around ends mirrored, so it
+is marked as a turn. Its walking clips wait for stride-measured movement.
 
 Four replacement sheets (bubbles, celebrate, nuzzle, sleep) and ten new sheets
 (idle_daydream, idle_observe, swim, idle_groom, play_bubbles, play_ball,
