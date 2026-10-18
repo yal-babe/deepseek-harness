@@ -26,6 +26,8 @@ export interface PetPreferences {
   readonly effects?: boolean
   readonly interactive?: boolean
   readonly roam?: boolean
+  /** Whether a fling throws the character with gravity and bounces; absent means on. Reduced motion turns it off. */
+  readonly throw?: boolean
   readonly reducedMotion?: boolean
   /** Whether system notifications are on (opt-in). */
   readonly notify: boolean
@@ -68,8 +70,19 @@ export function parsePreferences(raw: string | null): PetPreferences {
     ...'effects' in value && typeof value.effects === 'boolean' ? { effects: value.effects } : {},
     ...'interactive' in value && typeof value.interactive === 'boolean' ? { interactive: value.interactive } : {},
     ...'roam' in value && typeof value.roam === 'boolean' ? { roam: value.roam } : {},
+    ...'throw' in value && typeof value.throw === 'boolean' ? { throw: value.throw } : {},
     ...'reducedMotion' in value && typeof value.reducedMotion === 'boolean' ? { reducedMotion: value.reducedMotion } : {},
   }
+}
+
+/**
+ * Whether drag physics and throwing are on: the preference (on by default) unless motion is reduced.
+ * @param preferences - device preferences.
+ * @param systemReduced - whether the system asks for reduced motion.
+ * @returns whether flings throw the character.
+ */
+export function throwEnabled(preferences: PetPreferences, systemReduced: boolean): boolean {
+  return preferences.throw !== false && preferences.reducedMotion !== true && !systemReduced
 }
 
 /** `storage` event fields read by {@link PetPreferenceStore.follow}. */

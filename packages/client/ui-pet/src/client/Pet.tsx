@@ -7,7 +7,7 @@ import { matchApproval, type AnswerableApproval, type PetDecisionResult } from '
 import type { PetController, QuickAskChoice } from './controller.ts'
 import { petAnswerable, type AnswerableQuestion, type PetAnswerResult } from './questions.ts'
 import { BUILTIN_FRAME_SET, clipFor, type PetFrameSet } from './frames.ts'
-import { isSnoozed, type PetPreferences } from './preferences.ts'
+import { isSnoozed, throwEnabled, type PetPreferences } from './preferences.ts'
 import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import { PetMotion } from './PetMotion.tsx'
@@ -695,6 +695,18 @@ function PetStatus({ state, useView, t, line }: Pick<PetProps, 'useView' | 't'> 
   return <div className={css.statusBubble} role="status">{stateLine(t, state, focus)}</div>
 }
 
+/** Follow the system reduced-motion setting. */
+function useSystemReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true)
+  useEffect(() => {
+    const query = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    const changed = (): void => { setReduced(query?.matches === true) }
+    query?.addEventListener?.('change', changed)
+    return () => { query?.removeEventListener?.('change', changed) }
+  }, [])
+  return reduced
+}
+
 /**
  * In-page character anchored to the bottom-right corner of the Web shell.
  * @param props - pet props.
@@ -708,8 +720,10 @@ export function PetOverlay(props: PetProps): ReactNode {
   const preferences = props.usePreferences(current => current)
   const activity = props.useView(view =>
     view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId)?.activity)
+  const systemReduced = useSystemReducedMotion()
   const roaming = visible && preferences.roam === true && preferences.reducedMotion !== true && petIsIdle(state) && !open && !menu
-  const position = usePagePosition(roaming && preferences.life !== 'rest', preferences.size ?? 100, preferences.activity ?? 'normal')
+  const position = usePagePosition(roaming && preferences.life !== 'rest', preferences.size ?? 100, preferences.activity ?? 'normal',
+    throwEnabled(preferences, systemReduced))
   if (!visible) {
     // Only a Host snapshot can hide the pet. Web has no tray or global shortcut, so leave a small handle to bring it back.
     return (

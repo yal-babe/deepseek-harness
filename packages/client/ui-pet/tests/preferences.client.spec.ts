@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PetPreferenceStore, type PreferenceStorage, type PreferenceStorageEvent } from '../src/client/preferences.ts'
+import {
+  isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PetPreferenceStore, throwEnabled, type PreferenceStorage, type PreferenceStorageEvent,
+} from '../src/client/preferences.ts'
 
 describe('parsePreferences', () => {
   it('persists independent activity and accessibility options while rejecting invalid levels', () => {
-    expect(parsePreferences('{"activity":"lively","effects":false,"interactive":true,"roam":true,"reducedMotion":true}'))
-      .toMatchObject({ activity: 'lively', effects: false, interactive: true, roam: true, reducedMotion: true })
+    expect(parsePreferences('{"activity":"lively","effects":false,"interactive":true,"roam":true,"throw":false,"reducedMotion":true}'))
+      .toMatchObject({ activity: 'lively', effects: false, interactive: true, roam: true, throw: false, reducedMotion: true })
+    expect(parsePreferences('{"throw":"no"}')).not.toHaveProperty('throw')
     expect(parsePreferences('{"activity":"every-second","effects":"yes"}')).toEqual({ notify: false, snoozeUntil: undefined })
   })
 
@@ -77,4 +80,12 @@ it('validates new preferences on load, local writes and cross-window reads', () 
   const store = new PetPreferenceStore(undefined)
   store.update({ name: ' ', size: 0, life: 'play', actions: [] })
   expect(store.snapshot.getSnapshot()).toEqual({ notify: false, snoozeUntil: undefined, size: 50, life: 'play', actions: [] })
+})
+
+it('throws by default, never under reduced motion, and not when turned off', () => {
+  const base = { notify: false, snoozeUntil: undefined }
+  expect(throwEnabled(base, false)).toBe(true)
+  expect(throwEnabled(base, true)).toBe(false)
+  expect(throwEnabled({ ...base, reducedMotion: true }, false)).toBe(false)
+  expect(throwEnabled({ ...base, throw: false }, false)).toBe(false)
 })

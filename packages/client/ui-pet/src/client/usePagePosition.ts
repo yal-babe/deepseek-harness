@@ -1,6 +1,7 @@
 /** Pointer-driven Web positioning, independent of the character's expanding panels. */
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { clampPetPoint, PET_CHARACTER_SIZE, PET_PAGE_POSITION_KEY, readPetPoint, type PetPagePoint } from './page-position.ts'
+import { clampPetPoint, PET_CHARACTER_SIZE, PET_PAGE_POSITION_KEY, petPageSpace, readPetPoint, type PetPagePoint } from './page-position.ts'
+import { estimateReleaseVelocity, springStep, throwStep, trimTrail, type PetDragSample, type PetThrowStep } from './physics.ts'
 import { roamDelay, type PetActivityLevel } from './motion.ts'
 import type { PetDragPhase } from './surface.ts'
 
@@ -14,13 +15,15 @@ function save(point: PetPagePoint): void {
   try { window.localStorage.setItem(PET_PAGE_POSITION_KEY, JSON.stringify(point)) } catch { /* Keep memory-only placement. */ }
 }
 
-/** Move the Web character with the captured pointer and keep it visible on resize.
+/** Move the Web character with the captured pointer and keep it visible on resize. With throwing on, the
+ * character follows the pointer on a spring and a fling throws it with gravity and bounces inside the viewport.
  * @param wander - whether autonomous movement is enabled.
  * @param size - character size in percent.
  * @param activity - movement frequency preset.
+ * @param throwing - whether drag physics is on (the preference, off under reduced motion).
  * @returns position styles, movement state, and pointer handlers.
  */
-export function usePagePosition(wander = false, size = 100, activity: PetActivityLevel = 'normal'): {
+export function usePagePosition(wander = false, size = 100, activity: PetActivityLevel = 'normal', throwing = false): {
   style: CSSProperties
   below: boolean
   begin: (x: number, y: number, visual?: { readonly left: number; readonly top: number }) => void
@@ -28,6 +31,8 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
   drag: (phase: PetDragPhase) => void
   wandering: boolean
   direction: 'left' | 'right'
+  /** Whether a thrown character is in the air. */
+  flying: boolean
 } {
   const [point, setPoint] = useState(() => load(size))
   const [wandering, setWandering] = useState(false)
@@ -38,10 +43,52 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
   const pressed = useRef<PetPagePoint>({ x: 0, y: 0 })
   const origin = useRef<{ readonly point: PetPagePoint; readonly pointer: PetPagePoint } | undefined>(undefined)
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight })
+  const [flying, setFlying] = useState(false)
+  const trail = useRef<readonly PetDragSample[]>([])
+  const frame = useRef<number | undefined>(undefined)
+  const physics = useRef(throwing)
+  physics.current = throwing
   const move = (next: PetPagePoint): void => {
     current.current = next
     setPoint(next)
   }
+  const stopFrames = (): void => {
+    if (frame.current !== undefined) cancelAnimationFrame(frame.current)
+    frame.current = undefined
+  }
+  /** Run `step` once per animation frame with the elapsed seconds until it returns false. */
+  const animate = (step: (dt: number) => boolean): void => {
+    stopFrames()
+    let last = performance.now()
+    const tick = (now: number): void => {
+      const dt = (now - last) / 1000
+      last = now
+      frame.current = step(dt) ? requestAnimationFrame(tick) : undefined
+    }
+    frame.current = requestAnimationFrame(tick)
+  }
+  const target = (): PetPagePoint | undefined => origin.current === undefined ? undefined : clampPetPoint({
+    x: origin.current.point.x + pointer.current.x - origin.current.pointer.x,
+    y: origin.current.point.y + pointer.current.y - origin.current.pointer.y,
+  }, window.innerWidth, window.innerHeight, size)
+  const land = (): void => {
+    setFlying(false)
+    move(clampPetPoint(current.current, window.innerWidth, window.innerHeight, size))
+    save(current.current)
+  }
+  const fly = (velocity: { vx: number; vy: number }): void => {
+    setFlying(true)
+    let state: Pick<PetThrowStep, 'x' | 'y' | 'vx' | 'vy'> = { ...current.current, ...velocity }
+    animate((dt) => {
+      if (document.hidden) { land(); return false }
+      const next = throwStep(state, dt, petPageSpace(window.innerWidth, window.innerHeight, size))
+      state = next
+      move({ x: next.x, y: next.y })
+      if (next.atRest) land()
+      return !next.atRest
+    })
+  }
+  useEffect(() => () => { stopFrames() }, [])
   useEffect(() => {
     const resize = (): void => {
       const next = clampPetPoint(current.current, window.innerWidth, window.innerHeight, size)
@@ -54,23 +101,47 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
     window.addEventListener('resize', resize)
     return () => { window.removeEventListener('resize', resize) }
   }, [size])
-  const track = (x: number, y: number): void => { pointer.current = { x, y } }
+  const track = (x: number, y: number): void => {
+    pointer.current = { x, y }
+    if (origin.current !== undefined) trail.current = trimTrail([...trail.current, { t: performance.now(), x, y }], performance.now())
+  }
   const begin = (x: number, y: number, visual?: { readonly left: number; readonly top: number }): void => {
     if (wandering && visual !== undefined) move({ x: visual.left, y: visual.top })
+    // Catching a thrown character stops its flight where it is.
+    if (frame.current !== undefined) { stopFrames(); setFlying(false) }
+    trail.current = []
     setWandering(false)
     touched.current = Date.now()
     pressed.current = { x, y }
     track(x, y)
   }
   const drag = (phase: PetDragPhase): void => {
-    if (phase === 'start') origin.current = { point: current.current, pointer: pressed.current }
-    else if (phase === 'move' && origin.current !== undefined) {
-      move(clampPetPoint({
-        x: origin.current.point.x + pointer.current.x - origin.current.pointer.x,
-        y: origin.current.point.y + pointer.current.y - origin.current.pointer.y,
-      }, window.innerWidth, window.innerHeight, size))
-    } else if (phase === 'end') {
+    if (phase === 'start') {
+      origin.current = { point: current.current, pointer: pressed.current }
+      if (!physics.current) return
+      let velocity = { x: 0, y: 0 }
+      animate((dt) => {
+        const goal = target()
+        if (goal === undefined) return false
+        velocity = {
+          x: springStep(velocity.x, current.current.x, goal.x, dt), y: springStep(velocity.y, current.current.y, goal.y, dt),
+        }
+        const step = Math.min(dt, 0.05)
+        move(clampPetPoint({ x: current.current.x + velocity.x * step, y: current.current.y + velocity.y * step },
+          window.innerWidth, window.innerHeight, size))
+        return true
+      })
+    } else if (phase === 'move' && !physics.current) {
+      const goal = target()
+      if (goal !== undefined) move(goal)
+    } else if (phase === 'end' && origin.current !== undefined) {
+      const goal = target()
       origin.current = undefined
+      stopFrames()
+      const velocity = physics.current ? estimateReleaseVelocity(trail.current, performance.now()) : undefined
+      trail.current = []
+      if (velocity !== undefined) { fly(velocity); return }
+      if (goal !== undefined) move(goal)
       save(current.current)
     }
   }
@@ -81,7 +152,8 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
     let timer: ReturnType<typeof setTimeout> | undefined
     const schedule = (): void => { timer = setTimeout(step, roamDelay(activity, Math.random())) }
     const step = (): void => {
-      if (document.hidden || media?.matches === true || origin.current !== undefined || Date.now() - touched.current < 3000) {
+      if (document.hidden || media?.matches === true || origin.current !== undefined || frame.current !== undefined
+        || Date.now() - touched.current < 3000) {
         schedule(); return
       }
       const from = current.current
@@ -111,5 +183,5 @@ export function usePagePosition(wander = false, size = 100, activity: PetActivit
     '--pet-panel-left': `${Math.max(8 - point.x, Math.min(0, viewport.width - 308 - point.x))}px`,
     '--pet-panel-height': `${Math.max(0, below ? viewport.height - point.y - PET_CHARACTER_SIZE.height * size / 100 - 24 : point.y - 16)}px`,
   } as CSSProperties
-  return { style, below, begin, track, drag, wandering, direction }
+  return { style, below, begin, track, drag, wandering, direction, flying }
 }

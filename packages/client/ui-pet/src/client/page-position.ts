@@ -1,4 +1,6 @@
 /** Device-local character coordinates; panels do not participate in positioning. */
+import { throwSpace, type PetThrowSpace } from './physics.ts'
+
 export interface PetPagePoint {
   readonly x: number
   readonly y: number
@@ -22,6 +24,18 @@ export function clampPetPoint(point: PetPagePoint, width: number, height: number
     x: Math.max(MARGIN, Math.min(point.x, Math.max(MARGIN, width - PET_CHARACTER_SIZE.width * size / 100 - MARGIN))),
     y: Math.max(MARGIN, Math.min(point.y, Math.max(MARGIN, height - PET_CHARACTER_SIZE.height * size / 100 - MARGIN))),
   }
+}
+
+/** Throw space of the viewport: the same range {@link clampPetPoint} allows, as one work area.
+ * @param width - viewport width.
+ * @param height - viewport height.
+ * @param size - character size in percent.
+ * @returns the throw space for the character origin.
+ */
+export function petPageSpace(width: number, height: number, size = 100): PetThrowSpace {
+  const body = { x: 0, y: 0, width: PET_CHARACTER_SIZE.width * size / 100, height: PET_CHARACTER_SIZE.height * size / 100 }
+  const area = { x: MARGIN, y: MARGIN, width: Math.max(body.width, width - 2 * MARGIN), height: Math.max(body.height, height - 2 * MARGIN) }
+  return throwSpace([area], body)
 }
 
 /** Read a valid saved origin, otherwise start above the bottom-right composer.

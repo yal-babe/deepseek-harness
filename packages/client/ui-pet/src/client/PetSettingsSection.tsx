@@ -177,6 +177,10 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
         <Switch checked={preferences.roam === true} label={t('settings.roam')}
           onChange={(roam) => { props.setPreferences({ roam }) }} />
       </Row>
+      <Row title={t('settings.throw')} hint={t('settings.throwHint')}>
+        <Switch checked={preferences.throw !== false} label={t('settings.throw')}
+          onChange={(value) => { props.setPreferences({ throw: value }) }} />
+      </Row>
       <Row title={t('settings.effects')}>
         <Switch checked={preferences.effects !== false} label={t('settings.effects')}
           onChange={(effects) => { props.setPreferences({ effects }) }} />
