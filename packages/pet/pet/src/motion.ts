@@ -1,8 +1,8 @@
 /**
  * Validated media description of a pack (`motion.json`, format version 2):
  * playable clips, the categories the weighted animation chain and the action
- * menu draw from, event tiers, click responses by body area, and where every
- * clip came from. Browser-safe and pure; the
+ * menu draw from, event tiers, click responses by body area, when time-bound
+ * clips may play, and where every clip came from. Browser-safe and pure; the
  * Host reads the shipped file through it before serving any media.
  *
  * Source records distinguish three producers, each owned by one import tool so
@@ -18,6 +18,7 @@
  * entry is still accepted with any of these records.
  */
 import { isPetPackPath } from './pack.ts'
+import { PET_FESTIVALS, type PetFestivalId } from './time-context.ts'
 
 /** Localized text carried by the pack itself. */
 export interface PetMotionText {
@@ -166,6 +167,37 @@ export interface PetMotionEntry {
   readonly source: PetMotionSource
 }
 
+/** Pause after an autonomous clip of a category, shared by every category of the same group. */
+export interface PetMotionCooldown {
+  /** Group the pause applies to, such as `fun` for dances, talents, and games. */
+  readonly group: string
+  /** Milliseconds before the chain draws from the group again, at the normal activity level. */
+  readonly ms: number
+}
+
+/**
+ * When time-bound clips may play autonomously. A clip that no rule lists is never restricted; a listed clip is
+ * eligible while at least one of its rules is open. A rule is open when every condition it states holds.
+ */
+export interface PetMotionScheduleRule {
+  /** Stable rule identity, lowercase kebab-case. */
+  readonly id: string
+  /** Local hour ranges `[from, to)`, 0 to 24. */
+  readonly hours?: readonly (readonly [number, number])[]
+  /** Local calendar months, 1 to 12. */
+  readonly months?: readonly number[]
+  /** Festivals whose window (days ahead, the holiday, and the days after) must cover the local date. */
+  readonly festivals?: readonly PetFestivalId[]
+  /** Clips the rule admits. */
+  readonly clips: readonly string[]
+}
+
+/** Time-bound clips of the autonomous chain. */
+export interface PetMotionSchedule {
+  readonly rules: readonly PetMotionScheduleRule[]
+  readonly statedIn?: string
+}
+
 /** One category of the weighted animation chain and the action menu. */
 export interface PetMotionCategory {
   readonly id: string
@@ -176,6 +208,8 @@ export interface PetMotionCategory {
   readonly life: readonly ('idle' | 'play')[]
   /** Clip names, in menu order. A clip belongs to at most one category. */
   readonly clips: readonly string[]
+  /** Pause of the category's group after the chain plays one of its clips. */
+  readonly cooldown?: PetMotionCooldown
 }
 
 /** Validated `motion.json`. */
@@ -192,6 +226,8 @@ export interface PetMotionManifest {
   readonly events?: PetMotionEvents
   /** Click responses by body area; absent areas use the Client's built-in interaction. */
   readonly clicks?: PetMotionClicks
+  /** Time-bound clips; absent means none is restricted. */
+  readonly schedule?: PetMotionSchedule
 }
 
 /** Result of {@link parsePetMotion}: the manifest, or every problem found. */
@@ -507,11 +543,65 @@ function categories(value: unknown, clips: Readonly<Record<string, PetMotionEntr
       if (previous !== undefined) errors.push(`clip "${name}" is in categories "${previous}" and "${id}"`)
       owner.set(name, id)
     }
+    const pause = entry['cooldown']
+    const cooldown = isRecord(pause) && typeof pause['group'] === 'string' && CATEGORY.test(pause['group']) && positive(pause['ms'])
+      ? { group: pause['group'], ms: pause['ms'] } : undefined
+    if (pause !== undefined && cooldown === undefined) errors.push(`category "${id}": cooldown needs a kebab-case group and positive ms`)
     if (label !== undefined && typeof weight === 'number' && lifeValid) {
-      result.push({ id, label, weight, life: life as ('idle' | 'play')[], clips: members as string[] })
+      result.push({ id, label, weight, life: life as ('idle' | 'play')[], clips: members as string[], ...cooldown === undefined ? {} : { cooldown } })
     }
   }
   return result
+}
+
+const FESTIVAL_IDS: ReadonlySet<string> = new Set(PET_FESTIVALS.map(rule => rule.id))
+
+function hourRanges(value: unknown): (readonly [number, number])[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined
+  const ranges = value.map(range =>
+    Array.isArray(range) && range.length === 2 && range.every(count) ? range as [number, number] : undefined)
+  return ranges.every(range => range !== undefined && range[0] < range[1] && range[1] <= 24) ? ranges as [number, number][] : undefined
+}
+
+function schedule(value: unknown, clips: Readonly<Record<string, PetMotionEntry>>, errors: string[]): PetMotionSchedule | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value) || !Array.isArray(value['rules']) || (value['statedIn'] !== undefined && !isText(value['statedIn']))) {
+    errors.push('schedule needs a rules list')
+    return undefined
+  }
+  const ids = new Set<string>()
+  const rules: PetMotionScheduleRule[] = []
+  for (const [index, entry] of (value['rules'] as unknown[]).entries()) {
+    const id = isRecord(entry) && typeof entry['id'] === 'string' && CATEGORY.test(entry['id']) ? entry['id'] : undefined
+    const where = `schedule rule ${id === undefined ? String(index) : `"${id}"`}`
+    if (!isRecord(entry) || id === undefined) {
+      errors.push(`${where}: id must be lowercase kebab-case`)
+      continue
+    }
+    if (ids.has(id)) errors.push(`${where} is listed twice`)
+    ids.add(id)
+    const hours = entry['hours'] === undefined ? undefined : hourRanges(entry['hours'])
+    if (entry['hours'] !== undefined && hours === undefined) errors.push(`${where}: hours must list [from, to) ranges within 0 to 24`)
+    const rawMonths = entry['months']
+    const months = Array.isArray(rawMonths) && rawMonths.length > 0 && rawMonths.every(month => count(month) && month >= 1 && month <= 12)
+      ? rawMonths as number[] : undefined
+    if (rawMonths !== undefined && months === undefined) errors.push(`${where}: months must list months 1 to 12`)
+    const rawFestivals = entry['festivals']
+    const festivals = Array.isArray(rawFestivals) && rawFestivals.length > 0
+      && rawFestivals.every(festival => typeof festival === 'string' && FESTIVAL_IDS.has(festival)) ? rawFestivals as PetFestivalId[] : undefined
+    if (rawFestivals !== undefined && festivals === undefined) errors.push(`${where}: festivals must name known festivals`)
+    if (rawFestivals === undefined && rawMonths === undefined && entry['hours'] === undefined) {
+      errors.push(`${where} needs hours, months, or festivals`)
+    }
+    const members = clipList(entry['clips'], clips, `${where} clips`, errors)
+    if (members !== undefined) {
+      rules.push({
+        id, clips: members, ...hours === undefined ? {} : { hours }, ...months === undefined ? {} : { months },
+        ...festivals === undefined ? {} : { festivals },
+      })
+    }
+  }
+  return { rules, ...isText(value['statedIn']) ? { statedIn: value['statedIn'] } : {} }
 }
 
 /**
@@ -538,6 +628,7 @@ export function parsePetMotion(value: unknown): PetMotionParseResult {
   const parsedChain = chain(value['chain'], errors)
   const parsedEvents = events(value['events'], clips, errors)
   const parsedClicks = clicks(value['clicks'], clips, errors)
+  const parsedSchedule = schedule(value['schedule'], clips, errors)
   if (errors.length > 0) return { ok: false, errors }
   return {
     ok: true,
@@ -546,6 +637,7 @@ export function parsePetMotion(value: unknown): PetMotionParseResult {
       clips, categories: parsedCategories, ...parsedChain === undefined ? {} : { chain: parsedChain },
       ...parsedEvents === undefined ? {} : { events: parsedEvents },
       ...parsedClicks === undefined ? {} : { clicks: parsedClicks },
+      ...parsedSchedule === undefined ? {} : { schedule: parsedSchedule },
     },
   }
 }

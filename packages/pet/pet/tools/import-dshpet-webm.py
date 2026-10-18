@@ -29,8 +29,9 @@ upstream clip can be split into entry, loop, and exit phases; the window is
 recorded as source.frames.
 
 This tool owns exactly the clips whose source kind is "dsh-pet-webm" and the
-top-level "categories", "chain", "events" (event tiers), and "clicks" (click
-responses by body area) entries. It never rewrites clips of other kinds, and the
+top-level "categories", "chain", "events" (event tiers), "clicks" (click
+responses by body area), and "schedule" (when time-bound clips may play
+autonomously) entries. It never rewrites clips of other kinds, and the
 other import tools preserve what it writes. Clips it imported earlier but no
 longer lists are removed together with their media. Category members that
 tools/import-ai-video.py added (clips of kind "ai-video") are kept after the
@@ -222,6 +223,10 @@ for event, tiers in recipe['events'].items():
 for area, names in recipe['clicks'].items():
     if area != 'note' and any(name not in clips for name in names):
         raise SystemExit(f'click area {area} names unknown clips')
+for rule in recipe.get('schedule', {}).get('rules', []):
+    missing = [name for name in rule['clips'] if name not in clips]
+    if missing:
+        raise SystemExit(f'schedule rule {rule["id"]} names unknown clips: {missing}')
 manifest['formatVersion'] = 2
 
 
@@ -243,4 +248,8 @@ manifest['categories'] = merge_categories(recipe['categories'], manifest.get('ca
 manifest['chain'] = recipe['chain']
 manifest['events'] = recipe['events']
 manifest['clicks'] = {area: names for area, names in recipe['clicks'].items() if area != 'note'}
+if 'schedule' in recipe:
+    manifest['schedule'] = recipe['schedule']
+else:
+    manifest.pop('schedule', None)
 manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

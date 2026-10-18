@@ -64,6 +64,7 @@ export async function builtinAssets(): Promise<{
           ...motion.events.whisper === undefined ? {} : { whisper: motion.events.whisper },
         } },
         ...motion.clicks === undefined ? {} : { clicks: motion.clicks },
+        ...motion.schedule === undefined ? {} : { schedule: { rules: motion.schedule.rules } },
       },
       ...lines === undefined ? {} : { lines: lines.table },
     },

@@ -188,6 +188,38 @@ describe('parsePetMotion', () => {
     expect(malformed.ok ? [] : malformed.errors).toEqual(['events must be an object', 'clicks must be an object'])
   })
 
+  it('checks schedule rules and category cooldowns', () => {
+    const category = { id: 'eat', label: { zh: '吃', en: 'Eat' }, weight: 1, life: ['idle'], clips: ['idle'] }
+    const accepted = parsePetMotion(minimal({
+      categories: [{ ...category, cooldown: { group: 'eat', ms: 60000 } }],
+      schedule: { statedIn: 'test', rules: [{ id: 'lunch', hours: [[11, 13]], months: [1, 12], festivals: ['mid-autumn'], clips: ['idle'] }] },
+    }))
+    expect(accepted.ok && accepted.manifest.schedule).toEqual({
+      statedIn: 'test', rules: [{ id: 'lunch', hours: [[11, 13]], months: [1, 12], festivals: ['mid-autumn'], clips: ['idle'] }],
+    })
+    expect(accepted.ok && accepted.manifest.categories[0]?.cooldown).toEqual({ group: 'eat', ms: 60000 })
+    const rejected = parsePetMotion(minimal({
+      categories: [{ ...category, cooldown: { group: 'Eat', ms: 0 } }],
+      schedule: { rules: [
+        { id: 'Bad', clips: ['idle'], hours: [[9, 9]] },
+        { id: 'late', hours: [[20, 25]], clips: ['idle'] },
+        { id: 'month', months: [0], clips: ['idle'] },
+        { id: 'feast', festivals: ['birthday'], clips: ['idle'] },
+        { id: 'always', clips: ['idle'] },
+        { id: 'ghost', months: [1], clips: ['missing'] },
+      ] },
+    }))
+    expect(rejected.ok ? [] : rejected.errors).toEqual([
+      'category "eat": cooldown needs a kebab-case group and positive ms',
+      'schedule rule 0: id must be lowercase kebab-case',
+      'schedule rule "late": hours must list [from, to) ranges within 0 to 24',
+      'schedule rule "month": months must list months 1 to 12',
+      'schedule rule "feast": festivals must name known festivals',
+      'schedule rule "always" needs hours, months, or festivals',
+      'schedule rule "ghost" clips names unknown clips: missing',
+    ])
+  })
+
   it('checks categories: ids, labels, weights, life states, known clips, and single membership', () => {
     const label = { zh: '甲', en: 'A' }
     const result = parsePetMotion(minimal({

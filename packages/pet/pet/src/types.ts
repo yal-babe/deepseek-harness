@@ -204,6 +204,20 @@ export interface PetMotionCategoryView {
   readonly life: readonly ('idle' | 'play')[]
   /** Clip names in menu order. */
   readonly clips: readonly string[]
+  /** Pause of the category's group after the autonomous chain plays one of its clips, at the normal activity level. */
+  readonly cooldown?: { readonly group: string; readonly ms: number }
+}
+
+/**
+ * Rule of a time-bound clip: open while every stated condition holds. `hours` are local `[from, to)` ranges,
+ * `months` local months 1 to 12, `festivals` festival identities of {@link PetMoment.festivals}.
+ */
+export interface PetMotionScheduleRuleView {
+  readonly id: string
+  readonly hours?: readonly (readonly [number, number])[]
+  readonly months?: readonly number[]
+  readonly festivals?: readonly string[]
+  readonly clips: readonly string[]
 }
 
 /** Browser-decodable media, separate from the initial client bundle. */
@@ -227,4 +241,6 @@ export interface PetMotionView {
   }
   /** Click responses by body area, top to bottom; one candidate plays per click. */
   readonly clicks?: { readonly head?: readonly string[]; readonly body?: readonly string[]; readonly tail?: readonly string[] }
+  /** Time-bound clips: a clip that a rule lists plays autonomously only while one of its rules is open. */
+  readonly schedule?: { readonly rules: readonly PetMotionScheduleRuleView[] }
 }
