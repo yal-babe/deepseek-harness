@@ -22,7 +22,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { PetController } from './controller.ts'
 import { BUILTIN_FRAME_SET, offeredFrameSet, type PetFrameSet } from './frames.ts'
 import { browserNotifications, setDeviceNotify, watchNotices, type NotificationSink } from './notifier.ts'
@@ -49,7 +49,7 @@ export type { PetSettingsFields, PetSettingsSwitch, PetSettingsWriteState } from
 export { addRestrictedTool, PET_SETTINGS_NAMESPACE, PetSettingsEditor, removeRestrictedTool } from './settings.ts'
 export { isSnoozed, parsePreferences, PET_PREFERENCES_KEY, PET_SNOOZE_MS, PetPreferenceStore } from './preferences.ts'
 export { PetController } from './controller.ts'
-export type { PetMetricsOwnerProps } from './metrics-slot.ts'
+export type { PetBalanceReading, PetMetricsOwnerProps } from './metrics-slot.ts'
 export type { PetLocaleKey } from './locales.ts'
 export type { PetInjected, PetMenuAction, PetProps } from './Pet.tsx'
 export type { QuickAskDeps, QuickAskOutcome, QuickAskRequest, QuickAskTarget } from './quick-ask.ts'
@@ -110,18 +110,38 @@ function openSessionIn(ctx: ClientContext, sessionId: SessionId): void {
   ctx.get('uiWorkspace')?.openSession(sessionId)
 }
 
+/**
+ * Replace the built-in frame set with the pack the Host offers, if any.
+ * @param ctx - scope that injects `remote.pet`.
+ * @param pack - store to update.
+ * @param label - effect label.
+ */
+function followOfferedPack(ctx: ClientContext, pack: SnapshotStore<PetFrameSet>, label: string): void {
+  ctx.effect(() => {
+    let live = true
+    void ctx.remote.pet.pack().then((result) => {
+      const offered = result.ok ? offeredFrameSet(result.value) : undefined
+      if (live && offered !== undefined) pack.set(offered)
+    }, () => {})
+    return () => { live = false }
+  }, label)
+}
+
 function registerSettings(ctx: ClientContext, deps: {
   readonly desktop: boolean
   readonly preferences: PetPreferenceStore
   readonly notifications: NotificationSink | undefined
 }): void {
+  // The settings page lists the offered pack's clips; it keeps the built-in set without the pet Remote.
+  const pack = createSnapshotStore<PetFrameSet>(BUILTIN_FRAME_SET, { flush: 'sync' })
+  ctx.inject(['remote.pet'], (scope: ClientContext) => { followOfferedPack(scope, pack, 'ui-pet: settings pack') })
   // Optional: a composition without ui-settings keeps the pet and has no settings page.
   ctx.inject(['configForms'], (scope: ClientContext) => {
     const form = scope.configForms.get<PetSettingsFields>(PET_SETTINGS_NAMESPACE)
     const editor = new PetSettingsEditor(form)
     const t = scope.locale.bind(NS)
     const injected = (): PetSettingsInjected => ({
-      hooks: { form, write: editor.state, preferences: deps.preferences.snapshot },
+      hooks: { form, write: editor.state, preferences: deps.preferences.snapshot, pack },
       desktop: deps.desktop,
       canNotify: deps.notifications !== undefined,
       setSwitch: (field, value) => editor.setSwitch(field, value),
@@ -177,14 +197,7 @@ function mountSurface(ctx: ClientContext, deps: {
     return () => pet.dispose()
   }, 'ui-pet: snapshot stream')
   const pack = createSnapshotStore<PetFrameSet>(BUILTIN_FRAME_SET, { flush: 'sync' })
-  ctx.effect(() => {
-    let live = true
-    void ctx.remote.pet.pack().then((result) => {
-      const offered = result.ok ? offeredFrameSet(result.value) : undefined
-      if (live && offered !== undefined) pack.set(offered)
-    }, () => {})
-    return () => { live = false }
-  }, 'ui-pet: character pack')
+  followOfferedPack(ctx, pack, 'ui-pet: character pack')
   const movement = createSnapshotStore<{ moving: boolean; direction: 'left' | 'right' }>(
     { moving: false, direction: 'right' }, { flush: 'sync' },
   )

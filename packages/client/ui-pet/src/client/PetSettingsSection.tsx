@@ -5,7 +5,8 @@ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { PET_CHARACTER_SOURCE } from './credits.ts'
-import { PET_ACTIONS } from './motion.ts'
+import type { PetFrameSet } from './frames.ts'
+import { autonomousPackClips, PET_ACTIONS } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
 import { addRestrictedTool, removeRestrictedTool, type PetSettingsFields, type PetSettingsSwitch, type PetSettingsWriteState } from './settings.ts'
 import css from './PetSettingsSection.module.css'
@@ -19,6 +20,8 @@ export interface PetSettingsInjected {
     write: ObservableSnapshot<PetSettingsWriteState>
     /** Device-local preferences. */
     preferences: ObservableSnapshot<PetPreferences>
+    /** Character pack the Host offers, whose pack-only clips the allowlist covers. */
+    pack: ObservableSnapshot<PetFrameSet>
   }
   /** Whether this document runs inside the Desktop app. */
   desktop: boolean
@@ -115,6 +118,9 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
   const form = props.useForm(value => value)
   const write = props.useWrite(value => value)
   const preferences = props.usePreferences(value => value)
+  const motion = props.usePack(value => value.motion)
+  const packClips = autonomousPackClips(motion)
+  const language = t('locale') === 'en' ? 'en' : 'zh'
   const deviceNotify = preferences.notify
   const credit = (
     <>
@@ -168,6 +174,15 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
             onChange={(checked) => { const selected = preferences.actions ?? PET_ACTIONS
               props.setPreferences({ actions: checked ? [...selected, action] : selected.filter(item => item !== action) }) }} />
         </Row>)}
+        {packClips.length > 0 && <div className={css.title}>{t('settings.packClips')}</div>}
+        {packClips.map((clip) => {
+          const label = motion?.clips[clip]?.label?.[language] ?? clip
+          return <Row key={clip} title={label}>
+            <Switch checked={(preferences.clips ?? packClips).includes(clip)} label={label}
+              onChange={(checked) => { const selected = preferences.clips ?? packClips
+                props.setPreferences({ clips: checked ? [...selected, clip] : selected.filter(item => item !== clip) }) }} />
+          </Row>
+        })}
       </details>
       <Row title={t('settings.interactive')} hint={t('settings.interactiveHint')}>
         <Switch checked={preferences.interactive === true} label={t('settings.interactive')}
@@ -176,6 +191,10 @@ export function PetSettingsSection(props: PetSettingsProps): ReactNode {
       <Row title={t('settings.roam')} hint={t('settings.roamHint')}>
         <Switch checked={preferences.roam === true} label={t('settings.roam')}
           onChange={(roam) => { props.setPreferences({ roam }) }} />
+      </Row>
+      <Row title={t('settings.lines')} hint={t('settings.linesHint')}>
+        <Switch checked={preferences.lines !== false} label={t('settings.lines')}
+          onChange={(lines) => { props.setPreferences({ lines }) }} />
       </Row>
       <Row title={t('settings.throw')} hint={t('settings.throwHint')}>
         <Switch checked={preferences.throw !== false} label={t('settings.throw')}

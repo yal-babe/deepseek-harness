@@ -7,7 +7,7 @@ import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { AnswerableApproval } from '../src/client/approvals.ts'
 import { PetController } from '../src/client/controller.ts'
 import type { AnswerableQuestion } from '../src/client/questions.ts'
-import { APPROVAL_ARM_DELAY_MS, PET_LINE_MS, PetCharacter, PetOverlay, PetWindowRoot, petMenuCategories, type PetProps } from '../src/client/Pet.tsx'
+import { APPROVAL_ARM_DELAY_MS, PET_BALANCE_WAIT_MS, PET_IDLE_LINE_MS, PET_LINE_MS, PetCharacter, PetOverlay, PetWindowRoot, petMenuCategories, type PetProps } from '../src/client/Pet.tsx'
 import type { PetViewState } from '../src/client/store.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 import { BUILTIN_FRAME_SET, type PetFrameSet } from '../src/client/frames.ts'
@@ -655,4 +655,132 @@ describe('local lines', () => {
     expect(document.querySelector('[data-pet-line]')).toBeNull()
   })
 
+  const taskLines = { formatVersion: 2 as const, lines: {
+    'turn.success': [{ zh: '搞定', en: 'Done' }],
+    'turn.error': [{ zh: '出错了', en: 'Oops' }],
+    'approval.waiting': [{ zh: '等你点头', en: 'Your call' }],
+    'idle.long': [{ zh: '好闲', en: 'So idle' }],
+  } }
+  const line = () => document.querySelector('[data-pet-line]')?.textContent
+
+  it('speaks task results, holds the approval line while it waits, and honors the lines switch', () => {
+    const { props, packStore, viewStore, preferences } = setup({ connected: true, snapshot: snapshot() })
+    packStore.set({ ...BUILTIN_FRAME_SET, lines: taskLines })
+    render(<PetOverlay {...props} />)
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 2, primary: 'SUCCESS' }) }) })
+    expect(line()).toBe('搞定')
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 3, primary: 'ERROR' }) }) })
+    expect(line()).toBe('出错了')
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 4, primary: 'WORKING' }) }) })
+    expect(line()).toBeUndefined()
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 5, primary: 'WAITING', pending: [hostPending('p', S1, 'bash')] }) }) })
+    fireEvent.click(screen.getByRole('button', { name: 'closePanel' }))
+    act(() => { vi.advanceTimersByTime(PET_LINE_MS * 2) })
+    expect(line()).toBe('等你点头')
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 6, primary: 'WORKING' }) }) })
+    expect(line()).toBeUndefined()
+    act(() => { preferences.update({ lines: false }) })
+    act(() => { viewStore.set({ connected: true, snapshot: snapshot({ revision: 7, primary: 'SUCCESS' }) }) })
+    expect(line()).toBeUndefined()
+  })
+
+  it('speaks one idle line per long idle stretch and plays a whisper clip the pack has', () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const clip = (name: string) => ({ url: `/${name}.webm`, durationMs: 1000, loop: name === 'idle' })
+    const motion: PetMotionView = { width: 412, height: 344, clips: { idle: clip('idle'), whisper_a: clip('whisper_a') }, events: { whisper: ['whisper_a'] } }
+    const { props, packStore } = setup({ connected: true, snapshot: snapshot() })
+    packStore.set({ ...BUILTIN_FRAME_SET, lines: taskLines, motion })
+    const view = render(<PetOverlay {...props} />)
+    act(() => { vi.advanceTimersByTime(PET_IDLE_LINE_MS - 1) })
+    expect(line()).toBeUndefined()
+    act(() => { vi.advanceTimersByTime(1) })
+    expect(line()).toBe('好闲')
+    expect(view.container.querySelector('[data-pet-clip]')?.getAttribute('data-pet-clip')).toBe('whisper_a')
+    act(() => { vi.advanceTimersByTime(PET_LINE_MS) })
+    act(() => { vi.advanceTimersByTime(PET_IDLE_LINE_MS) })
+    expect(line()).toBeUndefined()
+    vi.restoreAllMocks()
+  })
+})
+
+describe('balance and click responses', () => {
+  const clip = (name: string) => ({ url: `/${name}.webm`, durationMs: 1000, loop: name === 'idle' })
+  const names = ['idle', 'balance_full', 'balance_steady', 'balance_empty', 'head_pat', 'poke', 'click_bounce', 'tail']
+  const motion: PetMotionView = {
+    width: 412, height: 344, clips: Object.fromEntries(names.map(name => [name, clip(name)])),
+    events: { balance: [['balance_full'], ['balance_full'], ['balance_steady'], ['balance_steady'], ['balance_steady'], ['balance_empty']] },
+    clicks: { body: ['poke', 'click_bounce'] },
+  }
+  beforeEach(() => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  })
+  afterEach(() => { vi.restoreAllMocks() })
+
+  it('asks the metrics owners for a balance, animates the most used reading, and times out without one', () => {
+    const slot = vi.fn((_name: string, _props: Record<string, unknown>) => null)
+    const { props, packStore } = setup({ connected: true, snapshot: snapshot() })
+    packStore.set({ ...BUILTIN_FRAME_SET, motion })
+    const view = render(<PetOverlay {...props} renderSlot={slot as unknown as PetProps['renderSlot']} />)
+    const latest = () => slot.mock.calls.at(-1)![1] as { balanceRequest: number; reportBalance: (readings: unknown[]) => void }
+    expect(latest().balanceRequest).toBe(0)
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.balance' }))
+    expect(latest().balanceRequest).toBe(1)
+    act(() => { latest().reportBalance([{ usedPercent: 50, label: 'DeepSeek ¥10' }, { usedPercent: 100, label: 'Codex 100%' }]) })
+    expect(view.container.querySelector('[data-pet-clip]')?.getAttribute('data-pet-clip')).toBe('balance_empty')
+    expect(document.querySelector('[data-pet-line]')?.textContent).toBe('Codex 100%')
+    fireEvent.ended(view.container.querySelector('video')!)
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.balance' }))
+    expect(latest().balanceRequest).toBe(2)
+    act(() => { vi.advanceTimersByTime(PET_BALANCE_WAIT_MS) })
+    expect(document.querySelector('[data-pet-line]')?.textContent).toBe('balanceUnavailable')
+    act(() => { latest().reportBalance([{ usedPercent: 0, label: 'late' }]) })
+    expect(document.querySelector('[data-pet-line]')?.textContent).toBe('balanceUnavailable')
+  })
+
+  it('offers the balance only for packs with balance tiers and reports an empty reading', () => {
+    const slot = vi.fn((_name: string, _props: Record<string, unknown>) => null)
+    const { props, packStore } = setup({ connected: true, snapshot: snapshot() })
+    packStore.set({ ...BUILTIN_FRAME_SET, motion: { ...motion, events: undefined } })
+    render(<PetOverlay {...props} renderSlot={slot as unknown as PetProps['renderSlot']} />)
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    expect(screen.queryByRole('menuitem', { name: 'menu.balance' })).toBeNull()
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    act(() => { packStore.set({ ...BUILTIN_FRAME_SET, motion }) })
+    fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu.balance' }))
+    act(() => { (slot.mock.calls.at(-1)![1].reportBalance as (readings: unknown[]) => void)([]) })
+    expect(document.querySelector('[data-pet-line]')?.textContent).toBe('balanceUnavailable')
+  })
+
+  it('answers an interactive body click with a pack click response', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { props, packStore, preferences } = setup({ connected: true, snapshot: snapshot() })
+    packStore.set({ ...BUILTIN_FRAME_SET, motion })
+    preferences.update({ interactive: true })
+    const view = render(<PetOverlay {...props} />)
+    const character = screen.getByRole('button', { name: /characterLabel/u })
+    const playing = () => view.container.querySelector('[data-pet-clip]')?.getAttribute('data-pet-clip')
+    fireEvent.pointerUp(character, { clientY: 0.5 })
+    fireEvent.click(character)
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(playing()).toBe('poke')
+    // Clicks closer together than the interaction cooldown are dropped, as before.
+    fireEvent.ended(view.container.querySelector('video')!)
+    act(() => { vi.advanceTimersByTime(1200) })
+    fireEvent.pointerUp(character, { clientY: 0.5 })
+    fireEvent.click(character)
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(playing()).toBe('click_bounce')
+    fireEvent.ended(view.container.querySelector('video')!)
+    act(() => { vi.advanceTimersByTime(1200) })
+    fireEvent.pointerUp(character, { clientY: 0.9 })
+    fireEvent.click(character)
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(playing()).toBe('tail')
+  })
 })

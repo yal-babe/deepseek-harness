@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSnapshotStore, type ObservableSnapshot, type SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
+import { BUILTIN_FRAME_SET, type PetFrameSet } from '../src/client/frames.ts'
 import { PetPreferenceStore } from '../src/client/preferences.ts'
 import { PetSettingsSection, type PetSettingsProps } from '../src/client/PetSettingsSection.tsx'
 import { addRestrictedTool, PetSettingsEditor, removeRestrictedTool, type PetSettingsFields } from '../src/client/settings.ts'
@@ -33,16 +35,20 @@ function formOf(snapshot: Partial<ConfigFormSnapshot<PetSettingsFields>>, set = 
   return { store, form, set }
 }
 
-function mount(snapshot: Partial<ConfigFormSnapshot<PetSettingsFields>> = {}, options: { canNotify?: boolean; desktop?: boolean } = {}) {
+function mount(snapshot: Partial<ConfigFormSnapshot<PetSettingsFields>> = {},
+  options: { canNotify?: boolean; desktop?: boolean; motion?: PetMotionView } = {}) {
   const { store, form, set } = formOf(snapshot)
   const editor = new PetSettingsEditor(form)
   const preferences = new PetPreferenceStore(undefined)
+  const frames: PetFrameSet = options.motion === undefined ? BUILTIN_FRAME_SET : { ...BUILTIN_FRAME_SET, motion: options.motion }
+  const pack = createSnapshotStore<PetFrameSet>(frames, { flush: 'sync' })
   const setDeviceNotify = vi.fn(async (on: boolean) => { preferences.update({ notify: on }); return on })
   const props = {
     t,
     useForm: hook(store),
     useWrite: hook(editor.state),
     usePreferences: hook(preferences.snapshot),
+    usePack: hook(pack),
     desktop: options.desktop ?? false,
     canNotify: options.canNotify ?? true,
     setSwitch: (field, value) => editor.setSwitch(field, value),
@@ -51,7 +57,7 @@ function mount(snapshot: Partial<ConfigFormSnapshot<PetSettingsFields>> = {}, op
     setPreferences: patch => preferences.update(patch),
   } as PetSettingsProps & PropsRuntime<'settings.section'>
   render(<PetSettingsSection {...props} />)
-  return { store, set, setDeviceNotify }
+  return { store, set, setDeviceNotify, preferences }
 }
 
 afterEach(() => { cleanup() })
@@ -108,6 +114,34 @@ describe('PetSettingsSection', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'settings.interactive' }))
     fireEvent.click(screen.getByRole('switch', { name: 'settings.reducedMotion' }))
     expect(set).not.toHaveBeenCalled()
+  })
+
+  it('turns local lines off and lists the pack-only clips of the autonomous chain in the device allowlist', () => {
+    const clip = (extra: object = {}) => ({ url: 'x.webm', loop: false, durationMs: 1000, ...extra })
+    const motion: PetMotionView = {
+      width: 412, height: 344, chain: { idle: 1, turn: 1, move: 1 },
+      clips: {
+        idle: clip(), idle_stretch: clip(), sign: clip({ label: { zh: '举牌', en: 'Sign' } }), look_around: clip({ turn: true }),
+        balance_full: clip(), menu_only: clip(),
+      },
+      categories: [
+        { id: 'small', label: { zh: '小', en: 'Small' }, weight: 1, life: ['idle'], clips: ['idle_stretch', 'sign'] },
+        { id: 'menu', label: { zh: '菜单', en: 'Menu' }, weight: 0, life: [], clips: ['menu_only'] },
+      ],
+      events: { balance: [['balance_full'], ['balance_full'], ['balance_full'], ['balance_full'], ['balance_full'], ['balance_full']] },
+    }
+    const { preferences } = mount({}, { motion })
+    fireEvent.click(screen.getByRole('switch', { name: 'settings.lines' }))
+    expect(preferences.snapshot.getSnapshot().lines).toBe(false)
+    expect(screen.getByText('settings.packClips')).toBeTruthy()
+    // Named interactions keep their own switches; menu-only and event clips are never drawn, so they are not listed.
+    expect(screen.queryByRole('switch', { name: 'idle_stretch' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'menu_only' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'balance_full' })).toBeNull()
+    fireEvent.click(screen.getByRole('switch', { name: '举牌' }))
+    expect(preferences.snapshot.getSnapshot().clips).toEqual(['look_around'])
+    fireEvent.click(screen.getByRole('switch', { name: '举牌' }))
+    expect(preferences.snapshot.getSnapshot().clips).toEqual(['look_around', 'sign'])
   })
 
   it('edits the restricted tool list while the restriction is on', async () => {

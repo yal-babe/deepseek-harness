@@ -12,7 +12,11 @@ import type { PetDragPhase } from './surface.ts'
 import { displayedState, isPetVisible, type PetViewState } from './store.ts'
 import { PetMotion, type PetWalkSurface } from './PetMotion.tsx'
 import { pickPetLine, petMomentTriggers, type PetLine } from '@deepseek-ai/dsh-pet/lines'
-import { clipAction, PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest } from './motion.ts'
+import {
+  AREA_ACTION, balanceTier, clickArea, clickClip, clipAction, eventClip, PET_ACTIONS, petIsIdle, type PetAction, type PetActionRequest,
+  type PetClickArea,
+} from './motion.ts'
+import type { PetBalanceReading } from './metrics-slot.ts'
 import { Button, Menu, MenuItemButton, MenuSurface } from '@deepseek-ai/dsh-client-ui-primitives'
 import { usePagePosition } from './usePagePosition.ts'
 import { PET_BODY_ATTRIBUTE, useDesktopThrow } from './useDesktopThrow.ts'
@@ -181,7 +185,7 @@ export function PetCharacter({
         const visual = event.currentTarget.querySelector<HTMLElement>('video, [data-pet-sprite], img')
         const bounds = (visual ?? event.currentTarget).getBoundingClientRect()
         const y = (event.clientY - bounds.top) / Math.max(1, bounds.height)
-        area.current = y < 0.35 ? 'headPat' : y > 0.72 ? 'tail' : 'poke'
+        area.current = AREA_ACTION[clickArea(y)]
       }}
       onDoubleClick={() => {
         if (preferences?.interactive !== true || !playingMotion) return
@@ -423,10 +427,18 @@ export function QuickAsk({ t, controller, focusRequest }: {
  * @param props - pet props plus the quick-ask focus counter.
  */
 export function PetPanel(
-  { t, controller, useView, useApprovals, useQuestions, focusRequest, onClose, panelVisible = true, renderSlot }: PetProps & {
+  {
+    t, controller, useView, useApprovals, useQuestions, focusRequest, onClose, panelVisible = true, renderSlot,
+    balanceRequest, reportBalance,
+  }:
+  PetProps & {
     readonly focusRequest: number
     readonly onClose?: () => void
     readonly panelVisible?: boolean
+    /** Counter of balance requests, passed to the metrics owners. */
+    readonly balanceRequest?: number
+    /** Receives the metrics owners' balance readings. */
+    readonly reportBalance?: (readings: readonly PetBalanceReading[]) => void
   },
 ): ReactNode {
   const view = useView(value => value)
@@ -458,7 +470,10 @@ export function PetPanel(
         <QuestionCard t={t} question={question} openMain={() => { controller.openMain(question.sessionId) }}
           answer={(target, selections) => controller.answerQuestion(target, selections)} />
       )}
-      {renderSlot('pet.panel.metrics', { visible: panelVisible, sessionId: focus?.sessionId, taskState: state })}
+      {renderSlot('pet.panel.metrics', {
+        visible: panelVisible, sessionId: focus?.sessionId, taskState: state,
+        ...balanceRequest === undefined ? {} : { balanceRequest }, ...reportBalance === undefined ? {} : { reportBalance },
+      })}
       <QuickAsk t={t} controller={controller} focusRequest={focusRequest} />
       <div className={css.controls}>
         <Button size="sm" type="button" onClick={() => { controller.openMain() }}>{t('openMain')}</Button>
@@ -469,7 +484,8 @@ export function PetPanel(
 }
 
 /** One right-click menu action. */
-export type PetMenuAction = PetAction | 'actions' | 'lifeIdle' | 'lifeRest' | 'lifePlay' | 'quickAsk' | 'openMain' | 'notifyOn' | 'notifyOff' | 'snooze' | 'resume' | 'hide'
+export type PetMenuAction = PetAction | 'actions' | 'balance' | 'lifeIdle' | 'lifeRest' | 'lifePlay' | 'quickAsk' | 'openMain' | 'notifyOn'
+  | 'notifyOff' | 'snooze' | 'resume' | 'hide'
 
 /** One action category of the menu, with its clips, in display language. */
 export interface PetMenuCategory {
@@ -565,7 +581,19 @@ interface PanelState {
   readonly playClip: (clip: string) => void
   readonly action: PetActionRequest | undefined
   readonly interact: (action: PetAction) => void
+  readonly balanceRequest: number
+  readonly reportBalance: (readings: readonly PetBalanceReading[]) => void
+  /** Line the pet speaks now, in the dictionary language. */
+  readonly line: string | undefined
 }
+
+/** Milliseconds a balance request waits for a reading before the pet says none is available. */
+export const PET_BALANCE_WAIT_MS = 15000
+
+/** Built-in interaction of a body area, reversed. */
+const ACTION_AREA: ReadonlyMap<PetAction, PetClickArea> = new Map(
+  Object.entries(AREA_ACTION).map(([area, action]) => [action, area as PetClickArea]),
+)
 
 function usePanel(props: PetProps): PanelState {
   const preferences = props.usePreferences(value => value)
@@ -606,12 +634,51 @@ function usePanel(props: PetProps): PanelState {
       void props.controller.acknowledge(focus)
     }
   }
+  const lastClick = useRef<string | undefined>(undefined)
+  const play = (clip: string, interrupt: boolean): void => {
+    const named = clipAction(clip)
+    setAction(previous => ({
+      ...named === undefined ? { clip } : { action: named }, serial: (previous?.serial ?? 0) + 1, ...interrupt ? { interrupt } : {},
+    }))
+  }
   const interact = (action: PetAction): void => {
-    setAction(previous => ({ action, serial: (previous?.serial ?? 0) + 1 }))
+    const area = ACTION_AREA.get(action)
+    if (area === undefined || motion?.clicks?.[area] === undefined) {
+      setAction(previous => ({ action, serial: (previous?.serial ?? 0) + 1 }))
+      return
+    }
+    lastClick.current = clickClip(motion, area, Math.random, lastClick.current)
+    play(lastClick.current, false)
+  }
+  const speech = usePetLines(props, { state, quiet: shown || menu, waiting: pendingKey, whisper: (clip) => { play(clip, false) } })
+  const [balanceRequest, setBalanceRequest] = useState(0)
+  const balanceDeadline = useRef(0)
+  useEffect(() => {
+    if (balanceRequest === 0) return
+    const timer = setTimeout(() => {
+      if (balanceDeadline.current === 0) return
+      balanceDeadline.current = 0
+      speech.say(props.t('balanceUnavailable'))
+    }, PET_BALANCE_WAIT_MS)
+    return () => { clearTimeout(timer) }
+  }, [balanceRequest])
+  const reportBalance = (readings: readonly PetBalanceReading[]): void => {
+    if (balanceDeadline.current === 0 || Date.now() > balanceDeadline.current) return
+    balanceDeadline.current = 0
+    const urgent = readings.filter(reading => Number.isFinite(reading.usedPercent))
+      .reduce<PetBalanceReading | undefined>(
+        (most, reading) => most === undefined || reading.usedPercent > most.usedPercent ? reading : most, undefined)
+    if (urgent === undefined) { speech.say(props.t('balanceUnavailable')); return }
+    const clip = eventClip(motion, 'balance', balanceTier(urgent.usedPercent), Math.random)
+    if (clip !== undefined) play(clip, true)
+    speech.say(urgent.label)
   }
   const act = (action: PetMenuAction): void => {
     if (PET_ACTIONS.includes(action as PetAction)) {
       setAction(previous => ({ action: action as PetAction, serial: (previous?.serial ?? 0) + 1, interrupt: true }))
+    } else if (action === 'balance') {
+      balanceDeadline.current = Date.now() + PET_BALANCE_WAIT_MS
+      setBalanceRequest(current => current + 1)
     } else if (action === 'lifeIdle' || action === 'lifeRest' || action === 'lifePlay') {
       props.controller.setPreferences({ life: action === 'lifeRest' ? 'rest' : action === 'lifePlay' ? 'play' : 'idle' })
     } else if (action === 'quickAsk') {
@@ -630,13 +697,13 @@ function usePanel(props: PetProps): PanelState {
     }
   }
   const categories = petMenuCategories(motion, props.t)
-  const playClip = (clip: string): void => {
-    const named = clipAction(clip)
-    setAction(previous => ({ ...named === undefined ? { clip } : { action: named }, serial: (previous?.serial ?? 0) + 1, interrupt: true }))
-  }
+  const playClip = (clip: string): void => { play(clip, true) }
   const actions = (desktop: boolean): readonly PetMenuAction[] => {
     const list: PetMenuAction[] = ['quickAsk', 'lifeIdle', 'lifeRest', 'lifePlay']
-    if (hasMotion && petIsIdle(state) && !open && !waiting) list.push(...categories.length > 0 ? ['actions' as const] : PET_ACTIONS)
+    if (hasMotion && petIsIdle(state) && !open && !waiting) {
+      list.push(...categories.length > 0 ? ['actions' as const] : PET_ACTIONS)
+      if (motion?.events?.balance !== undefined) list.push('balance')
+    }
     if (desktop) list.push('openMain')
     if (props.controller.canNotify) {
       list.push(preferences.notify ? 'notifyOff' : 'notifyOn')
@@ -647,54 +714,113 @@ function usePanel(props: PetProps): PanelState {
   }
   return {
     open: shown, toggle, close, state, visible: isPetVisible(view), waiting, focusRequest, menu, setMenu, act, actions,
-    categories, playClip, action, interact,
+    categories, playClip, action, interact, balanceRequest, reportBalance, line: speech.line,
   }
 }
 
-/** How long a greeting or festival line stays in the bubble, in milliseconds. */
+/** How long a spoken line stays in the bubble, in milliseconds. */
 export const PET_LINE_MS = 8000
 
-/**
- * Speak the pack's local line when the time-of-day slot or festival of the
- * Host moment changes, including the first moment after start. A change
- * while the pet is busy, waiting, or showing a panel or menu is skipped,
- * never queued.
- * @param props - pet props.
- * @param quiet - whether the pet must not speak now.
- * @returns the line in the dictionary language while it is shown.
- */
-function useMomentLine(props: PetProps, quiet: boolean): string | undefined {
-  const table = props.usePack(pack => pack.lines)
-  const moment = props.useView(view => view.snapshot?.moment)
-  const key = moment === undefined ? undefined : `${moment.slot}:${moment.festival?.id ?? ''}:${moment.festival?.phase ?? ''}`
-  const [line, setLine] = useState<PetLine | undefined>(undefined)
-  const spoken = useRef<{ key?: string; line?: PetLine }>({})
-  useEffect(() => {
-    // Wait for the pack's table, which may arrive after the first snapshot.
-    if (key === undefined || moment === undefined || table === undefined || key === spoken.current.key) return
-    spoken.current.key = key
-    if (quiet) return
-    const pick = pickPetLine(table, petMomentTriggers(moment), Math.random, spoken.current.line)
-    if (pick === undefined) return
-    spoken.current.line = pick.line
-    setLine(pick.line)
-  }, [key, table])
-  useEffect(() => {
-    if (line === undefined) return
-    const timer = setTimeout(() => { setLine(undefined) }, PET_LINE_MS)
-    return () => { clearTimeout(timer) }
-  }, [line])
-  useEffect(() => { if (quiet) setLine(undefined) }, [quiet])
-  return line === undefined ? undefined : line[props.t('locale') === 'en' ? 'en' : 'zh']
+/** Continuous idle time after which the pet speaks one idle line, in milliseconds. */
+export const PET_IDLE_LINE_MS = 20 * 60 * 1000
+
+interface SpokenLine {
+  readonly text: PetLine | string
+  /** Kept until its cause ends (a waiting approval) instead of timing out. */
+  readonly hold: boolean
+  readonly serial: number
 }
 
-/** Compact, event-derived status when the full panel is collapsed; an idle pet may speak a local line. */
+/**
+ * Lines the pet speaks from the pack's local table, never from a model:
+ * the time-of-day slot or festival when it changes (including the first
+ * moment after start) while idle, `turn.success` or `turn.error` when a task
+ * ends, `approval.waiting` while an approval or question waits, and
+ * `idle.long` once per long idle stretch, with a pack whisper clip when the
+ * pack has one. A trigger while a panel or menu is open is skipped, never
+ * queued; the `lines` preference turns all of them off.
+ * @param props - pet props.
+ * @param context - displayed state, whether a panel or menu is open, the waiting request, and the whisper clip player.
+ * @returns the line in the dictionary language while it is shown, and a way to say a ready-made text.
+ */
+function usePetLines(props: PetProps, { state, quiet, waiting, whisper }: {
+  readonly state: PetAgentState
+  readonly quiet: boolean
+  readonly waiting: string | undefined
+  readonly whisper: (clip: string) => void
+}): { readonly line: string | undefined; readonly say: (text: string) => void } {
+  const table = props.usePack(pack => pack.lines)
+  const motion = props.usePack(pack => pack.motion)
+  const enabled = props.usePreferences(preferences => preferences.lines !== false)
+  const moment = props.useView(view => view.snapshot?.moment)
+  const key = moment === undefined ? undefined : `${moment.slot}:${moment.festival?.id ?? ''}:${moment.festival?.phase ?? ''}`
+  const [spoken, setSpoken] = useState<SpokenLine | undefined>(undefined)
+  const last = useRef<{ key?: string; line?: PetLine }>({})
+  const idle = petIsIdle(state)
+  const show = (text: PetLine | string, hold = false): void => {
+    setSpoken(previous => ({ text, hold, serial: (previous?.serial ?? 0) + 1 }))
+  }
+  const speak = (triggers: readonly string[], hold = false): boolean => {
+    if (table === undefined) return false
+    const pick = pickPetLine(table, triggers, Math.random, last.current.line)
+    if (pick === undefined) return false
+    last.current.line = pick.line
+    show(pick.line, hold)
+    return true
+  }
+  useEffect(() => {
+    // Wait for the pack's table, which may arrive after the first snapshot.
+    if (key === undefined || moment === undefined || table === undefined || key === last.current.key) return
+    last.current.key = key
+    if (enabled && idle && !quiet && waiting === undefined) speak(petMomentTriggers(moment))
+  }, [key, table])
+  const previousState = useRef(state)
+  useEffect(() => {
+    if (previousState.current === state) return
+    previousState.current = state
+    // Any other state change ends the line shown; the waiting effect below speaks for a new request.
+    if (!enabled || quiet || (state !== 'SUCCESS' && state !== 'ERROR') || !speak([state === 'SUCCESS' ? 'turn.success' : 'turn.error'])) {
+      setSpoken(undefined)
+    }
+  }, [state])
+  useEffect(() => {
+    if (waiting === undefined) setSpoken(current => current?.hold === true ? undefined : current)
+    else if (enabled) speak(['approval.waiting'], true)
+  }, [waiting])
+  useEffect(() => {
+    if (!enabled || !idle || quiet || waiting !== undefined || table === undefined) return
+    const timer = setTimeout(() => {
+      if (!speak(['idle.long'])) return
+      const candidates = (motion?.events?.whisper ?? []).filter(name => motion?.clips[name] !== undefined)
+      const clip = candidates[Math.min(candidates.length - 1, Math.floor(Math.random() * candidates.length))]
+      if (clip !== undefined) whisper(clip)
+    }, PET_IDLE_LINE_MS)
+    return () => { clearTimeout(timer) }
+  }, [enabled, idle, quiet, waiting, table, motion])
+  useEffect(() => {
+    if (spoken === undefined || spoken.hold) return
+    const timer = setTimeout(() => { setSpoken(undefined) }, PET_LINE_MS)
+    return () => { clearTimeout(timer) }
+  }, [spoken])
+  useEffect(() => {
+    if (!enabled) setSpoken(undefined)
+    else if (quiet) setSpoken(current => current?.hold === true ? current : undefined)
+  }, [quiet, enabled])
+  const language = props.t('locale') === 'en' ? 'en' : 'zh'
+  return {
+    line: spoken === undefined ? undefined : typeof spoken.text === 'string' ? spoken.text : spoken.text[language],
+    say: (text) => { show(text) },
+  }
+}
+
+/** Compact, event-derived status when the full panel is collapsed; a spoken local line takes its place while shown. */
 function PetStatus({ state, useView, t, line }: Pick<PetProps, 'useView' | 't'> & {
   state: PetAgentState
   line?: string | undefined
 }): ReactNode {
   const focus = useView(view => view.snapshot?.sessions.find(session => session.sessionId === view.snapshot?.focusSessionId))
-  if (petIsIdle(state)) return line === undefined ? null : <div className={css.statusBubble} role="status" data-pet-line="">{line}</div>
+  if (line !== undefined) return <div className={css.statusBubble} role="status" data-pet-line="">{line}</div>
+  if (petIsIdle(state)) return null
   return <div className={css.statusBubble} role="status">{stateLine(t, state, focus)}</div>
 }
 
@@ -716,9 +842,9 @@ function useSystemReducedMotion(): boolean {
  */
 export function PetOverlay(props: PetProps): ReactNode {
   const {
-    open, toggle, close, state, visible, waiting, focusRequest, menu, setMenu, act, actions, categories, playClip, action, interact,
+    open, toggle, close, state, visible, focusRequest, menu, setMenu, act, actions, categories, playClip, action, interact,
+    balanceRequest, reportBalance, line,
   } = usePanel(props)
-  const line = useMomentLine(props, open || menu || waiting || !petIsIdle(state))
   const pack = props.usePack(current => current)
   const preferences = props.usePreferences(current => current)
   const activity = props.useView(view =>
@@ -746,7 +872,8 @@ export function PetOverlay(props: PetProps): ReactNode {
       <div className={css.pagePanels}>
         {!open && <PetStatus state={state} useView={props.useView} t={props.t} line={line} />}
         <div hidden={!open} className={css.panelMount}>
-          <PetPanel {...props} focusRequest={focusRequest} onClose={close} panelVisible={open} />
+          <PetPanel {...props} focusRequest={focusRequest} onClose={close} panelVisible={open} balanceRequest={balanceRequest}
+            reportBalance={reportBalance} />
         </div>
         {menu && <PetMenu t={props.t} actions={actions(false)} onAction={act} categories={categories} onClip={playClip}
           onClose={() => { setMenu(false) }} />}
@@ -764,10 +891,9 @@ export function PetOverlay(props: PetProps): ReactNode {
  */
 export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener: () => void) => () => void }): ReactNode {
   const {
-    open, toggle, close, state, visible, waiting, focusRequest: menuFocus, menu, setMenu, act, actions, categories, playClip, action,
-    interact,
+    open, toggle, close, state, visible, focusRequest: menuFocus, menu, setMenu, act, actions, categories, playClip, action,
+    interact, balanceRequest, reportBalance, line,
   } = usePanel(props)
-  const line = useMomentLine(props, open || menu || waiting || !petIsIdle(state))
   const { controller, onQuickAsk } = props
   const movement = props.useMovement(value => value)
   const pack = props.usePack(current => current)
@@ -825,7 +951,8 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         <div className={css.desktopPanels}>
           {!open && <PetStatus state={state} useView={props.useView} t={props.t} line={line} />}
           <div hidden={!open} className={css.panelMount}>
-            <PetPanel {...props} focusRequest={menuFocus} onClose={close} panelVisible={open} />
+            <PetPanel {...props} focusRequest={menuFocus} onClose={close} panelVisible={open} balanceRequest={balanceRequest}
+              reportBalance={reportBalance} />
           </div>
           {menu && <PetMenu t={props.t} actions={actions(true)} onAction={act} categories={categories} onClip={playClip}
             onClose={() => { setMenu(false) }} />}

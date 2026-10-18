@@ -22,6 +22,10 @@ export interface PetPreferences {
   readonly life?: PetLifeState
   /** Enabled autonomous actions; an empty list keeps only the base loop. */
   readonly actions?: readonly PetAction[]
+  /** Enabled pack-only clips of the autonomous chain (clips no named action plays); absent allows them all. */
+  readonly clips?: readonly string[]
+  /** Whether the pet speaks local lines (time of day, task results, approvals, long idle); absent means on. */
+  readonly lines?: boolean
   readonly activity?: PetActivityLevel
   readonly effects?: boolean
   readonly interactive?: boolean
@@ -36,6 +40,10 @@ export interface PetPreferences {
 }
 
 const DEFAULTS: PetPreferences = { notify: false, snoozeUntil: undefined }
+/** Pack clip names, as `motion.json` validates them. */
+const CLIP_NAME = /^[a-z][a-z0-9_]*$/u
+/** Upper bound of stored pack clip names. */
+const MAX_CLIPS = 256
 
 /** Minimal storage face, satisfied by `localStorage`. */
 export interface PreferenceStorage {
@@ -58,6 +66,9 @@ export function parsePreferences(raw: string | null): PetPreferences {
   }
   if (typeof value !== 'object' || value === null) return DEFAULTS
   const actions = 'actions' in value && Array.isArray(value.actions) ? value.actions : undefined
+  const clips = 'clips' in value && Array.isArray(value.clips)
+    ? [...new Set(value.clips.filter((clip): clip is string => typeof clip === 'string' && CLIP_NAME.test(clip)))].slice(0, MAX_CLIPS)
+    : undefined
   const notify = 'notify' in value && typeof value.notify === 'boolean' ? value.notify : DEFAULTS.notify
   const snoozeUntil = 'snoozeUntil' in value && typeof value.snoozeUntil === 'number' ? value.snoozeUntil : undefined
   return {
@@ -66,6 +77,8 @@ export function parsePreferences(raw: string | null): PetPreferences {
     ...'size' in value && typeof value.size === 'number' && Number.isFinite(value.size) ? { size: Math.max(50, Math.min(200, value.size)) } : {},
     ...'life' in value && (value.life === 'idle' || value.life === 'rest' || value.life === 'play') ? { life: value.life } : {},
     ...actions !== undefined ? { actions: PET_ACTIONS.filter(action => actions.includes(action)) } : {},
+    ...clips !== undefined ? { clips } : {},
+    ...'lines' in value && typeof value.lines === 'boolean' ? { lines: value.lines } : {},
     ...'activity' in value && (value.activity === 'quiet' || value.activity === 'normal' || value.activity === 'lively') ? { activity: value.activity } : {},
     ...'effects' in value && typeof value.effects === 'boolean' ? { effects: value.effects } : {},
     ...'interactive' in value && typeof value.interactive === 'boolean' ? { interactive: value.interactive } : {},

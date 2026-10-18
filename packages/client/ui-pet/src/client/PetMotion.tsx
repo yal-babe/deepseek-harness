@@ -146,20 +146,23 @@ export function PetMotion({ motion, state, activity, action, dragging, preferenc
           const distance = Math.abs(move.travel.at(-1) ?? 0) * travelScale(motion, size)
           return surface.room(walkDirection(move, mirrorsClip(motion, candidate, facingRight)), distance)
         },
-      })
+      }, preferences.clips)
       if (name === undefined) return
       previousIdle.current = name
       setDecoration({ name: smoothClip(name, motion), serial: Date.now(), ...clipEffect(name) })
     }, idleDelay(preferences.activity ?? 'normal', Math.random()) * (preferences.life === 'play' ? 0.75 : 1))
     return () => { clearTimeout(timer) }
-  }, [canDecorate, decoration, preferences.activity, preferences.actions, preferences.life, preferences.size, motion, facingRight])
+  }, [
+    canDecorate, decoration, preferences.activity, preferences.actions, preferences.clips, preferences.life, preferences.size, motion,
+    facingRight,
+  ])
   // Decorative idle is deliberately finite even though the source idle clip loops.
   useEffect(() => {
     if (decoration?.name !== 'idle') return
     const timer = setTimeout(() => { setDecoration(undefined) }, 7000)
     return () => { clearTimeout(timer) }
   }, [decoration])
-  const name = dragging ? 'dragging' : decoration?.name ?? lifecycle.clip ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : state === 'SUCCESS' || heldResult && idle ? resultClip.current : state === 'THINKING' ? thinkingName : taskClip(state, activity))
+  const name = dragging ? 'dragging' : decoration?.name ?? lifecycle.clip ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : state === 'SUCCESS' || heldResult && idle ? resultClip.current : state === 'THINKING' ? thinkingName : taskClip(state, activity, motion))
   const clip = motion.clips[name] ?? motion.clips.idle
   const serial = decoration?.serial ?? 0
   // A measured gait moves the surface with the media position, so the feet do not slide; cancelling the clip ends the walk.

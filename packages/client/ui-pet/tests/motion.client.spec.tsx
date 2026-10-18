@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PetMotion } from '../src/client/PetMotion.tsx'
 import { PetSprite } from '../src/client/PetSprite.tsx'
 import {
-  idleDelay, lifeActions, mirrorsClip, nextAutonomousClip, nextChainClip, nextIdleClip, roamDelay, taskClip, travelAt, travelScale,
-  walkDirection,
+  autonomousPackClips, balanceTier, clickArea, clickClip, clipAllowed, eventClip, idleDelay, lifeActions, mirrorsClip, nextAutonomousClip,
+  nextChainClip, nextIdleClip, roamDelay, taskClip, travelAt, travelScale, walkDirection,
 } from '../src/client/motion.ts'
 import type { PetMotionView } from '@deepseek-ai/dsh-pet/types'
 
@@ -192,6 +192,65 @@ it('keeps the left-facing swim artwork aligned with travel direction', () => {
   fireEvent.ended(view.container.querySelector('video')!)
   expect(visual().dataset.petClip).toBe('swim_loop')
   expect(visual().style.transform).toBe('scaleX(-1)')
+})
+
+describe('pack event tiers, click areas, and the pack clip allowlist', () => {
+  const tiers = (...names: string[]) => names.map(name => [name])
+  const pack: PetMotionView = {
+    ...motion,
+    clips: { ...motion.clips, poke: clip('poke'), click_bounce: clip('click_bounce'), click_huff: clip('click_huff'), tail: clip('tail'),
+      balance_full: clip('balance_full'), balance_empty: clip('balance_empty'), sign: clip('sign'), look_around: { ...clip('look_around'), turn: true } },
+    chain: { idle: 1, turn: 1, move: 1 },
+    categories: [
+      { id: 'small', label: { zh: '小', en: 'Small' }, weight: 1, life: ['idle'], clips: ['idle_stretch', 'sign', 'missing'] },
+      { id: 'click', label: { zh: '点', en: 'Click' }, weight: 0, life: [], clips: ['click_bounce'] },
+    ],
+    events: {
+      balance: [['balance_full'], ['missing', 'balance_full'], [], [], [], ['balance_empty']],
+      workStatus: tiers('thinking', 'working', 'working_command', 'waiting', 'success', 'error'),
+    },
+    clicks: { head: ['head_pat'], body: ['poke', 'click_bounce', 'click_huff', 'ghost'] },
+  }
+
+  it('maps used percentages to six bands with the last only at exactly 100%', () => {
+    expect([0, 19.9, 20, 59, 80, 99.9, 100, 140, -5, Number.NaN].map(balanceTier)).toEqual([0, 0, 1, 2, 4, 4, 5, 5, 0, 0])
+  })
+
+  it('picks event candidates the pack has and falls back to built-in task clips', () => {
+    expect(eventClip(pack, 'balance', 1)).toBe('balance_full')
+    expect(eventClip(pack, 'balance', 2)).toBeUndefined()
+    expect(eventClip(motion, 'balance', 0)).toBeUndefined()
+    expect(eventClip(pack, 'balance', 5, () => 0.9)).toBe('balance_empty')
+    expect(taskClip('WORKING', 'command', pack)).toBe('working_command')
+    expect(taskClip('WORKING', 'search', pack)).toBe('working_search')
+    const renamed = { ...pack, clips: { ...pack.clips, busy: clip('busy') }, events: { workStatus: tiers('busy', 'busy', 'busy', 'busy', 'busy', 'busy') } }
+    expect(['THINKING', 'WORKING', 'WAITING', 'SUCCESS', 'ERROR'].map(state => taskClip(state as 'IDLE', undefined, renamed))).toEqual(Array(5).fill('busy'))
+    expect(taskClip('WORKING', 'test', renamed)).toBe('busy')
+    expect(taskClip('IDLE', undefined, renamed)).toBe('idle')
+  })
+
+  it('splits clicks into head, body, and tail and rotates the pack responses', () => {
+    expect([0.1, 0.34, 0.35, 0.72, 0.73, 1].map(clickArea)).toEqual(['head', 'head', 'body', 'body', 'tail', 'tail'])
+    expect(clickClip(pack, 'body', () => 0)).toBe('poke')
+    expect(clickClip(pack, 'body', () => 0, 'poke')).toBe('click_bounce')
+    expect(clickClip(pack, 'body', () => 0.99)).toBe('click_huff')
+    expect(clickClip(pack, 'tail', () => 0)).toBe('tail')
+    expect(clickClip(undefined, 'head', () => 0)).toBe('head_pat')
+  })
+
+  it('lists autonomous pack-only clips and filters them by the device allowlist', () => {
+    expect(autonomousPackClips(pack)).toEqual(['sign', 'look_around'])
+    expect(autonomousPackClips(undefined)).toEqual([])
+    expect(clipAllowed('sign')).toBe(true)
+    expect(clipAllowed('sign', undefined, [])).toBe(false)
+    expect(clipAllowed('idle_stretch', ['stretch'], [])).toBe(true)
+    expect(clipAllowed('idle_stretch', [], ['idle_stretch'])).toBe(false)
+    const sequence = (...values: number[]) => () => values.shift() ?? 0
+    expect(nextChainClip(pack, 'idle', [], undefined, sequence(0, 0), ['sign'])).toBe('sign')
+    expect(nextChainClip(pack, 'idle', [], undefined, sequence(0, 0), [])).toBeUndefined()
+    // The turn band lands on a turn clip the allowlist leaves out, so it falls back to the allowed category clip.
+    expect(nextAutonomousClip(pack, 'idle', [], undefined, sequence(0.5, 0, 0), { allowed: false, room: () => false }, ['sign'])).toBe('sign')
+  })
 })
 
 describe('categorized animation chain', () => {

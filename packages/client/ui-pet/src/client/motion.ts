@@ -42,6 +42,30 @@ const IDLE = PET_ACTIONS.map(action => ACTION_CLIP[action])
 const PLAY_ACTIONS: readonly PetAction[] = ['bubbles', 'celebrate', 'chaseBubbles', 'playBall', 'tailSpin']
 const QUIET_ACTIONS: readonly PetAction[] = ['stretch', 'yawn', 'daydream', 'observe', 'groom']
 
+/** Whether the device allowlist lets a clip play autonomously: named interactions follow `enabled`,
+ * pack-only clips follow `enabledClips`.
+ * @param clip - pack clip name.
+ * @param enabled - allowed named interactions, or all when absent.
+ * @param enabledClips - allowed pack-only clips, or all when absent.
+ * @returns whether the clip may be drawn.
+ */
+export function clipAllowed(clip: string, enabled: readonly PetAction[] = PET_ACTIONS, enabledClips?: readonly string[]): boolean {
+  const action = clipAction(clip)
+  return action !== undefined ? enabled.includes(action) : enabledClips === undefined || enabledClips.includes(clip)
+}
+
+/** Pack-only clips the autonomous chain can draw: members of categories with a life state, turns, and walks.
+ * @param motion - available character media.
+ * @returns clip names in pack order, without named interactions.
+ */
+export function autonomousPackClips(motion: PetMotionView | undefined): readonly string[] {
+  if (motion === undefined) return []
+  const listed = (motion.categories ?? []).filter(category => category.life.length > 0).flatMap(category => category.clips)
+  const chained = motion.chain === undefined ? []
+    : Object.keys(motion.clips).filter(name => motion.clips[name]?.turn === true || motion.clips[name]?.move !== undefined)
+  return [...new Set([...listed, ...chained])].filter(name => motion.clips[name] !== undefined && clipAction(name) === undefined)
+}
+
 /** Select autonomous actions for the life state, respecting the device allowlist.
  * @param life - selected life state.
  * @param enabled - device allowlist, or all actions when absent.
@@ -52,21 +76,19 @@ export function lifeActions(life: PetLifeState = 'idle', enabled: readonly PetAc
   return enabled.filter(action => candidates.includes(action))
 }
 /** Pick the next autonomous clip: a category by weight among those for the life state, then a fresh clip in it.
- * Packs without categories fall back to {@link lifeActions}. Clips that play a named interaction must be in the
- * device allowlist; pack-only clips follow their category.
+ * Packs without categories fall back to {@link lifeActions}. Every clip must pass the device allowlist
+ * ({@link clipAllowed}).
  * @param motion - available character media.
  * @param life - selected life state; resting never decorates.
  * @param enabled - device allowlist, or all actions when absent.
  * @param previous - last autonomous clip, which is not repeated when another is eligible.
  * @param random - uniform source in [0, 1), called once for the category and once for the clip.
+ * @param enabledClips - allowed pack-only clips, or all when absent.
  * @returns a clip name, or undefined when nothing is eligible.
  */
 export function nextChainClip(motion: PetMotionView, life: PetLifeState = 'idle', enabled: readonly PetAction[] = PET_ACTIONS,
-  previous: string | undefined, random: () => number): string | undefined {
-  const allowed = (clip: string): boolean => {
-    const action = clipAction(clip)
-    return motion.clips[clip] !== undefined && (action === undefined || enabled.includes(action))
-  }
+  previous: string | undefined, random: () => number, enabledClips?: readonly string[]): string | undefined {
+  const allowed = (clip: string): boolean => motion.clips[clip] !== undefined && clipAllowed(clip, enabled, enabledClips)
   if (motion.categories === undefined || motion.categories.length === 0) {
     return nextIdleClip(previous, random(), lifeActions(life, enabled).map(action => ACTION_CLIP[action]).filter(allowed))
   }
@@ -106,18 +128,15 @@ export interface PetWalkGate {
  * @param previous - last autonomous clip, which is not repeated when another is eligible.
  * @param random - uniform source in [0, 1).
  * @param walk - whether and where walking is possible.
+ * @param enabledClips - allowed pack-only clips, or all when absent.
  * @returns a clip name, or undefined when nothing is eligible.
  */
 export function nextAutonomousClip(motion: PetMotionView, life: PetLifeState = 'idle', enabled: readonly PetAction[] = PET_ACTIONS,
-  previous: string | undefined, random: () => number, walk: PetWalkGate): string | undefined {
+  previous: string | undefined, random: () => number, walk: PetWalkGate, enabledClips?: readonly string[]): string | undefined {
   const chain = motion.chain
-  const fallback = (): string | undefined => nextChainClip(motion, life, enabled, previous, random)
+  const fallback = (): string | undefined => nextChainClip(motion, life, enabled, previous, random, enabledClips)
   if (chain === undefined || life !== 'idle') return fallback()
-  const allowed = (clip: string): boolean => {
-    const action = clipAction(clip)
-    return action === undefined || enabled.includes(action)
-  }
-  const names = Object.keys(motion.clips).filter(allowed)
+  const names = Object.keys(motion.clips).filter(clip => clipAllowed(clip, enabled, enabledClips))
   const turns = names.filter(name => motion.clips[name]?.turn === true)
   const walks = names.filter(name => motion.clips[name]?.move !== undefined)
   const total = chain.idle + chain.turn + chain.move
@@ -223,14 +242,76 @@ export function idleDelay(level: PetActivityLevel, random: number): number {
   return min + Math.round((max - min) * Math.max(0, Math.min(1, random)))
 }
 
-/** Map the Host state and tool activity to the original full-length clips.
+/** Work-status tier of each task state (upstream `events.workStatus`: thinking, working, result, waiting, success, error). */
+const WORK_TIER: Readonly<Partial<Record<PetAgentState, number>>> = { THINKING: 0, WORKING: 1, WAITING: 3, SUCCESS: 4, ERROR: 5 }
+/** Tier played while commands or tests run: upstream's result tier, which Studio already used for them. */
+const RESULT_TIER = 2
+
+/** First candidate of an event tier that the pack has.
+ * @param motion - available character media.
+ * @param event - `balance` or `workStatus`.
+ * @param tier - tier index.
+ * @param random - uniform source in [0, 1); omitted picks the first candidate.
+ * @param previous - clip played last for this event, avoided when another candidate exists.
+ * @returns a clip name, or undefined when the pack declares no usable candidate.
+ */
+export function eventClip(motion: PetMotionView | undefined, event: 'balance' | 'workStatus', tier: number, random?: () => number,
+  previous?: string): string | undefined {
+  const candidates = (motion?.events?.[event]?.[tier] ?? []).filter(name => motion?.clips[name] !== undefined)
+  return random === undefined ? candidates[0] : nextIdleClip(previous, random(), candidates)
+}
+
+/** Map the Host state and tool activity to a full-length clip: the pack's work-status tier when it declares one,
+ * with the activity-specific search clip kept, otherwise the built-in names.
  * @param state - current task state.
  * @param activity - current tool activity.
- * @returns the matching built-in animation name.
+ * @param motion - available character media, whose event tiers take precedence.
+ * @returns the animation name to play.
  */
-export function taskClip(state: PetAgentState, activity?: PetWorkActivity): string {
-  if (state === 'WORKING') return activity === 'search' ? 'working_search' : activity === 'command' || activity === 'test' ? 'working_command' : 'working'
+export function taskClip(state: PetAgentState, activity?: PetWorkActivity, motion?: PetMotionView): string {
+  const command = state === 'WORKING' && (activity === 'command' || activity === 'test')
+  if (state === 'WORKING' && activity === 'search' && (motion === undefined || motion.clips.working_search !== undefined)) return 'working_search'
+  const tier = command ? RESULT_TIER : WORK_TIER[state]
+  const declared = tier === undefined ? undefined : eventClip(motion, 'workStatus', tier)
+  if (declared !== undefined) return declared
+  if (state === 'WORKING') return activity === 'search' ? 'working_search' : command ? 'working_command' : 'working'
   return { IDLE: 'idle', DISCONNECTED: 'idle', THINKING: 'thinking', WAITING: 'waiting', SUCCESS: 'success', ERROR: 'error' }[state]
+}
+
+/** Body area of a click, top to bottom. */
+export type PetClickArea = 'head' | 'body' | 'tail'
+
+/** Built-in interaction of each body area, used when the pack names no click responses. */
+export const AREA_ACTION: Readonly<Record<PetClickArea, PetAction>> = { head: 'headPat', body: 'poke', tail: 'tail' }
+
+/** Body area at a vertical position on the character.
+ * @param y - pointer position from the top of the visible character, as a fraction of its height.
+ * @returns the head above 35%, the tail below 72%, otherwise the body.
+ */
+export function clickArea(y: number): PetClickArea {
+  return y < 0.35 ? 'head' : y > 0.72 ? 'tail' : 'body'
+}
+
+/** Clip a click on a body area plays: a fresh candidate of the pack's click responses, else the built-in interaction.
+ * @param motion - available character media.
+ * @param area - clicked body area.
+ * @param random - uniform source in [0, 1).
+ * @param previous - clip the last click played, avoided when another candidate exists.
+ * @returns a pack clip name.
+ */
+export function clickClip(motion: PetMotionView | undefined, area: PetClickArea, random: () => number, previous?: string): string {
+  const candidates = (motion?.clicks?.[area] ?? []).filter(name => motion?.clips[name] !== undefined)
+  return nextIdleClip(previous, random(), candidates) ?? ACTION_CLIP[AREA_ACTION[area]]
+}
+
+/** Balance tier of a used percentage (upstream `balanceEventIndex`): 20% bands, with tier 5 only at exactly 100%.
+ * @param usedPercent - used balance, 0 (untouched) to 100 (all used); values outside are clamped.
+ * @returns a tier from 0 to 5.
+ */
+export function balanceTier(usedPercent: number): number {
+  // Adapted from PC2005-cloud/dsh-pet (MIT), commit 091b27b, dsh-pet/src/shared/balance.ts (balanceEventIndex).
+  const percent = Math.max(0, Math.min(100, Number.isFinite(usedPercent) ? usedPercent : 0))
+  return percent === 100 ? 5 : Math.min(4, Math.floor(percent / 20))
 }
 
 /** Use a continuous substitute only for legacy sparsely sampled interaction media.

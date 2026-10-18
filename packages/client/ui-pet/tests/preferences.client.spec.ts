@@ -82,6 +82,15 @@ it('validates new preferences on load, local writes and cross-window reads', () 
   expect(store.snapshot.getSnapshot()).toEqual({ notify: false, snoozeUntil: undefined, size: 50, life: 'play', actions: [] })
 })
 
+it('keeps valid unique pack clip names and the lines switch', () => {
+  const many = Array.from({ length: 300 }, (_, index) => `c${index}`)
+  expect(parsePreferences(JSON.stringify({ clips: ['sign', 'Sign', 'sign', 3, 'look_around', '../x'], lines: false })))
+    .toMatchObject({ clips: ['sign', 'look_around'], lines: false })
+  expect(parsePreferences(JSON.stringify({ clips: many })).clips).toHaveLength(256)
+  expect(parsePreferences('{"clips":"all","lines":"no"}')).toEqual({ notify: false, snoozeUntil: undefined })
+  expect(parsePreferences('{"clips":[]}').clips).toEqual([])
+})
+
 it('throws by default, never under reduced motion, and not when turned off', () => {
   const base = { notify: false, snoozeUntil: undefined }
   expect(throwEnabled(base, false)).toBe(true)
