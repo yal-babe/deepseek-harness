@@ -58,12 +58,17 @@ export type PetMotionSource =
     readonly file: string
     /** SHA-256 of the source file. */
     readonly sha256: string
-    /** Source frames encoded. */
+    /** Frames in the source file. */
     readonly frameCount: number
     /** Source frame rate. */
     readonly fps: number
     /** Shared crop window `[x, y, width, height]` in source pixels. */
     readonly crop: readonly [number, number, number, number]
+    /**
+     * Encoded part of the source, `[start, end)` in source frames, when one source is split into phases
+     * (entry, loop, exit); the whole source when absent.
+     */
+    readonly frames?: readonly [number, number]
     /** Generation record of the upstream clip, as stated upstream. */
     readonly generation: PetMotionGeneration
   }
@@ -286,9 +291,17 @@ function source(value: unknown, where: string, errors: string[]): PetMotionSourc
       && count(value['frameCount']) && positive(value['fps']) && window !== undefined
     if (!valid) errors.push(`${where}: dsh-pet-webm source needs repository, full commit, file, SHA-256, frameCount, fps, and crop`)
     if (!valid || record === undefined || window === undefined) return undefined
+    const part = value['frames']
+    const bounds = Array.isArray(part) && part.length === 2 && part.every(count) ? part as [number, number] : undefined
+    const span = bounds !== undefined && bounds[0] < bounds[1] && bounds[1] <= (value['frameCount'] as number) ? bounds : undefined
+    if (part !== undefined && span === undefined) {
+      errors.push(`${where}: dsh-pet-webm frames must be [start, end) source frames within frameCount`)
+      return undefined
+    }
     return {
       kind, repository: value['repository'] as string, commit: value['commit'] as string, file: value['file'] as string,
-      sha256: value['sha256'] as string, frameCount: value['frameCount'] as number, fps: value['fps'] as number, crop: window, generation: record,
+      sha256: value['sha256'] as string, frameCount: value['frameCount'] as number, fps: value['fps'] as number, crop: window,
+      ...span === undefined ? {} : { frames: span }, generation: record,
     }
   }
   if (kind === 'ai-video') {

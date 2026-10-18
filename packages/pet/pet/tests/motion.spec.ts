@@ -128,6 +128,13 @@ describe('parsePetMotion', () => {
     expect(good.ok && good.manifest.clips.idle?.source).toEqual(video)
     const wrongDate = parsePetMotion(minimal({}, { source: { ...video, generation: { ...video.generation, date: 'today' } } }))
     expect(wrongDate.ok ? [] : wrongDate.errors).toEqual(['clip "idle": generation date is malformed'])
+    const phase = { ...upstream, commit: 'a'.repeat(40), frameCount: 241, generation: { tool: 't', prompt: { file: 'p.md', section: 's' } } }
+    const split = parsePetMotion(minimal({}, { source: { ...phase, frames: [72, 170] } }))
+    expect(split.ok && split.manifest.clips.idle?.source).toMatchObject({ frames: [72, 170] })
+    for (const frames of [[170, 72], [0, 242], [1]]) {
+      const wrong = parsePetMotion(minimal({}, { source: { ...phase, frames } }))
+      expect(wrong.ok ? [] : wrong.errors).toEqual(['clip "idle": dsh-pet-webm frames must be [start, end) source frames within frameCount'])
+    }
   })
 
   it('checks measured travel and chain weights', () => {

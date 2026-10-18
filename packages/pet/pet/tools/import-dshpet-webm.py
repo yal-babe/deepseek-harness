@@ -24,6 +24,10 @@ whose travel is under MIN_TRAVEL_PX, has fewer than MIN_CONTACTS matched
 contacts, or whose backward shifts do not outnumber forward ones by
 MIN_AGREEMENT plays in place with no "move" record.
 
+An entry with "frames": [start, end) encodes only those source frames, so one
+upstream clip can be split into entry, loop, and exit phases; the window is
+recorded as source.frames.
+
 This tool owns exactly the clips whose source kind is "dsh-pet-webm" and the
 top-level "categories", "chain", "events" (event tiers), and "clicks" (click
 responses by body area) entries. It never rewrites clips of other kinds, and the
@@ -170,14 +174,18 @@ with tempfile.TemporaryDirectory() as scratch:
         if x + width > source_width or y + height > source_height:
             raise SystemExit(f'{entry["source"]} is {source_width}x{source_height}; the crop does not fit')
         destination = pack / 'assets' / 'motion' / f'{entry["name"]}.webm'
+        start, end = entry.get('frames', [0, frames])
+        if not 0 <= start < end <= frames:
+            raise SystemExit(f'{entry["name"]}: frames {start}..{end} lie outside the {frames} source frames')
+        window = f'trim=start_frame={start}:end_frame={end},setpts=PTS-STARTPTS,' if 'frames' in entry else ''
         subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-c:v', 'libvpx-vp9', '-i', str(source),
-                        '-vf', f'crop={width}:{height}:{x}:{y}', *ENCODE, str(destination)], check=True)
+                        '-vf', f'{window}crop={width}:{height}:{x}:{y}', *ENCODE, str(destination)], check=True)
         encoded, _, out_width, out_height = probe(destination)
-        if (encoded, out_width, out_height) != (frames, width, height):
+        if (encoded, out_width, out_height) != (end - start, width, height):
             raise SystemExit(f'{entry["name"]}: encoded {encoded} frames at {out_width}x{out_height}')
         clips[entry['name']] = {
             'file': f'assets/motion/{entry["name"]}.webm', 'loop': entry['loop'],
-            'durationMs': round(frames * 1000 / fps), 'frames': frames,
+            'durationMs': round((end - start) * 1000 / fps), 'frames': end - start,
             'sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
             **({'turn': True} if entry.get('turn') else {}),
             **({'mirror': False} if entry.get('mirror') is False else {}),
@@ -185,7 +193,7 @@ with tempfile.TemporaryDirectory() as scratch:
             'source': {
                 'kind': KIND, 'repository': recipe['repository'], 'commit': commit, 'file': path,
                 'sha256': hashlib.sha256(source.read_bytes()).hexdigest(), 'frameCount': frames, 'fps': fps,
-                'crop': recipe['crop'],
+                'crop': recipe['crop'], **({'frames': [start, end]} if 'frames' in entry else {}),
                 'generation': {
                     'tool': recipe['generation']['tool'],
                     'prompt': {'file': recipe['generation']['promptFile'], 'section': entry['section'], 'sha256': prompt_sha},
@@ -194,7 +202,7 @@ with tempfile.TemporaryDirectory() as scratch:
             },
         }
         if 'move' in entry:
-            move = measure_travel(destination, frames, fps, entry['move']['leadSec'], entry['move']['tailSec'], width, height)
+            move = measure_travel(destination, end - start, fps, entry['move']['leadSec'], entry['move']['tailSec'], width, height)
             if move is not None:
                 clips[entry['name']]['move'] = {**move, 'statedIn': recipe['moveStatedIn']}
         print(entry['name'], destination.stat().st_size, 'bytes', clips[entry['name']].get('move', {}).get('slip', ''), flush=True)
@@ -206,7 +214,9 @@ for category in recipe['categories']:
 for event, tiers in recipe['events'].items():
     if event == 'statedIn':
         continue
-    missing = [name for tier in tiers for name in tier if name not in clips]
+    # whisper is one flat candidate list; the other events are tiers of candidates.
+    listed_names = tiers if event == 'whisper' else [name for tier in tiers for name in tier]
+    missing = [name for name in listed_names if name not in clips]
     if missing:
         raise SystemExit(f'event {event} names unknown clips: {missing}')
 for area, names in recipe['clicks'].items():
