@@ -13,19 +13,19 @@
 
 | 名称 | 播放时机 | 导入要点 |
 | --- | --- | --- |
-| `pillow_enter`、`pillow_loop`、`pillow_wake` | 休息状态首选：入睡、持续睡眠、醒来 | 三段使用同一机位；`pillow_loop` 加 `--follow pillow_enter`，`pillow_wake` 加 `--follow pillow_loop`；不加入分类 |
+| `pillow_enter`、`pillow_loop`、`pillow_wake` | 休息状态首选：入睡、持续睡眠、醒来；优先于内置的上游小憩 `doze_*` | 三段使用同一机位；`pillow_loop` 加 `--follow pillow_enter`，`pillow_wake` 加 `--follow pillow_loop`；不加入分类 |
 | `sleep_enter`、`sleep_loop`、`sleep_wake` | 休息状态次选（没有 `pillow_loop` 时） | 同上，换成 `sleep_*` |
 | `sleep` | 菜单“休息一下”的单段动作 | 两端站立；加入分类后才出现在菜单 |
 | `swim_start`、`swim_loop`、`swim_stop` | 有 `swim_loop` 后开启自主滑行：起步、定向游动、停下 | 生成时角色须面朝左，客户端向右移动时镜像；`swim_loop` 加 `--follow swim_start`，`swim_stop` 加 `--follow swim_loop`；不加入分类 |
 | `celebrate` | 任务成功时以 35% 概率替代 `success`；菜单“开心庆祝” | 两端站立 |
-| `thinking_chin`、`thinking_idea`、`work_read` | 思考状态在 `thinking` 与这些片段间轮换 | 两端站立；不加入分类 |
+| `thinking_chin`、`thinking_idea`、`work_read` | 思考状态在 `thinking` 与这些片段间轮换；有 `thinking_chin` 后上游 `thinking_deep` 退出轮换 | 两端站立；不加入分类 |
 | `bubbles`、`play_bubbles`、`play_ball`、`play_tailspin` | 娱乐状态的自主动作及菜单 | `--category play` |
-| `idle_daydream`、`idle_observe`、`idle_groom` | 空闲状态的自主动作及菜单 | `--category small` |
+| `idle_daydream`、`idle_observe`、`idle_groom` | 空闲状态的自主动作及菜单；有 `idle_daydream` 后上游 `whisper_daydream` 不再自主播放 | `--category small` |
 | `nuzzle` | 菜单“蹭蹭手” | `--category interact` |
 
 内置包有分类，菜单和自主动作都从分类中选取，因此菜单或自主动作要用的片段必须用 `--category` 加入一个分类（每个片段最多属于一个分类）。休息、游动和思考的分段由客户端按名称直接调用，不要加入分类，否则会被当作普通动作随机播放。上表以外的新名称也可以导入，此时用 `--label-zh` 与 `--label-en` 提供菜单名称。
 
-缺少片段时客户端播放替代：休息为打哈欠、循环 `idle`、伸懒腰醒来；娱乐从 `click_bounce`、`click_huff`、`turn_run` 中抽取；没有 `swim_loop` 时只靠 `crab_walk`、`float_step` 行走移动；庆祝播放 `success`；思考只播放 `thinking`。
+缺少片段时客户端播放替代：休息播放上游小憩 `doze_enter`／`doze_loop`／`doze_wake`（或被惊醒 `doze_startle`）；娱乐从 `click_bounce`、`click_huff`、`turn_run` 中抽取；没有 `swim_loop` 时只靠 `crab_walk`、`float_step` 行走移动；庆祝播放 `success`；思考在 `thinking` 与 `thinking_deep` 间轮换。上游片段的名称不占用槽位，导入同名 AI 视频片段后自动优先。
 
 ## 导入命令
 

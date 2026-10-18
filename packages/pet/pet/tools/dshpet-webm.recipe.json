@@ -43,6 +43,18 @@
         { "name": "balance_low", "source": "余额-袋空如洗.webm", "section": "余额-袋空如洗", "loop": false, "label": { "zh": "袋空如洗", "en": "Nearly empty purse" } },
         { "name": "balance_empty", "source": "余额-分文不剩.webm", "section": "余额-分文不剩", "loop": false, "label": { "zh": "分文不剩", "en": "Not a coin left" } }
       ]
+    },
+    {
+      "batch": 4,
+      "note": "Rest, idle, and thinking clips after the generated sheets were retired. 原地小憩沉眠 is split at source frames 72 and 170 (3.0 s and 7.08 s): frame 170 differs from frame 72 by 0.8% of alpha, so the middle part loops. doze_startle starts at frame 60 (2.5 s) of 打瞌睡被惊醒, where she already dozes, and is the alternative wake-up. The names stay clear of the AI-video slots (sleep_*, pillow_*, idle_daydream, thinking_chin), which take precedence when present.",
+      "clips": [
+        { "name": "doze_enter", "source": "原地小憩沉眠.webm", "section": "原地小憩沉眠", "loop": false, "frames": [0, 72], "label": { "zh": "小憩入睡", "en": "Dozing off" } },
+        { "name": "doze_loop", "source": "原地小憩沉眠.webm", "section": "原地小憩沉眠", "loop": true, "frames": [72, 170], "label": { "zh": "小憩沉眠", "en": "Napping" } },
+        { "name": "doze_wake", "source": "原地小憩沉眠.webm", "section": "原地小憩沉眠", "loop": false, "frames": [170, 241], "label": { "zh": "小憩醒来", "en": "Waking from a nap" } },
+        { "name": "doze_startle", "source": "打瞌睡被惊醒.webm", "section": "打瞌睡被惊醒", "loop": false, "frames": [60, 241], "label": { "zh": "打瞌睡被惊醒", "en": "Startled awake" } },
+        { "name": "whisper_daydream", "source": "碎碎念-发呆碎碎念.webm", "section": "碎碎念-发呆碎碎念", "loop": false, "label": { "zh": "发呆碎碎念", "en": "Daydream mumbling" } },
+        { "name": "thinking_deep", "source": "深度思考碎碎念.webm", "section": "深度思考碎碎念", "loop": false, "label": { "zh": "深度思考", "en": "Deep thought" } }
+      ]
     }
   ],
   "moveStatedIn": "dsh-pet/assets/config.jsonc, animations.moves (leadSec/tailSec)",
@@ -50,7 +62,8 @@
   "events": {
     "statedIn": "dsh-pet/assets/config.jsonc, animations.events",
     "balance": [["balance_full"], ["balance_jingle"], ["balance_steady"], ["balance_frown"], ["balance_low"], ["balance_empty"]],
-    "workStatus": [["thinking"], ["working"], ["working_command"], ["waiting"], ["success"], ["error"]]
+    "workStatus": [["thinking"], ["working"], ["working_command"], ["waiting"], ["success"], ["error"]],
+    "whisper": ["whisper_daydream"]
   },
   "clicks": {
     "note": "Studio splits the five upstream click responses (animations.clicks) by body area; the tail keeps its own clip.",
@@ -60,7 +73,7 @@
   },
   "categories": [
     { "id": "small", "label": { "zh": "小动作", "en": "Small actions" }, "weight": 20, "life": ["idle"],
-      "clips": ["idle_stretch", "idle_yawn", "look_around"] },
+      "clips": ["idle_stretch", "idle_yawn", "look_around", "whisper_daydream"] },
     { "id": "play", "label": { "zh": "玩耍", "en": "Play" }, "weight": 20, "life": ["play"],
       "clips": ["click_bounce", "click_huff", "turn_run"] },
     { "id": "interact", "label": { "zh": "互动", "en": "Interactions" }, "weight": 0, "life": [],

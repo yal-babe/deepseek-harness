@@ -39,7 +39,7 @@ describe('built-in motion in a Loader composition', () => {
     const recorded = JSON.parse(await readFile(new URL('../packs/whaletail-maid/motion.json', import.meta.url), 'utf8')) as
       { clips: Record<string, { source?: { kind?: string } }> }
     const slot = new RegExp(['bubbles', 'celebrate', 'nuzzle', 'sleep', 'pillow_', 'swim', 'play_(ball|bubbles|tailspin)',
-      'idle_(daydream|observe|groom)', 'work_read', 'thinking_'].map(name => `^${name}`).join('|'), 'u')
+      'idle_(daydream|observe|groom)', 'work_read', 'thinking_(chin|idea)'].map(name => `^${name}`).join('|'), 'u')
     expect(Object.keys(recorded.clips).filter(name => slot.test(name) && recorded.clips[name]?.source?.kind !== 'ai-video')).toEqual([])
     expect(clips.idle_yawn!.durationMs).toBe(10122)
     expect(pack.pack?.lines?.lines['greet.morning']?.length).toBeGreaterThan(0)

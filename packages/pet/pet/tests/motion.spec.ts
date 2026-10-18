@@ -36,7 +36,8 @@ describe('built-in motion.json', () => {
     const imported = Object.entries(builtin().clips).filter(([, clip]) => clip.source.kind === 'dsh-pet-webm')
     expect(imported.map(([name]) => name).sort())
       .toEqual(['balance_empty', 'balance_frown', 'balance_full', 'balance_jingle', 'balance_low', 'balance_steady',
-        'click_bounce', 'click_huff', 'click_shy', 'crab_walk', 'float_step', 'look_around', 'turn_run'])
+        'click_bounce', 'click_huff', 'click_shy', 'crab_walk', 'doze_enter', 'doze_loop', 'doze_startle', 'doze_wake', 'float_step',
+        'look_around', 'thinking_deep', 'turn_run', 'whisper_daydream'])
     for (const [name, clip] of imported) {
       expect(clip.source, name).toMatchObject({
         repository: 'https://github.com/PC2005-cloud/dsh-pet', commit: UPSTREAM_COMMIT, crop: [100, 0, 412, 344], fps: 24,
@@ -45,6 +46,19 @@ describe('built-in motion.json', () => {
       expect(clip.label, name).toBeDefined()
     }
     expect(builtin().clips.look_around?.turn).toBe(true)
+  })
+
+  it('splits the upstream nap into adjoining entry, loop, and wake frame windows', () => {
+    const { clips } = builtin()
+    const windows = ['doze_enter', 'doze_loop', 'doze_wake'].map((name) => {
+      const source = clips[name]!.source
+      return source.kind === 'dsh-pet-webm' ? { file: source.file, frames: source.frames, count: source.frameCount } : undefined
+    })
+    expect(windows.map(window => window?.frames)).toEqual([[0, 72], [72, 170], [170, 241]])
+    expect(new Set(windows.map(window => window?.file)).size).toBe(1)
+    expect(windows[0]?.count).toBe(241)
+    expect(['doze_enter', 'doze_loop', 'doze_wake'].map(name => [clips[name]!.loop, clips[name]!.frames])).toEqual([[false, 72], [true, 98], [false, 71]])
+    expect(clips.doze_startle?.source).toMatchObject({ frames: [60, 241] })
   })
 
   it('records measured travel only for gaits whose feet carry the body, with the upstream chain weights', () => {
@@ -68,7 +82,7 @@ describe('built-in motion.json', () => {
     const { events, clicks, categories } = builtin()
     expect(events?.balance).toEqual([['balance_full'], ['balance_jingle'], ['balance_steady'], ['balance_frown'], ['balance_low'], ['balance_empty']])
     expect(events?.workStatus).toEqual([['thinking'], ['working'], ['working_command'], ['waiting'], ['success'], ['error']])
-    expect(events?.whisper).toBeUndefined()
+    expect(events?.whisper).toEqual(['whisper_daydream'])
     expect(clicks).toEqual({ head: ['head_pat', 'click_shy'], body: ['poke', 'click_bounce', 'click_huff'], tail: ['tail'] })
     // Event clips play on events only; the autonomous chain and the menu never draw them.
     const members = new Set(categories.flatMap(category => category.clips))
@@ -79,6 +93,7 @@ describe('built-in motion.json', () => {
     const { categories } = builtin()
     expect(categories.map(category => category.id)).toEqual(['small', 'play', 'interact', 'eat', 'move'])
     expect(categories.find(category => category.id === 'move')?.clips).toEqual(['crab_walk', 'float_step'])
+    expect(categories.find(category => category.id === 'small')?.clips).toEqual(['idle_stretch', 'idle_yawn', 'look_around', 'whisper_daydream'])
     // Play draws the in-place video clips until AI-video play clips are added to the category.
     expect(categories.find(category => category.id === 'play')?.clips).toEqual(['click_bounce', 'click_huff', 'turn_run'])
     expect(categories.filter(category => category.life.length > 0).map(category => [category.id, category.life]))

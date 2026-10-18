@@ -1227,6 +1227,238 @@
           "statedIn": "README.md, section 从零生成你自己的宠物"
         }
       }
+    },
+    "doze_enter": {
+      "file": "assets/motion/doze_enter.webm",
+      "loop": false,
+      "durationMs": 3000,
+      "frames": 72,
+      "sha256": "a9d54141ca089ac0918448e739a55f99b78811b55fe242299bb84841bdd476cb",
+      "label": {
+        "zh": "小憩入睡",
+        "en": "Dozing off"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地小憩沉眠.webm",
+        "sha256": "31d4a6b36a29b2a4fe097384173d3bbeb3fa2f40f526b13191791456bf7507a1",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "frames": [
+          0,
+          72
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地小憩沉眠",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "doze_loop": {
+      "file": "assets/motion/doze_loop.webm",
+      "loop": true,
+      "durationMs": 4083,
+      "frames": 98,
+      "sha256": "e2d5daf1b1c483812d3bebfec98c3ba06850d0dfb2872e43c4ea7dd49520da7b",
+      "label": {
+        "zh": "小憩沉眠",
+        "en": "Napping"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地小憩沉眠.webm",
+        "sha256": "31d4a6b36a29b2a4fe097384173d3bbeb3fa2f40f526b13191791456bf7507a1",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "frames": [
+          72,
+          170
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地小憩沉眠",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "doze_wake": {
+      "file": "assets/motion/doze_wake.webm",
+      "loop": false,
+      "durationMs": 2958,
+      "frames": 71,
+      "sha256": "d41ce386e2b36d6a9ac814bf800c56755c116779bae52816ce8fa80b8e66ca84",
+      "label": {
+        "zh": "小憩醒来",
+        "en": "Waking from a nap"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/原地小憩沉眠.webm",
+        "sha256": "31d4a6b36a29b2a4fe097384173d3bbeb3fa2f40f526b13191791456bf7507a1",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "frames": [
+          170,
+          241
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "原地小憩沉眠",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "doze_startle": {
+      "file": "assets/motion/doze_startle.webm",
+      "loop": false,
+      "durationMs": 7542,
+      "frames": 181,
+      "sha256": "0fd5a25f4997e53b1d30204f3153d5ed7b3c5be196d3f21831a94853c073778e",
+      "label": {
+        "zh": "打瞌睡被惊醒",
+        "en": "Startled awake"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/打瞌睡被惊醒.webm",
+        "sha256": "7e10c87cfcbd63b20b5a3787be71b0500381d54ea04a5ac0e9d99f59ed49a6d7",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "frames": [
+          60,
+          241
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "打瞌睡被惊醒",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "whisper_daydream": {
+      "file": "assets/motion/whisper_daydream.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "f709010ba605c36dcffed7e2dd9e252676085d0e7e2c774bd6f67fe0c9df4f28",
+      "label": {
+        "zh": "发呆碎碎念",
+        "en": "Daydream mumbling"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/碎碎念-发呆碎碎念.webm",
+        "sha256": "02da8cc2194250ae9708b137a3deff43fed2ebd40a7aa4a033b6262c3485eb5b",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "碎碎念-发呆碎碎念",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
+    },
+    "thinking_deep": {
+      "file": "assets/motion/thinking_deep.webm",
+      "loop": false,
+      "durationMs": 10042,
+      "frames": 241,
+      "sha256": "8179b1de5f87e88c953127b8f86fd9fa7b2a1e7c707acf438ef9e32d4ca9df85",
+      "label": {
+        "zh": "深度思考",
+        "en": "Deep thought"
+      },
+      "source": {
+        "kind": "dsh-pet-webm",
+        "repository": "https://github.com/PC2005-cloud/dsh-pet",
+        "commit": "091b27b40f9eeecc814bedb691fe214ec2b48299",
+        "file": "dsh-pet/assets/webm/深度思考碎碎念.webm",
+        "sha256": "db66867cd1f5bf68b0638fe1f966d0fdf95d1573523e60c77aa8913706118e82",
+        "frameCount": 241,
+        "fps": 24,
+        "crop": [
+          100,
+          0,
+          412,
+          344
+        ],
+        "generation": {
+          "tool": "豆包 (Doubao)",
+          "prompt": {
+            "file": "prompts/桌面宠物 10 秒动作提示词.md",
+            "section": "深度思考碎碎念",
+            "sha256": "df4af712c2d9c34da823ecf4b69e92d119e8f24fb37f8ad7a0be3ff4dd581405"
+          },
+          "keying": "manual keying in Premiere Pro, exported with alpha (upstream route B)",
+          "statedIn": "README.md, section 从零生成你自己的宠物"
+        }
+      }
     }
   },
   "categories": [
@@ -1243,7 +1475,8 @@
       "clips": [
         "idle_stretch",
         "idle_yawn",
-        "look_around"
+        "look_around",
+        "whisper_daydream"
       ]
     },
     {
@@ -1350,6 +1583,9 @@
       [
         "error"
       ]
+    ],
+    "whisper": [
+      "whisper_daydream"
     ]
   },
   "clicks": {
