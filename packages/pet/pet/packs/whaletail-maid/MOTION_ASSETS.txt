@@ -52,38 +52,25 @@ the upstream work-status tiers mapped onto the existing state clips. Its
 "clicks" entry is a Studio choice: the five upstream click responses split by
 the body area that is clicked.
 
-Four replacement sheets (bubbles, celebrate, nuzzle, sleep) and ten new sheets
-(idle_daydream, idle_observe, swim, idle_groom, play_bubbles, play_ball,
-play_tailspin, work_read, thinking_chin, rest_pillow) were generated for DSH
-Studio on 2026-10-18 using the approved character reference. The replacements
-have respectively 56, 56, 56, 40 actual frames. The new sheets have respectively 48, 48, 40, 48,
-48, 40, 48, 48, 48, 42 actual frames: 666 in total, played at per-action 6–10 fps from the import recipe.
-No repeated or interpolated frames were added to meet a requested count.
+Fourteen generated PNG sprite sheets (bubbles, celebrate, nuzzle, sleep,
+idle_daydream, idle_observe, swim, idle_groom, play_bubbles, play_ball,
+play_tailspin, work_read, thinking_chin, rest_pillow) and their 24 clip entries
+were removed from this pack, together with their import tool and recipe. The
+pack now ships only the 29 transparent .webm clips above plus the fallback
+frames. Without those clips the client falls back: rest plays idle_yawn, then
+idle, then idle_stretch on waking; play draws from click_bounce, click_huff and
+turn_run; wandering moves only with the crab_walk and float_step walking clips
+(no glide); a finished task plays success; thinking plays thinking.
 
-Actual generated layouts differ from requested grids. The import recipe in
-../../tools/generated-motion.recipe.json records reviewed row boundaries and
-per-row pose counts. ../../tools/import-generated-motion.py separates actual alpha islands;
-rows with touching silhouettes use column cuts and primary-island extraction
-to exclude neighbor fragments. It calibrates standing row height and pads each
-to a transparent 208x208 ground-anchored
-canvas. Run with the recipe and a directory containing its named raw sources.
-Source rows can have different pose counts; only actual poses are packed, and
-unused trailing atlas cells are never scheduled. Raw source hashes, actual/unique
-frame counts, output hashes, normalization,
-durations and grid details are recorded in motion.json. Raw generated source
-images remain in the task's generated_images artifacts. The original reference
-is preserved in the repository's pet-art-drafts/character-reference.png.
-
-Sleep and pillow sleep have finite entry/wake and persistent loop segments.
-Swimming has finite start/stop and a directional loop; the artwork faces left and the client mirrors
-all rightward phases. Thinking splits pondering and an idea into two variants. Segment
-aliases reuse the same physical atlas; their startFrame and frames describe
-only the played range. Task/drag states interrupt local phases. User-selected
-interactions and autonomous decorations play finitely before returning to the
-selected life state. All fourteen atlases are generated art, so further visual
-refinement can improve consistency; real frame count does not establish quality.
-
-The generated sheets depict the upstream character, so this pack treats them as
+Their action names stay reserved as slots for AI-video clips. A clip imported
+with ../../tools/import-ai-video.py under such a name (sleep_enter, sleep_loop,
+sleep_wake, pillow_enter, pillow_loop, pillow_wake, swim_start, swim_loop,
+swim_stop, celebrate, bubbles, play_ball, ...) is picked up without code
+changes; to appear in the menu or in autonomous play it also has to join a
+category. motion.json records each such clip with an "ai-video" source: the
+source file name and SHA-256, frame rate, crop, the generation tool and prompt,
+and the keying and normalization applied. ../../tools/AI_VIDEO_CLIPS.zh.md
+describes the steps. AI-video clips that depict the upstream character are
 derivative works under the same upstream asset terms: non-commercial use only,
 with credit to https://github.com/PC2005-cloud/dsh-pet. No legacy restricted
 BigFish assets are included.

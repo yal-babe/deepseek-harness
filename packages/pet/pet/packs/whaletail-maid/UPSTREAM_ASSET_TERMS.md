@@ -1,6 +1,6 @@
 # Upstream asset terms: PC2005-cloud/dsh-pet
 
-The whale-tail maid character, its animations, and the frames, videos, and sprite sheets in this pack derive from [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) by PC2005-cloud. Original author: <https://github.com/PC2005-cloud/dsh-pet>.
+The whale-tail maid character, its animations, and the frames and videos in this pack derive from [PC2005-cloud/dsh-pet](https://github.com/PC2005-cloud/dsh-pet) by PC2005-cloud. Original author: <https://github.com/PC2005-cloud/dsh-pet>.
 
 ## Terms quoted from upstream
 
@@ -31,7 +31,7 @@ The upstream `LICENSE` files (repository root and `dsh-pet/`) contain the standa
 - The 16 `.webm` clips are cropped, scaled, and re-encoded from upstream animations through qcytsn/dsh-dafeiyu frames. They are upstream assets under the terms above.
 - The 13 further `.webm` clips (click_bounce, click_shy, click_huff, look_around, crab_walk, float_step, turn_run, and the six balance_* tiers) are cropped and re-encoded directly from the upstream `assets/webm` files at the merge baseline. They are upstream assets under the terms above.
 - The `assets/frames/*.webp` fallback frames show the same upstream character; this pack does not record their exact import path, and treats them as upstream assets under the terms above.
-- The 14 generated sprite sheets were generated for dsh studio from a reference of the same character. This pack treats them as derivative works of the upstream character and applies the same terms, including the credit requirement.
+- The pack no longer ships generated sprite sheets. Any AI-video clip later added with `tools/import-ai-video.py` and showing the same character is treated as a derivative work of the upstream character under the same terms, including the credit requirement; its generation is recorded in `motion.json`.
 - qcytsn/dsh-dafeiyu labels these assets MIT; the upstream README terms above are more restrictive, and this pack follows the upstream terms.
 - These assets are for non-commercial use only. Before any commercial distribution of dsh studio, remove or replace them (for example with self-produced character footage).
 - The upstream font (`上首软糖体.ttf`) and meme images (`assets/memes/`) are not shipped; the upstream repository states no license for them.

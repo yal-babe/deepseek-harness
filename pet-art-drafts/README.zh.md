@@ -8,4 +8,4 @@
 
 来源：本项目既有角色参考图，经图像生成工具制作。该样稿不修改上游 MIT 资源的来源与许可证记录。后续制作仍保持原角色外观，具体十套动作和四套重制要求见[实施计划](../PET_BEHAVIOR_IMPROVEMENT_PLAN.md)。
 
-`character-reference.png` 保留替换前用于角色参考的原八姿态吐泡泡图集。正式资源现为十四组经检查和归一化的图集，共 666 个实际帧，详见[动作清单](../packages/pet/pet/packs/whaletail-maid/motion.json)及[导入配方](../packages/pet/pet/tools/generated-motion.recipe.json)。旧的 64 帧目标样稿仍不参与正式播放。
+`character-reference.png` 保留替换前用于角色参考的原八姿态吐泡泡图集。此后正式使用的十四组生成图集已连同导入配方从宠物包中移除；随包片段见[动作清单](../packages/pet/pet/packs/whaletail-maid/motion.json)，新动作改以 AI 视频片段加入（见[指南](../packages/pet/pet/tools/AI_VIDEO_CLIPS.zh.md)）。旧的 64 帧目标样稿仍不参与正式播放。

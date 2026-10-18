@@ -60,14 +60,12 @@
   },
   "categories": [
     { "id": "small", "label": { "zh": "小动作", "en": "Small actions" }, "weight": 20, "life": ["idle"],
-      "clips": ["idle_stretch", "idle_yawn", "idle_daydream", "idle_observe", "idle_groom", "look_around"] },
+      "clips": ["idle_stretch", "idle_yawn", "look_around"] },
     { "id": "play", "label": { "zh": "玩耍", "en": "Play" }, "weight": 20, "life": ["play"],
-      "clips": ["bubbles", "celebrate", "play_bubbles", "play_ball", "play_tailspin"] },
+      "clips": ["click_bounce", "click_huff", "turn_run"] },
     { "id": "interact", "label": { "zh": "互动", "en": "Interactions" }, "weight": 0, "life": [],
-      "clips": ["head_pat", "poke", "tail", "nuzzle", "click_bounce", "click_shy", "click_huff"] },
+      "clips": ["head_pat", "poke", "tail", "click_shy"] },
     { "id": "eat", "label": { "zh": "吃什么", "en": "Snacks" }, "weight": 0, "life": [], "clips": ["eat_token"] },
-    { "id": "rest", "label": { "zh": "休息", "en": "Rest" }, "weight": 0, "life": [], "clips": ["sleep", "rest_pillow"] },
-    { "id": "work", "label": { "zh": "工作", "en": "Work" }, "weight": 0, "life": [], "clips": ["work_read", "thinking_chin"] },
-    { "id": "move", "label": { "zh": "移动", "en": "Movement" }, "weight": 0, "life": [], "clips": ["swim", "crab_walk", "float_step", "turn_run"] }
+    { "id": "move", "label": { "zh": "移动", "en": "Movement" }, "weight": 0, "life": [], "clips": ["crab_walk", "float_step"] }
   ]
 }

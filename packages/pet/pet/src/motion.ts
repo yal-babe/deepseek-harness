@@ -5,14 +5,17 @@
  * clip came from. Browser-safe and pure; the
  * Host reads the shipped file through it before serving any media.
  *
- * Source records distinguish four producers, each owned by one import tool so
+ * Source records distinguish three producers, each owned by one import tool so
  * that no tool rewrites another's clips:
  * - no `kind`: frames re-encoded from dsh-dafeiyu (`tools/import-motion.py`);
- * - `generated`: generated sprite sheets (`tools/import-generated-motion.py`);
  * - `dsh-pet-webm`: transparent clips of PC2005-cloud/dsh-pet, cropped and
  *   re-encoded (`tools/import-dshpet-webm.py`);
- * - `ai-video`: clips produced by an AI-video pipeline from a green-screen
- *   source, with the generation record the pipeline requires.
+ * - `ai-video`: clips produced by an AI-video pipeline from a green-screen or
+ *   keyed source, with the generation record the pipeline requires
+ *   (`tools/import-ai-video.py`).
+ *
+ * The generated sprite-sheet kind was retired with its importer; a `sheet`
+ * entry is still accepted with any of these records.
  */
 import { isPetPackPath } from './pack.ts'
 
@@ -45,7 +48,6 @@ export interface PetMotionGeneration {
 /** Where one clip came from. Unknown producers are rejected. */
 export type PetMotionSource =
   | { readonly kind?: undefined; readonly file: string; readonly sha256: string; readonly [key: string]: unknown }
-  | { readonly kind: 'generated'; readonly [key: string]: unknown }
   | {
     readonly kind: 'dsh-pet-webm'
     /** Upstream repository. */
@@ -139,7 +141,7 @@ export type PetMotionClicks = Partial<Readonly<Record<typeof PET_CLICK_AREAS[num
 
 /** One playable clip. */
 export interface PetMotionEntry {
-  /** Pack-relative media path (`.webm` or sprite `.png`). */
+  /** Pack-relative media path (`.webm`, or `.png` for a sprite sheet). */
   readonly file: string
   readonly loop: boolean
   readonly durationMs: number
@@ -276,7 +278,6 @@ function source(value: unknown, where: string, errors: string[]): PetMotionSourc
     errors.push(`${where}: imported source must record the source file and its SHA-256`)
     return undefined
   }
-  if (kind === 'generated') return { ...value, kind }
   if (kind === 'dsh-pet-webm') {
     const window = crop(value['crop'])
     const record = generation(value['generation'], where, errors)

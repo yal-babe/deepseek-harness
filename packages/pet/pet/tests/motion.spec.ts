@@ -77,8 +77,10 @@ describe('built-in motion.json', () => {
 
   it('puts every menu action into one category and keeps the autonomous chain to idle and play', () => {
     const { categories } = builtin()
-    expect(categories.map(category => category.id)).toEqual(['small', 'play', 'interact', 'eat', 'rest', 'work', 'move'])
-    expect(categories.find(category => category.id === 'move')?.clips).toEqual(['swim', 'crab_walk', 'float_step', 'turn_run'])
+    expect(categories.map(category => category.id)).toEqual(['small', 'play', 'interact', 'eat', 'move'])
+    expect(categories.find(category => category.id === 'move')?.clips).toEqual(['crab_walk', 'float_step'])
+    // Play draws the in-place video clips until AI-video play clips are added to the category.
+    expect(categories.find(category => category.id === 'play')?.clips).toEqual(['click_bounce', 'click_huff', 'turn_run'])
     expect(categories.filter(category => category.life.length > 0).map(category => [category.id, category.life]))
       .toEqual([['small', ['idle']], ['play', ['play']]])
     const members = categories.flatMap(category => category.clips)
@@ -97,7 +99,8 @@ describe('parsePetMotion', () => {
       formatVersion: 1, renderer: 'h264', width: 0, height: 1,
       clips: {
         Bad: { file: '../idle.webm', loop: 'yes', durationMs: 0, sha256: 'x', turn: 1, source: { kind: 'mystery' } },
-        sheet: { file: 'assets/motion/sheet.webm', loop: false, durationMs: 1, sha256: SHA, sheet: { columns: 0 }, source: { kind: 'generated' } },
+        sheet: { file: 'assets/motion/sheet.webm', loop: false, durationMs: 1, sha256: SHA, sheet: { columns: 0 }, source: { file: 'x', sha256: SHA } },
+        retired: { file: 'assets/motion/retired.webm', loop: false, durationMs: 1, sha256: SHA, source: { kind: 'generated' } },
       },
     })
     expect(result.ok).toBe(false)
@@ -105,6 +108,7 @@ describe('parsePetMotion', () => {
       'formatVersion must be 2', 'renderer must be vp9-alpha', 'width and height must be positive',
       'clip "Bad": name must be lowercase snake_case', 'clip "Bad": loop must be a boolean', 'clip "Bad": turn must be a boolean',
       'clip "Bad": unknown source kind "mystery"', 'clip "sheet": file must be a pack-relative assets/motion/*.png path',
+      'clip "retired": unknown source kind "generated"',
     ]))
     expect(parsePetMotion([])).toEqual({ ok: false, errors: ['motion.json must be an object'] })
   })
