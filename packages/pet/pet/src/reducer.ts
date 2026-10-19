@@ -97,6 +97,7 @@ interface SessionRecord {
   subagent: boolean
   title: string | undefined
   turnActive: boolean
+  replying?: boolean
   state: TurnState
   readonly openTools: Map<ToolCallId, string>
   progress: PetProgress | undefined
@@ -341,6 +342,24 @@ export class PetReducer {
     }
   }
 
+  /**
+   * Project model reasoning and visible answer text without adding Session events.
+   * @param meta - emitting Agent's Session facts.
+   * @param phase - request start, reasoning or answer text.
+   * @returns whether the displayed activity changed.
+   */
+  modelActivity(meta: PetSessionMeta, phase: 'start' | 'reasoning' | 'text'): boolean {
+    if (meta.subagent && !this.options.includeSubagents) return false
+    const record = this.records.get(meta.sessionId)
+    if (record === undefined || !record.turnActive || record.openTools.size > 0) return false
+    const replying = phase === 'text'
+    const state = replying ? 'WORKING' : 'THINKING'
+    if (record.replying === replying && record.state === state) return false
+    record.replying = replying
+    record.state = state
+    return true
+  }
+
   private applyTurnEvent(meta: PetSessionMeta, event: SessionEvent): boolean {
     if (meta.subagent && !this.options.includeSubagents) return false
     // `goal/change` belongs to the optional goal domain, which this package does not import.
@@ -353,6 +372,7 @@ export class PetReducer {
       case 'turn/start': {
         const record = this.touch(meta, event.time)
         record.turnActive = true
+        record.replying = false
         record.openTools.clear()
         record.progress = undefined
         record.unseenResult = false
@@ -371,12 +391,14 @@ export class PetReducer {
       }
       case 'tool/call': {
         const record = this.touch(meta, event.time)
+        record.replying = false
         record.openTools.set(event.data.callId, event.data.name)
         record.state = 'WORKING'
         return true
       }
       case 'tool/result': {
         const record = this.touch(meta, event.time)
+        record.replying = false
         record.openTools.delete(event.data.message.toolCallId)
         record.state = record.openTools.size > 0 ? 'WORKING' : record.turnActive ? 'THINKING' : record.state
         return true
@@ -394,6 +416,7 @@ export class PetReducer {
       case 'turn/end': {
         const record = this.touch(meta, event.time)
         record.turnActive = false
+        record.replying = false
         record.openTools.clear()
         record.settledAt = event.time
         record.state = this.goalOutcome(record, this.turnOutcome(event.data.reason.kind))
@@ -601,7 +624,7 @@ export class PetReducer {
       ...(project === undefined ? {} : { project }),
       ...(record.cwd === undefined ? {} : { cwd: record.cwd }),
       state,
-      ...(state === 'WORKING' && tool !== undefined ? { activity: classifyTool(tool) } : {}),
+      ...(state === 'WORKING' ? tool !== undefined ? { activity: classifyTool(tool) } : record.replying ? { activity: 'reply' as const } : {} : {}),
       ...(tool === undefined ? {} : { tool }),
       ...(record.progress === undefined ? {} : { progress: record.progress }),
       subagent: record.subagent,

@@ -56,6 +56,7 @@ export class DesktopUpdateCoordinator {
     private readonly currentVersion: () => string = () => app.getVersion(),
     private readonly downloadResult?: (success: boolean, reason?: string) => void,
     private readonly channel: 'nightly' | 'latest' = 'nightly',
+    private readonly feedUrl?: string,
   ) {
     if (updater === autoUpdater) {
       // electron-updater omits this internal transport property from its public declarations.
@@ -65,6 +66,12 @@ export class DesktopUpdateCoordinator {
         Number(process.env.DSH_DESKTOP_UPDATE_HTTP_IDLE_TIMEOUT_MS ?? 60_000),
         (authInfo, callback) => { updater.emit('login', authInfo, callback) },
       )
+    }
+    if (feedUrl !== undefined) {
+      const packagedConfig = join(process.resourcesPath, 'app-update.yml')
+      const securityConfig = join(process.resourcesPath, 'app-update-security.yml')
+      if (!existsSync(packagedConfig) && existsSync(securityConfig)) this.updater.updateConfigPath = securityConfig
+      this.updater.setFeedURL({ provider: 'generic', url: feedUrl, channel })
     }
     this.updater.autoDownload = false
     this.updater.autoInstallOnAppQuit = false
@@ -184,7 +191,7 @@ export class DesktopUpdateCoordinator {
   private async doCheck(): Promise<DesktopUpdateState> {
     try {
       this.assertLive()
-      if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
+      if (!this.enabled() && !(app.isPackaged && this.feedUrl !== undefined)) throw new Error('desktop update: this application has no packaged update source')
       const result = await this.updater.checkForUpdates()
       if (result === null) throw new Error('desktop update: no check result was returned')
       const version = result.updateInfo.version

@@ -16,6 +16,7 @@ import { builtinAssets, PET_MEDIA_PATH } from './builtin-assets.ts'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { PetPackState, PetSettingsView, PetSnapshot } from './types.ts'
 // Type-only: the `settings` service (`settings.update`) and the Loader's `loader/volatile-update` event.
+import type {} from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 
@@ -153,6 +154,14 @@ export class PetService extends TypertRemoteService {
       } catch (error) {
         ctx.logger.warn('pet: dropped Session event %s: %s', event.type, error)
       }
+    })
+    ctx.on('agent/assistant-stream', ({ agent, frame }) => {
+      const phase = frame.type === 'start' ? 'start'
+        : frame.type === 'chunk' && frame.chunk.type === 'reasoning-delta' && frame.chunk.text.length > 0 ? 'reasoning'
+          : frame.type === 'chunk' && frame.chunk.type === 'text-delta' && frame.chunk.text.length > 0 ? 'text' : undefined
+      if (phase === undefined) return
+      try { if (this.reducer.modelActivity(metaOf(agent.session), phase)) this.changed() }
+      catch (error) { ctx.logger.warn('pet: dropped model activity: %s', error) }
     })
     ctx.on('session/disposed', (session: Session) => {
       if (this.pinned === session.id) this.pinned = undefined

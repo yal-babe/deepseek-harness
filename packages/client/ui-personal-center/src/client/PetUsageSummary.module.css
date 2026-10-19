@@ -9,3 +9,6 @@
 .summary > div { display: flex; justify-content: space-between; gap: 12px; }
 .summary small { color: var(--dsw-alias-label-secondary); }
 .summary strong { font-variant-numeric: tabular-nums; }
+
+.summary > .accounts { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.accounts > div { min-width: 0; }

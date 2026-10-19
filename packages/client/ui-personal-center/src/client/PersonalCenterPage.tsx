@@ -134,7 +134,7 @@ export function PersonalCenterPage({
   </div>
 }
 
-function WalletCard({ summary, t }: { summary: DeepSeekSummary; t: (key: PersonalCenterKey) => string }): ReactNode {
+export function WalletCard({ summary, t }: { summary: DeepSeekSummary; t: (key: PersonalCenterKey) => string }): ReactNode {
   const wallets = summary.wallets ?? []
   const bonusWallets = summary.bonusWallets ?? []
   return <section className={css.card}>
@@ -164,7 +164,7 @@ function walletAmount(wallet: AccountWallet): string {
   return `${wallet.currency === 'CNY' ? '¥' : '$'}${Number(wallet.balance).toFixed(2)}`
 }
 
-function ProviderWindows({ title, status, windows, groups, t }: {
+export function ProviderWindows({ title, status, windows, groups, t }: {
   title: string
   status: 'unsigned' | 'ready' | 'failed' | undefined
   windows: QuotaWindowView[]

@@ -118,6 +118,7 @@ export class DesktopPetWindow {
   private disposed = false
   private started = false
   private hostVisible: boolean | undefined
+  private dragTimer: ReturnType<typeof setInterval> | undefined
   private drag: { readonly cursor: PetPoint; readonly origin: PetPoint } | undefined
   private wanderTimer: ReturnType<typeof setTimeout> | undefined
   private wanderMove: ReturnType<typeof setInterval> | undefined
@@ -219,7 +220,12 @@ export class DesktopPetWindow {
     window.setIgnoreMouseEvents(true, { forward: true })
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     window.once('ready-to-show', () => { if (!window.isDestroyed()) window.showInactive() })
-    window.on('closed', () => { if (this.window === window) { this.window = undefined; this.stopSafeguards() } })
+    window.on('closed', () => {
+      if (this.dragTimer !== undefined) clearInterval(this.dragTimer)
+      this.dragTimer = undefined
+      this.drag = undefined
+      if (this.window === window) { this.window = undefined; this.stopSafeguards() }
+    })
     this.window = window
     this.interactive = false
     this.startSafeguards(window)
@@ -246,6 +252,8 @@ export class DesktopPetWindow {
   setInteractive(interactive: boolean): void {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
+    if (this.drag !== undefined && !interactive) return
+    if (this.interactive === interactive) return
     this.interactive = interactive
     if (interactive) this.stopWanderMove()
     if (interactive) window.setIgnoreMouseEvents(false)
@@ -261,7 +269,7 @@ export class DesktopPetWindow {
     if (window === undefined || window.isDestroyed()) return
     const changed = this.hostVisible !== visible
     this.hostVisible = visible
-    if (!visible) { this.setWandering(false); window.hide() }
+    if (!visible) { this.dragEnd(); this.setWandering(false); window.hide() }
     else if (!window.isVisible()) {
       // Displays may have changed while hidden.
       this.place()
@@ -279,7 +287,10 @@ export class DesktopPetWindow {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
     const [x = 0, y = 0] = window.getPosition()
+    if (this.dragTimer !== undefined) clearInterval(this.dragTimer)
+    this.setInteractive(true)
     this.drag = { cursor: screen.getCursorScreenPoint(), origin: { x, y } }
+    this.dragTimer = setInterval(() => { this.dragMove() }, 16)
   }
 
   /** Follow the cursor during a drag. */
@@ -296,8 +307,11 @@ export class DesktopPetWindow {
    * @param thrown - the renderer throws the character; the position is fitted and saved when the flight ends.
    */
   dragEnd(thrown = false): void {
+    if (this.dragTimer !== undefined) clearInterval(this.dragTimer)
+    this.dragTimer = undefined
     const window = this.window
     if (this.drag === undefined || window === undefined || window.isDestroyed()) return
+    this.dragMove()
     this.drag = undefined
     if (thrown) { this.startFlight(); return }
     const [x = 0, y = 0] = window.getPosition()
@@ -629,6 +643,9 @@ export class DesktopPetWindow {
 
   /** Release the shortcut and close the window. */
   dispose(): void {
+    if (this.dragTimer !== undefined) clearInterval(this.dragTimer)
+    this.dragTimer = undefined
+    this.drag = undefined
     this.setWandering(false)
     this.endFlight()
     this.stopSafeguards()
@@ -651,8 +668,13 @@ export class DesktopPetWindow {
   }
 
   private moveTo(point: PetPoint): void {
-    // setBounds keeps the size; setPosition can grow transparent windows on fractional Windows scales.
-    this.window?.setBounds({ x: Math.round(point.x), y: Math.round(point.y), ...PET_WINDOW_SIZE })
+    const window = this.window
+    if (window === undefined || window.isDestroyed()) return
+    const x = Math.round(point.x), y = Math.round(point.y)
+    const [previousX, previousY] = window.getPosition()
+    if (previousX === x && previousY === y) return
+    // Position-only updates avoid resizing the transparent surface on every pointer event.
+    window.setBounds({ x, y }, false)
   }
 
   private unregisterShortcut(): void {

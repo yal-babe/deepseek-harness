@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UsageTokenTotals } from '@deepseek-ai/dsh-usage-stats/types'
-import type { PersonalCenterPageProps } from './PersonalCenterPage.tsx'
+import { ProviderWindows, WalletCard, type PersonalCenterPageProps } from './PersonalCenterPage.tsx'
 import { petBalanceReadings } from './petBalance.ts'
 import css from './PetUsageSummary.module.css'
 
@@ -37,18 +37,23 @@ export function PetUsageSummary({ visible, sessionId, taskState, balanceRequest,
     return total === 0 && tokens.incomplete ? t('balanceUnavailable') : total.toLocaleString(t('numberLocale'))
   }
   const current = state.usage?.sessions.find(row => row.sessionId === sessionId)
-  const wallets = state.deepseek.wallets
   return <section className={css.summary} aria-label={t('petTokens')} aria-busy={state.status === 'loading'}>
     <div><span>{t('petTokens')}</span><strong>{state.usage === null ? t('balanceUnavailable') : number(state.usage.totals)}</strong></div>
     <div><span>{t('petSessionTokens')}</span><span>{current === undefined ? t('balanceUnavailable') : number(current.tokens)}</span></div>
-    <div><span>{t('deepseekBalance')}</span><span>{wallets?.length
-      ? wallets.map(wallet => `${wallet.currency} ${wallet.balance}`).join(' / ') : t('balanceUnavailable')}</span></div>
-    {state.quota.codex?.status === 'ready' && state.quota.codex.creditBalance !== null && <div>
-      <span>{t('petCodexCredits')}</span><span>{state.quota.codex.creditBalance}</span>
-    </div>}
-    {state.deepseek.bonusWallets?.map((wallet, index) => <div key={`${wallet.currency}:${index}`}>
-      <span>{t('bonusBalance')}</span><span>{wallet.currency} {wallet.balance}</span>
-    </div>)}
+    <div className={css.accounts} aria-label={t('quota')}>
+      {state.deepseek.status !== 'unsigned' && <WalletCard summary={state.deepseek} t={t} />}
+      {state.quota.codex !== null && state.quota.codex.status !== 'unsigned' && <>
+        <ProviderWindows title={t('codexTitle')} status={state.quota.codex.status} windows={state.quota.codex.windows} t={t} />
+        {state.quota.codex.status === 'ready' && state.quota.codex.creditBalance !== null && <div>
+          <span>{t('petCodexCredits')}</span><span>{state.quota.codex.creditBalance}</span>
+        </div>}
+      </>}
+      {state.quota.antigravity !== null && state.quota.antigravity.status !== 'unsigned' && <ProviderWindows
+        title={t('antigravityTitle')} status={state.quota.antigravity.status} windows={[]} groups={state.quota.antigravity.groups} t={t} />}
+      {state.status === 'loading' && <small>{t('loading')}</small>}
+      {state.deepseek.status === 'unsigned' && state.quota.codex?.status === 'unsigned'
+        && state.quota.antigravity?.status === 'unsigned' && <small>{t('unsigned')}</small>}
+    </div>
     <small>{t('petScope')}</small>
     {state.usage?.totals.incomplete && <small>{t('partialUsage')}</small>}
     {state.usage !== null && <small>{state.cached ? t('petCached') : t('petUpdated')} · {new Date(state.usage.generatedAt).toLocaleTimeString(t('numberLocale'))}</small>}

@@ -132,3 +132,5 @@ These limits define what the shell itself provides versus what features must sup
 None.
 
 </details>
+
+On Desktop, General Settings also exposes the installed Studio version and a device-local HTTP(S) update-directory override through the optional preload. Saving the override requires an application restart; browser-only clients omit this control. The bundled Harness version remains displayed separately.

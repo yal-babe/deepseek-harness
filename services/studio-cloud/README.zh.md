@@ -137,3 +137,5 @@ TEST_BASE_URL=http://localhost:8788 TEST_ADMIN_PASSWORD=your_test_admin_password
 同步对象通过 `fileRefs` 引用已完成的同账号文件。未完成或其他账号的文件不能发布。`FILE_PART_BYTES` 默认 1048576，`FILE_MAX_BYTES` 默认 67108864；更改分块默认值不影响已有上传。当前对象和历史仍引用的文件均保留；超过删除保留期的无引用文件由清理操作移除。备份和下载持有文件读取锁，清理不会删除其正在读取的分块。
 
 备份格式 2 包含文件内容并校验摘要；格式 1 的数据库备份仍可恢复。恢复前会验证文件内容，数据库事务提交后所有设备必须重新登录。客户端应先检查能力，普通同步客户端遇到 E2EE 空间时不得发送普通载荷。文件接口只支持普通空间。
+
+服务端通过 `package.json` 独立于桌面端管理版本，当前为 `0.1.0`；`/v1/version` 和管理界面展示已安装版本。“系统更新”页支持配置清单地址，经管理员确认、先备份后，由可选 Docker 执行器完成升级。默认业务服务不挂载 Docker socket。启用 `compose.updates.yaml` 前阅读 [Studio 在线更新](../../docs/user/studio-online-updates.zh.md)，保留原有 Compose 项目名与持久卷。

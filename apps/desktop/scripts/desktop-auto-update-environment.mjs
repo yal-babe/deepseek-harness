@@ -11,7 +11,7 @@ export const DESKTOP_AUTO_UPDATE_ENV = 'DSH_DESKTOP_AUTO_UPDATE_ENV'
  * @returns {'nightly' | 'latest'} Validated channel.
  */
 export function resolveDesktopUpdateChannel(env) {
-  const channel = env.DSH_DESKTOP_UPDATE_CHANNEL || 'nightly'
+  const channel = env.DSH_DESKTOP_UPDATE_CHANNEL || (env.DSH_STUDIO_UPDATE_URL && !env.DSH_DESKTOP_BUILD_VERSION?.includes('-') ? 'latest' : 'nightly')
   if (channel !== 'nightly' && channel !== 'latest') throw new Error('desktop auto-update: invalid update channel')
   return channel
 }
@@ -144,6 +144,16 @@ export function resolveDesktopAutoUpdateConfig(env, platform, arch) {
   const channel = resolveDesktopUpdateChannel(env)
   const environment = resolveDesktopAutoUpdateEnvironment(env)
   const target = resolveDesktopAutoUpdateTarget(platform, arch)
+  if (env.DSH_STUDIO_UPDATE_URL?.trim()) {
+    const base = new URL(env.DSH_STUDIO_UPDATE_URL.trim())
+    if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash) {
+      throw new Error('DSH_STUDIO_UPDATE_URL must be an HTTP(S) directory URL without credentials, query or fragment')
+    }
+    const directory = base.pathname.endsWith('/') ? base.pathname.slice(0, -1) : base.pathname
+    const keyPrefix = `${directory}/${target}`.slice(1)
+    return { environment, channel, target, origin: base.origin, keyPrefix,
+      binaryKeyPrefix: keyPrefix, publicUrl: `${base.origin}/${keyPrefix}/` }
+  }
   const deployment = UPDATE_ENVIRONMENTS[environment]
   let origin = deployment.fixedOrigin
   if (origin === undefined) {

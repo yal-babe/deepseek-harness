@@ -23,6 +23,7 @@
     "@fastify/rate-limit": "^10.0.0",
     "@node-rs/argon2": "^2.0.0",
     "fastify": "^5.0.0",
+    "semver": "^7.7.3",
     "nodemailer": "^10.1.1",
     "pg": "^8.0.0",
     "zod": "^4.0.0"
@@ -31,6 +32,7 @@
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^7.0.0",
     "@types/pg": "^8.0.0",
+    "@types/semver": "^7.7.0",
     "playwright": "^1.64.1",
     "s3rver": "^3.7.1",
     "tsx": "^4.0.0",

@@ -1,3 +1,5 @@
+import { updateRoutes } from './updates.js'
+import { serverVersion } from './version.js'
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
 import helmet from '@fastify/helmet'
@@ -64,6 +66,7 @@ export async function buildApp(config: Config, options: { logging?: boolean; bac
    code: error && typeof error === 'object' && 'code' in error ? String(error.code) : undefined },'Service operation failed')
   return reply.code(500).send({ error: { code: 'INTERNAL_ERROR',message: '操作失败，请稍后重试并提供请求编号',requestId: req.id } })
  })
+ app.get('/v1/version',async () => ({ product:'DSH Studio Cloud', version:serverVersion, protocolVersion:1 }))
  app.get('/health/live',async () => ({ status: 'ok',service: 'dsh-studio-cloud' }))
  app.get('/health/ready',async (_req,reply) => {
   if (app.maintenance) return reply.code(503).send({ status: 'maintenance' })
@@ -78,6 +81,7 @@ export async function buildApp(config: Config, options: { logging?: boolean; bac
  await authRoutes(app,s)
  await syncRoutes(app,s)
  await adminRoutes(app,s)
+ await updateRoutes(app,s)
  for (const [path,file,mime] of [['/admin','index.html','text/html; charset=utf-8'],['/account','account.html','text/html; charset=utf-8'],['/style.css','style.css','text/css; charset=utf-8'],['/admin.js','admin.js','text/javascript; charset=utf-8'],['/account.js','account.js','text/javascript; charset=utf-8']]) {
   app.get(path!,async (_req,reply) => reply.type(mime!).send(await readFile(new URL(`../public/${file}`,import.meta.url))))
  }

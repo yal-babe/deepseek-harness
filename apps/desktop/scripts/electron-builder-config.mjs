@@ -1,7 +1,7 @@
 import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
 import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
@@ -65,7 +65,7 @@ export function createElectronBuilderConfig(
   if (skipNotarization && (unsigned || resolvedPlatform !== 'darwin')) throw new Error('Skipping notarization requires a signed macOS build')
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = resolvedPlatform === 'win32'
-  const policy = packagesMacOS && unsigned ? undefined : resolveDesktopPolicyEnvironment(env)
+  const policy = env.DSH_DESKTOP_MANDATORY_UPDATE_CONFIG && !(packagesMacOS && unsigned) ? resolveDesktopPolicyEnvironment(env) : undefined
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS && !unsigned && !skipNotarization) resolveMacOSNotarizationEnvironment(env)
@@ -95,11 +95,12 @@ export function createElectronBuilderConfig(
   if (windowsSigner !== undefined) {
     installWindowsNsisBootstrapSigner({ sign: windowsSigner })
   }
-  const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
+  const update = unsigned || !env.DSH_STUDIO_UPDATE_URL?.trim() ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
-  const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
+  const runtimeVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
+  const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../studio-release.json', import.meta.url)), 'utf8')).version
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
   if (update?.channel === 'latest' && buildVersion.includes('-')) throw new Error('desktop package: latest requires a stable version')
   const packaged = resolveDesktopBuildCommit(env)
@@ -108,9 +109,10 @@ export function createElectronBuilderConfig(
     protocols: [{ name: 'DSH Studio', schemes: ['dsh'] }],
     extraMetadata: {
       dshDesktopAppId: appId,
-      dshDesktopUpdateChannel: update?.channel ?? 'nightly',
+      dshDesktopUpdateChannel: update?.channel ?? 'latest',
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
-      ...buildVersion === productVersion ? {} : { version: buildVersion },
+      version: buildVersion,
+      dshRuntimeVersion: runtimeVersion,
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
     },
     productName: 'DSH Studio',
@@ -194,14 +196,20 @@ export function createElectronBuilderConfig(
     afterPack: async context => {
       const { verifyDesktopRuntime } = await import('../lib/types/runtime-tree.js')
       const resourcesDir = context.packager.getResourcesDir(context.appOutDir)
+      // A later user-configured feed still needs cache and signer metadata, without a default URL.
+      await writeFile(join(resourcesDir, 'app-update-security.yml'), JSON.stringify({
+        updaterCacheDirName: context.packager.appInfo.updaterCacheDirName,
+        ...(windowsSigner === undefined ? {} : { publisherName: resolveWindowsUpdatePublisher(env.DSH_DESKTOP_WINDOWS_CER_FILE) }),
+      }))
+
       if (resolvedPlatform === 'darwin' && update !== undefined) {
         await writeMacOSAppUpdateConfig(resourcesDir, resolveMacOSAppUpdateFeed(context.packager.config.publish),
           context.packager.appInfo.updaterCacheDirName)
       }
-      // The bundled runtime declares whichever version prepared it: the product version for an ordinary
+      // The bundled runtime declares whichever version prepared it: the upstream version for an ordinary
       // release, and a rewritten one for installed-update qualification.
       await verifyDesktopRuntime(buildPaths.dsh,
-        preparedRuntimeVersion ?? productVersion, { platform: resolvedPlatform, arch: resolvedArch })
+        preparedRuntimeVersion ?? runtimeVersion, { platform: resolvedPlatform, arch: resolvedArch })
       // Unsigned Windows builds skip electron-builder's afterSign hook.
       if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
     },

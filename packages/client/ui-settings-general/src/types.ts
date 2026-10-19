@@ -22,6 +22,8 @@ export interface DesktopUpdatePresentation {
 
 /** Optional carrier API; it cannot select artifacts or authorize installation. */
 export interface DesktopUpdateBridge {
+  source?(): Promise<{ url: string | null; version: string }>
+  saveSource?(url: string): Promise<void>
   status(): Promise<DesktopUpdatePresentation>
   open(): Promise<void>
   subscribe(listener: (state: DesktopUpdatePresentation) => void): () => void
@@ -31,5 +33,9 @@ export interface DesktopUpdateBridge {
 export interface DesktopUpdateView {
   readonly presentation?: DesktopUpdatePresentation
   readonly failed: boolean
+  readonly source?: { readonly url: string | null; readonly version: string }
+  readonly sourceSaved?: boolean
+  readonly sourceFailed?: boolean
+  readonly sourceSaving?: boolean
   readonly opening: boolean
 }

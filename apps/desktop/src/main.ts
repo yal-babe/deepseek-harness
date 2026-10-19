@@ -1,3 +1,4 @@
+import { readStudioUpdateUrl, saveStudioUpdateUrl } from './studio-update-source.ts'
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
@@ -669,6 +670,7 @@ async function main(): Promise<void> {
     undefined, undefined, undefined,
     (success, reason) => { void track('desktop_upgrade_download_result', { is_success: success, ...reason === undefined ? {} : { error_reason: reason } }) },
     updateChannel,
+    readStudioUpdateUrl(app.getPath('userData')),
   )
 
   const updateSchedule = new DesktopUpdateSchedule(updates, resolveDesktopUpdateScheduleConfig(process.env))
@@ -798,6 +800,15 @@ async function main(): Promise<void> {
     platformView.notifyLocaleChanged()
     windowsLanguage = locale.id
     refreshApplicationMenu()
+  })
+  ipcMain.handle(DESKTOP_IPC.updatesSource, (event) => {
+    assertProductSender(event)
+    return { url: readStudioUpdateUrl(app.getPath('userData')) ?? null, version: app.getVersion() }
+  })
+  ipcMain.handle(DESKTOP_IPC.updatesSourceSave, (event, value: unknown) => {
+    assertProductSender(event)
+    if (typeof value !== 'string' || value.length > 2048) throw new Error('Invalid update source')
+    saveStudioUpdateUrl(app.getPath('userData'), value)
   })
   ipcMain.handle(DESKTOP_IPC.updatesStatus, (event) => {
     assertProductSender(event)

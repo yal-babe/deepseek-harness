@@ -391,3 +391,5 @@ Pre-launch CDN and capacity decisions are tracked in the [Desktop update proposa
 ## Studio branding
 
 The application is named DSH Studio. Desktop packaging uses `resources/studio-icons/studio.icns` on macOS and `studio.ico` on Windows; the tray, Web favicons, sidebar, and conversation hero use the supplied pear artwork. The development macOS bundle is named DSH Studio Dev.
+
+Studio product versions are maintained independently in `studio-release.json`, starting at `0.1.0`; bundled Harness versions remain upstream-owned. General Settings exposes an HTTP(S) update-directory override. Configure `DSH_STUDIO_UPDATE_URL` to embed a source while packaging; blank leaves updates unconfigured. See [Studio online updates](../../docs/user/studio-online-updates.md) for feed publication and the first-install transition from upstream numbering.

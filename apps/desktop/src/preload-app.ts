@@ -47,6 +47,8 @@ function createProductApi(): DshDesktopProductApi {
       },
     },
     updates: {
+      source: () => ipcRenderer.invoke(DESKTOP_IPC.updatesSource) as Promise<{ url: string | null; version: string }>,
+      saveSource: (url: string) => ipcRenderer.invoke(DESKTOP_IPC.updatesSourceSave, url) as Promise<void>,
       status: () => ipcRenderer.invoke(DESKTOP_IPC.updatesStatus) as Promise<DesktopUpdatePresentation>,
       open: () => ipcRenderer.invoke(DESKTOP_IPC.updatesOpen) as Promise<void>,
       subscribe(listener) {

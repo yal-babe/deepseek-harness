@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 const schema = z.object({
+ UPDATE_MANIFEST_URL: z.union([z.literal(''),z.url()]).default(''),
+ UPDATE_IMAGE_REPOSITORY: z.union([z.literal(''),z.string().max(256).regex(new RegExp('^[a-z0-9][a-z0-9.:_/-]*[a-z0-9]$'))]).default(''),
+ UPDATER_URL: z.union([z.literal(''),z.url()]).default(''),
+ UPDATER_TOKEN: z.union([z.literal(''),z.string().min(32)]).default(''),
  DATABASE_URL: z.string().url(),
  MASTER_KEY: z.string().regex(/^[a-fA-F0-9]{64}$/, 'MASTER_KEY must be 32 random bytes in hex'),
  PUBLIC_URL: z.url().default('http://localhost:8788'),
@@ -18,6 +22,12 @@ export type Config = ReturnType<typeof loadConfig>
 /** Load only declared settings, rejecting insecure protocol ambiguity at startup. */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
  const c = schema.parse(env)
+ for (const value of [c.UPDATE_MANIFEST_URL,c.UPDATER_URL]) {
+  if (!value) continue
+  const endpoint = new URL(value)
+  if (!['http:','https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.hash)
+   throw new Error('Update endpoints must use HTTP(S) without URL credentials or fragments')
+ }
  const url = new URL(c.PUBLIC_URL)
  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash)
   throw new Error('PUBLIC_URL must be an HTTP(S) origin without credentials or path')

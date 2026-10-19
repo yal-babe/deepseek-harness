@@ -56,8 +56,8 @@ export function loadDesktopPackageEnvironment(platform, environment = process.en
     ? /^DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_(?:DIR|CONCURRENCY)$/u
     : /^DSH_DESKTOP_MACOS_(?:SIGNATURE_CACHE_DIR|PACK_CONCURRENCY|DOWNLOAD_PROXY|NOTARIZATION_PROXY)$/u
   const settings = readSettings(path, name => preset === undefined
-    ? SHARED_SETTING.test(name) || platformSetting.test(name)
-    : /^(?:DSH_DESKTOP_(?:APP_ID|AUTO_UPDATE_ENV|NPM_REGISTRY|MANDATORY_UPDATE_(?:CONFIG|(?:TEST|PROD)_ORIGIN))|DOWNLOAD_TEST_(?:ORIGIN|RELEASE_ID))$/u.test(name) || publicPlatformSetting.test(name))
+    ? SHARED_SETTING.test(name) || name === 'DSH_STUDIO_UPDATE_URL' || platformSetting.test(name)
+    : /^(?:DSH_DESKTOP_(?:APP_ID|AUTO_UPDATE_ENV|NPM_REGISTRY|MANDATORY_UPDATE_(?:CONFIG|(?:TEST|PROD)_ORIGIN))|DOWNLOAD_TEST_(?:ORIGIN|RELEASE_ID))$/u.test(name) || name === 'DSH_STUDIO_UPDATE_URL' || publicPlatformSetting.test(name))
   if (preset !== undefined) {
     if (settings.DSH_DESKTOP_AUTO_UPDATE_ENV !== preset) throw new Error('desktop package: preset deployment must match its name')
     if (!options.unsigned && (platform === 'darwin' || !options.prepareOnly)) {
@@ -77,6 +77,7 @@ export function loadDesktopPackageEnvironment(platform, environment = process.en
   return {
     ...Object.fromEntries(Object.entries(environment).filter(([name]) => !AMBIENT_RELEASE_SETTING.test(name))),
     ...settings,
+    ...(environment.DSH_STUDIO_UPDATE_URL === undefined ? {} : { DSH_STUDIO_UPDATE_URL: environment.DSH_STUDIO_UPDATE_URL }),
     ...(environment.DSH_DESKTOP_UPDATE_CHANNEL === undefined ? {} : { DSH_DESKTOP_UPDATE_CHANNEL: environment.DSH_DESKTOP_UPDATE_CHANNEL }),
     ...(preset === undefined ? {} : { DSH_PACKAGING_PRESET: preset }),
   }
@@ -136,11 +137,11 @@ function requireReadableFile(environment, name) {
 export function validateDesktopPackageEnvironment(environment, target, options = {}) {
   resolveDesktopAppId(environment)
   resolveNpmRegistry(environment)
-  if (target.platform !== 'darwin' || !options.unsigned) resolveDesktopPolicyEnvironment(environment)
+  if (environment.DSH_DESKTOP_MANDATORY_UPDATE_CONFIG && (target.platform !== 'darwin' || !options.unsigned)) resolveDesktopPolicyEnvironment(environment)
   if (target.platform === 'darwin') resolveMacOSPackageSettings(environment)
   else resolveWindowsPackageSettings(environment)
   if (options.unsigned) return
-  if (!options.prepareOnly) resolveDesktopAutoUpdateConfig(environment, target.platform, target.arch)
+  if (!options.prepareOnly && environment.DSH_STUDIO_UPDATE_URL?.trim()) resolveDesktopAutoUpdateConfig(environment, target.platform, target.arch)
   if (target.platform === 'win32') {
     if (!options.prepareOnly) createWindowsTokenSigner({
       certificateFile: environment.DSH_DESKTOP_WINDOWS_CER_FILE,

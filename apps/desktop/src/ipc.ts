@@ -24,6 +24,8 @@ export const DESKTOP_IPC = {
   deviceInfo: 'dsh-desktop:device-info',
   localeBootstrap: 'dsh-desktop:locale-bootstrap',
   localeChanged: 'dsh-desktop:locale-changed',
+  updatesSource: 'dsh-desktop:updates-source',
+  updatesSourceSave: 'dsh-desktop:updates-source-save',
   updatesStatus: 'dsh-desktop:updates-status',
   updatesOpen: 'dsh-desktop:updates-open',
   updatesPresentation: 'dsh-desktop:updates-presentation',
@@ -112,6 +114,8 @@ export interface DshDesktopProductApi {
    */
   deviceInfo(): Promise<string>
   readonly updates: {
+    source?(): Promise<{ url: string | null; version: string }>
+    saveSource?(url: string): Promise<void>
     status(): Promise<DesktopUpdatePresentation>
     open(): Promise<void>
     subscribe(listener: (state: DesktopUpdatePresentation) => void): () => void

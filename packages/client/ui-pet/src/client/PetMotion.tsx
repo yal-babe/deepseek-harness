@@ -81,7 +81,7 @@ export function PetMotion({
   const [systemReduced, setSystemReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true)
   const resultClip = useRef('success')
   const [thinkingName, setThinkingName] = useState('thinking')
-  const thinkingCandidates = ['thinking', 'thinking_chin', 'thinking_idea', 'work_read', 'thinking_deep']
+  const thinkingCandidates = ['thinking', 'thinking_chin', 'thinking_idea', 'thinking_deep']
     .filter(name => motion.clips[name] !== undefined && !standsAside(motion, name))
   useEffect(() => {
     if (state === 'THINKING') setThinkingName(previous => nextIdleClip(previous, Math.random(), thinkingCandidates) ?? 'thinking')
@@ -175,9 +175,12 @@ export function PetMotion({
     const timer = setTimeout(() => { setDecoration(undefined) }, 7000)
     return () => { clearTimeout(timer) }
   }, [decoration])
-  const name = dragging ? 'dragging' : decoration?.name ?? lifecycle.clip ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : state === 'SUCCESS' || heldResult && idle ? resultClip.current : state === 'THINKING' ? thinkingName : taskClip(state, activity, motion))
+  const taskName = state === 'THINKING' ? thinkingName
+    : state === 'SUCCESS' || heldResult && idle ? resultClip.current : taskClip(state, activity, motion)
+  const name = dragging ? 'dragging' : !idle ? taskName
+    : decoration?.name ?? lifecycle.clip ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : taskName)
   const clip = motion.clips[name] ?? motion.clips.idle
-  const serial = decoration?.serial ?? 0
+  const serial = idle && !dragging ? decoration?.serial ?? 0 : 0
   // A measured gait moves the surface with the media position, so the feet do not slide; cancelling the clip ends the walk.
   const walking = decoration !== undefined && clip?.move !== undefined && clip.sheet === undefined && name === decoration.name
   useEffect(() => {
@@ -223,8 +226,8 @@ export function PetMotion({
   const mirrored = name.startsWith('swim_') ? movement?.direction === 'right' : mirrorsClip(motion, name, facingRight)
   return <span className={css.motionContent} data-pet-clip={name} data-pet-facing={facingRight ? 'right' : 'left'}
     style={mirrored ? { transform: 'scaleX(-1)' } : undefined}>
-    {clip.sheet !== undefined ? <PetSprite key={`${name}:${serial}`} clip={clip} sheet={clip.sheet} poster={poster} knownReady={loadedSheets.current.has(clip.url)} onReady={() => { loadedSheets.current.add(clip.url) }} resting={resting && lifecycle.clip === undefined && clip.sheet.frames <= 8} loop={decoration === undefined && clip.loop && !(state === 'THINKING' && thinkingCandidates.length > 1)} paused={!visible || reduced} onEnd={finish} onFailure={onFailure} /> : <video ref={video} key={`${name}:${serial}`} className={css.motion} src={clip.url}
-      muted playsInline preload="auto" loop={decoration === undefined && !dragging ? clip.loop && !(state === 'THINKING' && thinkingCandidates.length > 1) : dragging}
+    {clip.sheet !== undefined ? <PetSprite key={`${name}:${serial}`} clip={clip} sheet={clip.sheet} poster={poster} knownReady={loadedSheets.current.has(clip.url)} onReady={() => { loadedSheets.current.add(clip.url) }} resting={resting && lifecycle.clip === undefined && clip.sheet.frames <= 8} loop={decoration === undefined && (clip.loop || state === 'WORKING' || state === 'WAITING' || state === 'THINKING') && !(state === 'THINKING' && thinkingCandidates.length > 1)} paused={!visible || reduced} onEnd={finish} onFailure={onFailure} /> : <video ref={video} key={`${name}:${serial}`} className={css.motion} src={clip.url}
+      muted playsInline preload="auto" poster={poster} loop={decoration === undefined && !dragging ? (clip.loop || state === 'WORKING' || state === 'WAITING' || state === 'THINKING') && !(state === 'THINKING' && thinkingCandidates.length > 1) : dragging}
       onError={onFailure} onEnded={finish} /> }
     {effect !== undefined && <PetEffects key={`${name}:${serial}:${effect}`} effect={effect} />}
   </span>

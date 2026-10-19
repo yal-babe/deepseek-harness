@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for studio-online-updates.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/user/studio-online-updates.md
+/:
+  en: 70d494e242462879
+  zh: 31f827557fe09b1f
+/studio-online-updates:
+  en: b9d999ede97dfa54
+  zh: 47fd473ce077f32b
+/studio-online-updates/versions:
+  en: 461fb43b7a2baf33
+  zh: 2b15ba75d67a2226
+/studio-online-updates/desktop-feed:
+  en: e926e4057b053aa1
+  zh: 5b3d9a6ffe14f232
+/studio-online-updates/server-deployment:
+  en: c89aeac6c9855d51
+  zh: 0c348310dd7989cd
+/studio-online-updates/server-release-manifest:
+  en: 0f6d87cfc9e9be5f
+  zh: 8a01b61a21ab9457
+/studio-online-updates/failures-and-recovery:
+  en: fad8eac335b44db7
+  zh: d33aa62815151480

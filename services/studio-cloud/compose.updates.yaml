@@ -1,0 +1,22 @@
+# Opt-in: keep COMPOSE_PROJECT_NAME equal to the EXISTING deployment's project name.
+name: ${COMPOSE_PROJECT_NAME:?Set COMPOSE_PROJECT_NAME to the existing deployment project name}
+services:
+  app:
+    environment:
+      UPDATER_URL: http://updater:8790
+      UPDATER_TOKEN: ${UPDATER_TOKEN:?Set a random token of at least 32 characters}
+  updater:
+    build: ./updater
+    restart: unless-stopped
+    environment:
+      STUDIO_UPDATE_COMPOSE_FILE: ${STUDIO_UPDATE_COMPOSE_FILE:-compose.yaml}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+      UPDATE_IMAGE_REPOSITORY: ${UPDATE_IMAGE_REPOSITORY:?Set the allowed server image repository}
+      UPDATER_TOKEN: ${UPDATER_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${STUDIO_DEPLOYMENT_DIR:?Set the absolute host deployment directory}:/deployment
+      - updater-state:/state
+    # No public ports. Only the authenticated app-to-updater API is exposed on the Compose network.
+volumes:
+  updater-state:

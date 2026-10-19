@@ -1,4 +1,4 @@
-let csrf = '', current = 'overview', currentUser
+let csrf = '', current = 'overview', currentUser, updateTimer, updateGeneration = 0
 const $ = selector => document.querySelector(selector)
 const node = (tag, text, cls) => { const el = document.createElement(tag); if(text !== undefined) el.textContent = String(text); if(cls) el.className = cls; return el }
 function message(text, error = false) { $('#message').textContent = text; $('#message').className = error ? 'error' : ''; $('#message').hidden = false }
@@ -56,9 +56,13 @@ $('#logout').onclick = run(async () => { await api('/auth/logout','POST',{}); lo
 $('#refresh').onclick = run(render)
 $('#nav').addEventListener('click',run(async event => { if(!event.target.dataset.page) return; current = event.target.dataset.page; await render() }))
 async function render() {
+ updateGeneration += 1
+ clearTimeout(updateTimer)
  $('#content').replaceChildren()
  document.querySelectorAll('#nav button').forEach(el => { el.classList.toggle('active',el.dataset.page===current); if(el.dataset.page===current) $('#title').textContent=el.textContent })
+ if(current === 'updates') { await renderUpdates(); return }
  if(current === 'overview') {
+  const version = await api('/version'); $('#server-version').textContent = `服务端 v${version.version}`
   const data = await api('/admin/overview'), grid = node('div',undefined,'stats'); $('#content').append(grid)
   for(const [name,key] of [['个人账号','users'],['有效设备会话','devices'],['同步对象','objects'],['同步占用（字节）','bytes'],['本地备份','backups']]) { const c = node('div',undefined,'card'); c.append(node('p',name),node('div',data[key],'stat')); grid.append(c) }
   card('独立个人云端','管理账号、同步数据与存储策略。此服务不执行模型请求，不运行插件，也不接管桌面智能体。')
@@ -106,3 +110,57 @@ async function render() {
  if(current === 'audit') table(card('操作审计','只记录操作元信息，不包含密码、令牌或用户对话正文。'),await api('/admin/audit'),[['编号','id'],['操作人','actor_id'],['操作','action'],['对象','target'],['时间','created_at']])
 }
 session().catch(() => { $('#shell').hidden=true; $('#login').hidden=false })
+
+
+async function renderUpdates() {
+ const generation = updateGeneration
+ const settings = await api('/admin/updates')
+ if (generation !== updateGeneration || current !== 'updates') return
+ $('#server-version').textContent = `服务端 v${settings.currentVersion}`
+ const setup = card('系统更新',`当前服务端版本：${settings.currentVersion}`)
+ setup.append(node('p',settings.enabled ? 'Docker 在线更新执行器已启用。' : '更新执行器尚未启用：先按部署说明配置镜像仓库、令牌和 compose.updates.yaml。'))
+ setup.append(node('p',`允许的镜像仓库：${settings.imageRepository || '尚未配置'}`))
+ const source = form(setup,'保存更新源',async data => {
+  await api('/admin/updates/source','PUT',{ manifestUrl:data.manifestUrl.trim() }); await render()
+ })
+ field(source.fields,'manifestUrl','服务端版本清单地址（HTTP / HTTPS，可暂留空）',settings.manifestUrl,'url',false)
+ const discovery = card('检查新版本','地址未配置时不会访问任何默认发布站点。安装前会创建备份，更新只替换应用容器，不删除数据库和数据卷。')
+ discovery.append(button('检查更新',async () => {
+  const release = await api('/admin/updates/check','POST',{})
+  releasePanel.replaceChildren(node('h3',`版本 ${release.version}`),node('pre',release.notes || '此版本未提供更新说明','release-notes'))
+  if (!release.available) { releasePanel.append(node('p','当前版本已是该发布源中的最新版本。')); return }
+  if (!release.compatible) { releasePanel.append(node('p',`此版本要求至少 ${release.minimumVersion}，请先完成中间版本升级。`)); return }
+  if (!settings.enabled) { releasePanel.append(node('p','请先在部署中启用 Docker 更新执行器。')); return }
+  releasePanel.append(button('备份并更新',async () => {
+   if (!confirm(`将更新到 ${release.version}，云同步会短暂中断。更新前自动备份。${release.rollbackCompatible ? '若新版本未就绪，将尝试回退应用镜像。' : '该版本未声明数据库向后兼容，失败时需管理员按备份和迁移说明恢复。'}是否继续？`)) return
+   await api('/admin/updates/install','POST',{ version:release.version,image:release.image,confirmation:'UPDATE' })
+   message('更新任务已提交；服务重启期间本页会尝试重新连接。')
+   await poll()
+  }))
+ }))
+ const releasePanel = node('div'); discovery.append(releasePanel)
+ const progress = card('更新状态','未配置发布源不会执行更新。')
+ const labels = { idle:'尚无更新任务',pulling:'正在拉取镜像',restarting:'正在重启服务',verifying:'等待新版本就绪',completed:'更新完成',
+  'rolling-back':'正在回退应用镜像','rolled-back':'已回退应用镜像',failed:'更新失败',interrupted:'更新曾中断，请检查部署状态' }
+ async function poll() {
+  if (current !== 'updates' || generation !== updateGeneration || !settings.enabled) return
+  clearTimeout(updateTimer)
+  try {
+   const state = await api('/admin/updates/status')
+   if (current !== 'updates' || generation !== updateGeneration) return
+   progress.replaceChildren(node('h2','更新状态'),node('p',labels[state.phase] || state.phase))
+   if (state.version) progress.append(node('p',`目标版本：${state.version}`))
+   if (state.backupId) progress.append(node('p',`更新前备份：${state.backupId}`))
+   if (state.message) progress.append(node('p',state.message))
+   if (state.phase === 'completed') {
+    const identity = await api('/version'); $('#server-version').textContent = `服务端 v${identity.version}`
+   }
+   if (['pulling','restarting','verifying','rolling-back'].includes(state.phase)) updateTimer = setTimeout(poll,3000)
+  } catch {
+   if (current !== 'updates' || generation !== updateGeneration) return
+   progress.replaceChildren(node('h2','更新状态'),node('p','服务可能正在重启，正在重新连接；若持续失败，请检查部署日志。'))
+   updateTimer = setTimeout(poll,5000)
+  }
+ }
+ await poll()
+}

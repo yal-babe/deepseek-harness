@@ -143,8 +143,9 @@ function writeReleaseRecord(
   if (desktopVersion !== dshVersion) {
     throw new Error(`desktop package: desktop version ${desktopVersion} does not match dsh version ${dshVersion}`)
   }
-  const buildVersion = resolveDesktopBuildVersion(environment, dshVersion)
+  const buildVersion = resolveDesktopBuildVersion(environment, packageVersion(join(APP_ROOT, 'studio-release.json'), 'Studio release'))
   const packaged = resolveDesktopBuildCommit(environment)
+  if (!environment.DSH_STUDIO_UPDATE_URL?.trim()) return
   const update = resolveDesktopAutoUpdateConfig(environment, target.platform, target.arch)
   const recordPath = join(artifactsRoot, desktopBuildRecordFilename(target.name))
   const temporaryPath = `${recordPath}.tmp`
@@ -348,7 +349,7 @@ async function main(): Promise<void> {
     : loadDesktopPackageEnvironment(target.platform, process.env, APP_ROOT, {
       unsigned: invocation.unsigned, prepareOnly: invocation.prepareOnly,
     })
-  const productVersion = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
+  const productVersion = packageVersion(join(APP_ROOT, 'studio-release.json'), 'Studio release')
   // Release settings come from the selected configuration files, so the version this run publishes is an
   // argument; the environment variable below only carries it to the child processes that build.
   const buildVersion = await resolveRequestedBuildVersion(invocation, productVersion, environment)
@@ -508,7 +509,7 @@ export async function packageTarget(
     await withMacOSNotarizationProxy(mac?.notarizationProxy, () => packageMacOSArtifacts({
       arch: target.arch,
       // electron-builder named these artifacts after the published version, so locating them uses the same identifier.
-      version: resolveDesktopBuildVersion(environment, packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')),
+      version: resolveDesktopBuildVersion(environment, packageVersion(join(APP_ROOT, 'studio-release.json'), 'Studio release')),
       artifactsRoot: buildPaths.artifacts,
       environment: electronBuilderEnv,
     }, artifact => execute(desktopElectronBuilderArguments(target, false, artifact), electronBuilderEnv)), undefined, undefined, proxyEvent)

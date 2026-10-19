@@ -1,3 +1,4 @@
+import { StudioUpdateSourceRow } from './StudioUpdateSourceRow.tsx'
 /**
  * Settings shell and ownerless-copy plugin, browser half: renders the
  * `sidebar.settings` occupant — panel chrome, section navigation, and the
@@ -93,6 +94,11 @@ export function apply(ctx: ClientContext): void {
   const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; updates?: DesktopUpdateBridge } }).dshDesktop
   const desktopUpdate = new DesktopUpdateSource(carrier?.protocolVersion === 1 ? carrier.updates : undefined)
   ctx.effect(() => () => { desktopUpdate.dispose() }, 'ui-settings-general: desktop update carrier')
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item', id: 'studio-update-source', order: 91, locale: NS,
+    inject: () => ({ hooks: { update: desktopUpdate.store }, save: (url: string) => desktopUpdate.saveSource(url) }),
+  }, StudioUpdateSourceRow))
+
   ctx.slots.inject('sidebar.toggle.badge', () => ctx.slots.register({
     name: 'sidebar.toggle.badge', locale: NS,
     inject: () => ({ hooks: { desktopUpdate: desktopUpdate.store, connectionState: connection.state } }),

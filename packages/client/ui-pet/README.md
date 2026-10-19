@@ -83,3 +83,5 @@ None; a quick ask is an ordinary user prompt.
 ### Dev Note
 
 None.
+
+Native dragging samples the system cursor throughout the drag and keeps input enabled until release; repeated position-only bounds updates avoid resizing the transparent window. Video posters cover loading transitions. Model reasoning selects thinking clips, visible answer text selects note-taking, and editing/command/test work selects coding when those clips exist; these active states loop until the task changes and preempt decorative playback.

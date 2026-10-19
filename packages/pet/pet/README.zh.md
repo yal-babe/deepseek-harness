@@ -104,3 +104,5 @@ web-app bundle 在 Web 与 Desktop profile 中挂载本服务，并同时挂载 
 ### 开发备注
 
 无。
+
+实时 `agent/assistant-stream` 的开始／推理帧选择 `THINKING`，回答文本选择带 `reply` 活动的 `WORKING`。未完成的工具保留其工作状态。这些展示变化不追加会话事件，并保留目标轮次与子智能体完成状态处理。

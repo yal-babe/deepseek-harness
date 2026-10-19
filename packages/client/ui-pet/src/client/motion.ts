@@ -351,6 +351,10 @@ export function eventClip(motion: PetMotionView | undefined, event: 'balance' | 
  * @returns the animation name to play.
  */
 export function taskClip(state: PetAgentState, activity?: PetWorkActivity, motion?: PetMotionView): string {
+  if (state === 'WORKING' && motion !== undefined) {
+    if ((activity === 'reply' || activity === 'search') && motion.clips.jot_notes !== undefined) return 'jot_notes'
+    if ((activity === 'edit' || activity === 'command' || activity === 'test') && motion.clips.write_code !== undefined) return 'write_code'
+  }
   const command = state === 'WORKING' && (activity === 'command' || activity === 'test')
   if (state === 'WORKING' && activity === 'search' && (motion === undefined || motion.clips.working_search !== undefined)) return 'working_search'
   const tier = command ? RESULT_TIER : WORK_TIER[state]

@@ -33,8 +33,8 @@ export type PetApprovalRequestId = Branded<'ApprovalRequestId'>
  */
 export type PetAgentState = 'IDLE' | 'THINKING' | 'WORKING' | 'WAITING' | 'SUCCESS' | 'ERROR' | 'DISCONNECTED'
 
-/** Tool classification used to select a working animation. */
-export type PetWorkActivity = 'search' | 'edit' | 'command' | 'test' | 'tool'
+/** Tool or live answer activity used to select a working animation. */
+export type PetWorkActivity = 'search' | 'edit' | 'command' | 'test' | 'tool' | 'reply'
 
 /** Todo progress read from the latest `todo/write` event of a Session. */
 export interface PetProgress {

@@ -391,3 +391,5 @@ node apps/desktop/node_modules/pnpm/bin/pnpm.mjs --dir apps/desktop run test:upd
 ## Studio 品牌
 
 应用名称为 DSH Studio。桌面打包在 macOS 上使用 `resources/studio-icons/studio.icns`，在 Windows 上使用 `studio.ico`；托盘、Web favicon、侧栏和对话欢迎区使用已提供的梨形图标。macOS 开发版应用包名称为 DSH Studio Dev。
+
+Studio 产品版本通过 `studio-release.json` 独立维护，从 `0.1.0` 开始；内置 Harness 版本仍由上游维护。通用设置支持 HTTP(S) 更新目录覆盖，打包时可通过 `DSH_STUDIO_UPDATE_URL` 内置更新源，留空则不配置。发布清单及从上游编号首次切换的步骤见 [Studio 在线更新](../../docs/user/studio-online-updates.zh.md)。

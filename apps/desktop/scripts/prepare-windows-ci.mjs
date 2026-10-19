@@ -8,7 +8,7 @@ import { loadDesktopPackageEnvironment, validateDesktopPackageEnvironment } from
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === import.meta.filename) {
   const appRoot = resolve(import.meta.dirname, '..')
-  const product = JSON.parse(readFileSync(resolve(appRoot, 'package.json'), 'utf8'))
+  const product = JSON.parse(readFileSync(resolve(appRoot, 'studio-release.json'), 'utf8'))
   const version = windowsCiVersion(process.env, product.version)
   const mode = process.env.PACKAGE_SIGNING
   if (mode !== 'unsigned' && mode !== 'signed') throw new Error('Select unsigned or signed packaging')

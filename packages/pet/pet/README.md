@@ -104,3 +104,5 @@ When `webServer` is available, `pet.pack()` offers the built-in media alongside 
 ### Dev Note
 
 None.
+
+Live `agent/assistant-stream` start/reasoning frames select `THINKING`; answer text selects `WORKING` with activity `reply`. Open tools keep their own work state. These presentation changes append no Session events and preserve goal-round and descendant-completion handling.

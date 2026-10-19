@@ -12,6 +12,9 @@ export class DesktopUpdateSource {
 
   /** @param bridge - Optional isolated Electron API, absent in ordinary browsers. */
   constructor(private readonly bridge: DesktopUpdateBridge | undefined) {
+    void bridge?.source?.().then(source => {
+      if (this.live) this.store.set({ ...this.store.getSnapshot(), source })
+    }, () => { if (this.live) this.store.set({ ...this.store.getSnapshot(), sourceFailed: true }) })
     this.unsubscribe = bridge?.subscribe((presentation) => {
       if (!this.live) return
       this.received = true
@@ -22,6 +25,20 @@ export class DesktopUpdateSource {
     }, () => {
       if (this.live && !this.received) this.store.set({ ...this.store.getSnapshot(), failed: true })
     })
+  }
+
+  /** @param url - HTTP(S) directory override; changes apply after restarting Desktop. */
+  async saveSource(url: string): Promise<void> {
+    if (!this.live || this.bridge?.saveSource === undefined || this.store.getSnapshot().sourceSaving) return
+    this.store.set({ ...this.store.getSnapshot(), sourceSaving: true, sourceFailed: false, sourceSaved: false })
+    try {
+      await this.bridge.saveSource(url)
+      if (this.live) this.store.set({ ...this.store.getSnapshot(), sourceSaved: true })
+    } catch {
+      if (this.live) this.store.set({ ...this.store.getSnapshot(), sourceFailed: true })
+    } finally {
+      if (this.live) this.store.set({ ...this.store.getSnapshot(), sourceSaving: false })
+    }
   }
 
   /** Invoke one user action; subsequent clicks join the shell-owned operation. */

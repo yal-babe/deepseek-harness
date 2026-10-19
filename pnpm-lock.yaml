@@ -790,6 +790,9 @@ importers:
       '@deepseek-ai/dsh-client-connection':
         specifier: workspace:*
         version: link:../../packages/client/connection
+      '@deepseek-ai/dsh-credentials-os':
+        specifier: workspace:*
+        version: link:../../packages/credentials/credentials-os
       '@deepseek-ai/dsh-deepseek-account':
         specifier: workspace:*
         version: link:../../packages/credentials/deepseek-account
@@ -12024,6 +12027,9 @@ importers:
       '@deepseek-ai/cosmokit':
         specifier: link:../../../vendor/cosmokit
         version: link:../../../vendor/cosmokit
+      '@deepseek-ai/dsh-agent':
+        specifier: workspace:*
+        version: link:../../core/agent
       '@deepseek-ai/dsh-brand':
         specifier: workspace:*
         version: link:../../util/brand
