@@ -25,7 +25,7 @@ Host Remote：把未归档 Session 日志折叠为本机用量统计，供个人
 <a id="use-this-package"></a>
 ## 使用本包
 
-基于 base 的 Web profile 与 session-query 一并组合本服务。个人中心调用 `usageStats.snapshot(timezoneOffsetSeconds)`，参数为东向 UTC 的秒数。Client 可以把最近一次快照写入 `localStorage`，并把当前打开会话的实时 `tokenUsage` 投影合并进去；未归档历史仍以 Host 快照为准。
+基于 base 的 Web profile 与 session-query 一并组合本服务。个人中心调用 `usageStats.snapshot(timezoneOffsetSeconds)`，参数为东向 UTC 的秒数。Client 将最近一次快照缓存在 `localStorage`；实时 `tokenUsage` 变化仅在摘要可见时请求合并处理的 Host 刷新，不在浏览器修改日历日分桶。重新打开隐藏摘要时显式刷新。
 
 -----
 
@@ -35,7 +35,7 @@ Host Remote：把未归档 Session 日志折叠为本机用量统计，供个人
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-`UsageStats` 是命名空间为 `usageStats` 的 `TypertRemoteService`。`snapshot` 通过 `sessionQuery` 列出会话，在 `workspaceRegistry` 存在时跳过 `archivedSessionIds`，并把 `assistant/message` 用量、`tool/call` 名称与 `request/context` 模型 id 按 Client 提供的时区偏移折进日历日。最近会话省略折后 token 合计为零的会话；`sessionCount` 仍计入每个未归档会话。
+`UsageStats` 是命名空间为 `usageStats` 的 `TypertRemoteService`。`snapshot` 通过 `sessionQuery` 列出会话，排除已归档工作区会话，并复用 token-meter 的调用统计处理消息及失败尝试，包括内嵌流用量。同一次尝试的最终样本替换先前样本，重试单独计入。调用保留结算日期及提供方／模型归属。精确提供方总量独立于缓存明细保留；缺失或非法用量使统计标为不完整，缺失缓存桶保持未知。全局总量、模型行及日历分桶按原始来源位置只计一次；子会话不贡献继承的工具调用与活动。单会话行包含完整继承前缀，与聊天用量一致，因此不能将这些行相加来重建全局总量。最近会话省略已知总量为零的会话，但保留用量不可获取的会话；`sessionCount` 计入所有未归档会话。会话观测复用 session-query 有界、按版本校验的预备缓存；每个观测租约均在下一次读取前释放。
 
 </details>
 

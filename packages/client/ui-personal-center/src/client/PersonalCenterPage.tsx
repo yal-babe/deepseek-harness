@@ -33,15 +33,21 @@ export function PersonalCenterPage({
   t, controller, useSnapshot, openSession,
 }: PersonalCenterPageProps): ReactNode {
   const state = useSnapshot(value => value)
-  useEffect(() => { void controller.load() }, [controller])
+  useEffect(() => {
+    const stop = controller.observeUsage()
+    void controller.load()
+    return stop
+  }, [controller])
   const usage = state.usage
-  const today = usage === null ? emptyTokens() : todayTokens(usage)
-  const recents = (usage?.sessions ?? []).filter(row => sum(row.tokens) > 0).slice(0, 20)
+  const today = usage === null ? undefined : todayTokens(usage)
+  const unknownUsage = usage === null || (sum(usage.totals) === 0 && usage.totals.incomplete === true)
+  const recents = (usage?.sessions ?? []).filter(row => sum(row.tokens) > 0 || row.tokens.incomplete).slice(0, 20)
   return <div className={css.page}>
     <header className={css.head}>
       <div>
         <h1 className={css.title}>{t('title')}</h1>
         <p className={css.intro}>{t('intro')}</p>
+        {usage?.totals.incomplete && <p className={css.muted}>{t('partialUsage')}</p>}
       </div>
       {(state.status === 'error' || state.cached) && <Button variant="outline" onClick={() => { void controller.load() }}>{t('retry')}</Button>}
     </header>
@@ -53,8 +59,8 @@ export function PersonalCenterPage({
         : <>
           {state.status === 'error' && <p className={css.muted}>{t('loadFailed')}</p>}
           <section className={css.kpis} aria-label={t('tokens')}>
-            <Kpi label={t('today')} value={formatTokens(sum(today))} hint={t('tokens')} />
-            <Kpi label={t('allTime')} value={formatTokens(sum(usage?.totals ?? emptyTokens()))} hint={t('tokens')} />
+            <Kpi label={t('today')} value={formatUsage(today, t('balanceUnavailable'))} hint={t('tokens')} />
+            <Kpi label={t('allTime')} value={formatUsage(usage?.totals, t('balanceUnavailable'))} hint={t('tokens')} />
             <Kpi label={t('sessions')} value={String(usage?.sessionCount ?? 0)} />
             <Kpi label={t('toolCalls')} value={String(usage?.toolCalls ?? 0)} />
           </section>
@@ -79,10 +85,10 @@ export function PersonalCenterPage({
               windows={[]} groups={state.quota.antigravity?.groups} t={t} />
           </section>
           <section className={css.kpis} aria-label={t('tokens')}>
-            <Kpi label={t('uncached')} value={formatTokens((usage?.totals ?? emptyTokens()).uncachedInputTokens)} />
-            <Kpi label={t('cacheRead')} value={formatTokens((usage?.totals ?? emptyTokens()).cacheReadTokens)} />
-            <Kpi label={t('cacheWrite')} value={formatTokens((usage?.totals ?? emptyTokens()).cacheWriteTokens)} />
-            <Kpi label={t('output')} value={formatTokens((usage?.totals ?? emptyTokens()).outputTokens)} />
+            <Kpi label={t('uncached')} value={unknownUsage ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).uncachedInputTokens)} />
+            <Kpi label={t('cacheRead')} value={unknownUsage || usage?.totals.cacheReadUnknown ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).cacheReadTokens)} />
+            <Kpi label={t('cacheWrite')} value={unknownUsage || usage?.totals.cacheWriteUnknown ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).cacheWriteTokens)} />
+            <Kpi label={t('output')} value={unknownUsage ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).outputTokens)} />
           </section>
           <div className={css.split}>
             <section className={css.card}>
@@ -90,9 +96,9 @@ export function PersonalCenterPage({
               {(usage?.models.length ?? 0) === 0 && <p className={css.emptyList}>{t('emptyModels')}</p>}
               <ul className={css.list}>
                 {(usage?.models ?? []).map(row => (
-                  <li key={row.model} className={css.row}>
-                    <span>{row.model.length > 0 ? row.model : t('noModel')}</span>
-                    <span className={css.value}>{formatTokens(sum(row.tokens))}</span>
+                  <li key={JSON.stringify([row.provider, row.model])} className={css.row}>
+                    <span><span>{row.provider}</span> / <span>{row.model.length > 0 ? row.model : t('noModel')}</span></span>
+                    <span className={css.value}>{formatUsage(row.tokens, t('balanceUnavailable'))}</span>
                   </li>
                 ))}
               </ul>
@@ -116,7 +122,7 @@ export function PersonalCenterPage({
                     <button className={css.sessionButton} type="button" aria-label={row.title} onClick={() => { openSession(SessionId(row.sessionId)) }}>
                       <span className={css.sessionTitle}>{row.title}</span>
                       <span className={css.sessionMeta}>
-                        <span className={css.value}>{formatTokens(sum(row.tokens))}</span>
+                        <span className={css.value}>{formatUsage(row.tokens, t('balanceUnavailable'))}</span>
                         <span className={css.muted}>{formatGmt8(row.updatedAt)}</span>
                       </span>
                     </button>
@@ -299,7 +305,8 @@ function weeklyCells(usage: UsageSnapshot): { key: string; tokens: number }[] {
 
 function todayTokens(usage: UsageSnapshot): UsageTokenTotals {
   const today = localDay(Date.now(), usage.timezoneOffsetSeconds)
-  return usage.days.find(row => row.day === today)?.tokens ?? emptyTokens()
+  const tokens = usage.days.find(row => row.day === today)?.tokens ?? emptyTokens()
+  return usage.totals.incomplete ? { ...tokens, incomplete: true } : tokens
 }
 
 function emptyTokens(): UsageTokenTotals {
@@ -307,7 +314,12 @@ function emptyTokens(): UsageTokenTotals {
 }
 
 function sum(tokens: UsageTokenTotals): number {
-  return tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens
+  return tokens.totalTokens ?? tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens
+}
+
+function formatUsage(tokens: UsageTokenTotals | undefined, unavailable: string): string {
+  if (tokens === undefined || (sum(tokens) === 0 && tokens.incomplete)) return unavailable
+  return formatTokens(sum(tokens))
 }
 
 function formatTokens(value: number): string {

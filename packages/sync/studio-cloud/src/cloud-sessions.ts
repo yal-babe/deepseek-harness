@@ -17,6 +17,7 @@ import type { SyncConnection, SyncContribution } from './sync-engine.ts'
 import { CloudError } from './transport.ts'
 import type { StudioHistoryView, StudioHistoryItem, StudioTokenActivity, StudioContinuationResult } from './types.ts'
 import { calculateTokenActivity } from './token-usage.ts'
+import { resolveUsageSources, type UsageSourceLog, type UsageSourceRange } from '@deepseek-ai/dsh-token-meter'
 
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-working-directory'
@@ -35,7 +36,7 @@ const attachment = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('file'), ref: fileRef, chunks: z.array(cloudFileSchema), unavailable: z.string().optional() }).strict(),
 ])
 /** Version-one selected conversation payload; all file locations are account-owned cloud IDs. */
-export const cloudSessionSchema = z.object({
+const legacyCloudSessionSchema = z.object({
   format: z.literal('dsh-session-1'),
   sessionFormatVersion: z.number().int().nonnegative(),
   sourceSessionId: z.string().min(1),
@@ -47,6 +48,27 @@ export const cloudSessionSchema = z.object({
   chunks: z.array(cloudFileSchema).min(1),
   attachments: z.array(attachment),
 }).strict()
+const attributedCloudSessionSchema = legacyCloudSessionSchema.extend({
+  format: z.literal('dsh-session-2'),
+  sourceRanges: z.array(z.object({
+    end: z.number().int().positive(), sessionId: z.string().min(1).nullable(),
+  }).strict()).min(1),
+}).superRefine((manifest, ctx) => {
+  let previous = 0
+  if (manifest.inheritedEventCount > manifest.throughSeq + 1) {
+    ctx.addIssue({ code: 'custom', message: 'Inherited prefix exceeds the exported log' })
+  }
+  for (const range of manifest.sourceRanges) {
+    if (range.end <= previous || range.end > manifest.throughSeq + 1
+      || (range.end > manifest.inheritedEventCount && range.sessionId !== manifest.sourceSessionId)) {
+      ctx.addIssue({ code: 'custom', message: 'Invalid usage source ranges' })
+    }
+    previous = range.end
+  }
+  if (previous !== manifest.throughSeq + 1) ctx.addIssue({ code: 'custom', message: 'Incomplete usage source ranges' })
+})
+/** Selected conversation payloads retain their original Session data and versioned usage attribution. */
+export const cloudSessionSchema = z.discriminatedUnion('format', [legacyCloudSessionSchema, attributedCloudSessionSchema])
 type Manifest = z.infer<typeof cloudSessionSchema>
 const row = z.object({
   objectId: z.string(),
@@ -117,6 +139,45 @@ export class CloudSessions {
     return chunks
   }
   private stageBytes(bytes: Uint8Array, signal?: AbortSignal): Promise<CloudFileRef[]> { return this.chunks([bytes], signal) }
+  private usageLog(manifest: Manifest, restored: ReturnType<typeof restoreCloudSession>): UsageSourceLog {
+    return {
+      sessionId: manifest.sourceSessionId, parentSessionId: manifest.parentSourceSessionId,
+      inheritedEventCount: restored.session.inheritedEventCount, events: restored.events,
+      ...(restored.storedVersion !== restored.session.header.version
+        ? { sourceRanges: [{ end: restored.events.length, sessionId: null }] }
+        : manifest.format === 'dsh-session-2' ? { sourceRanges: manifest.sourceRanges } : {}),
+    }
+  }
+
+  private async usageSources(header: SessionHeader, events: readonly SessionEvent[], inheritedEventCount: number,
+    signal?: AbortSignal): Promise<readonly UsageSourceRange[]> {
+    const current: UsageSourceLog = {
+      sessionId: String(header.id), parentSessionId: header.parentSession ?? null, inheritedEventCount, events,
+    }
+    const logs = new Map<string, UsageSourceLog>([[current.sessionId, current]])
+    let parentId = header.parentSession
+    while (parentId !== undefined && !logs.has(String(parentId))) {
+      signal?.throwIfAborted()
+      const stat = await this.services.persistence.stat(parentId, signal === undefined ? {} : { signal })
+      if (stat === undefined) {
+        const history = Object.values((await this.load()).histories).find(item => item.manifest.sourceSessionId === parentId)
+        if (history === undefined) break
+        const restored = await this.artifact(history.manifest)
+        logs.set(String(parentId), this.usageLog(history.manifest, restored))
+        parentId = restored.session.header.parentSession
+      } else {
+        await using handle = await this.services.persistence.open(parentId, 'read', signal === undefined ? {} : { signal })
+        const snapshot = await handle.read(0, undefined, signal === undefined ? {} : { signal })
+        logs.set(String(parentId), {
+          sessionId: String(parentId), parentSessionId: handle.header.parentSession ?? null,
+          inheritedEventCount: handle.inheritedEventCount, events: snapshot.events,
+        })
+        parentId = handle.header.parentSession
+      }
+    }
+    return resolveUsageSources(current, logs)
+  }
+
   private refs(manifest:Manifest):CloudFileRef[] {
     return [...new Map([...manifest.chunks,...manifest.attachments.flatMap(item=>item.chunks)].map(ref=>[ref.id,ref])).values()]
   }
@@ -126,6 +187,7 @@ export class CloudSessions {
     const text=Buffer.concat(bytes.map(value=>Buffer.from(value))).toString('utf8')
     const restored=restoreCloudSession(text)
     if(String(restored.session.id)!==manifest.sourceSessionId || restored.storedVersion!==manifest.sessionFormatVersion
+       || (restored.session.header.parentSession ?? null)!==manifest.parentSourceSessionId
       || (restored.storedVersion===restored.session.header.version && (restored.events.at(-1)?.seq!==manifest.throughSeq
       || restored.session.inheritedEventCount!==manifest.inheritedEventCount)))throw new CloudError('SESSION_DAMAGED')
     return restored
@@ -136,7 +198,7 @@ export class CloudSessions {
    */
   contribution():SyncContribution {
     return { namespace:'studio.sessions',version:1,fields:['format','sessionFormatVersion','sourceSessionId','parentSourceSessionId',
-      'inheritedEventCount','createdAt','throughSeq','title','chunks','attachments'],
+      'inheritedEventCount','createdAt','throughSeq','title','chunks','attachments','sourceRanges'],
     export:async (ids,signal)=>{
       const options=signal===undefined?{}:{ signal }
       const values:{ id:string;kind:'conversation';blocked?:boolean;payload:ReturnType<typeof json>;fileRefs:string[] }[]=[]
@@ -179,12 +241,18 @@ export class CloudSessions {
               attachments.push({ kind:'file',ref:file,chunks:[],unavailable:error.code })
             }
           }
-          manifest={ format:'dsh-session-1',sessionFormatVersion:handle.header.version,sourceSessionId:String(handle.id),
+          manifest={ format:'dsh-session-2',sessionFormatVersion:handle.header.version,sourceSessionId:String(handle.id),
+            sourceRanges:[...await this.usageSources(
+              handle.header,events.slice(0,artifact.throughSeq+1),handle.inheritedEventCount,signal,
+            )],
             parentSourceSessionId:handle.header.parentSession ?? null,inheritedEventCount:handle.inheritedEventCount,
             createdAt:handle.header.createdAt,throughSeq:artifact.throughSeq,title:String(handle.id),
             chunks:await this.stageBytes(Buffer.from(artifact.text),signal),attachments,
           }
-          if(!attachments.some(item=>item.unavailable!==undefined))this.exported.set(id,{ revision:String(fresh.revision),value:manifest })
+          if(!attachments.some(item=>item.unavailable!==undefined)
+             && manifest.sourceRanges.every(range=>range.sessionId!==null)) {
+            this.exported.set(id,{ revision:String(fresh.revision),value:manifest })
+          }
         }
         values.push({ id,kind:'conversation',payload:json(manifest),fileRefs:this.refs(manifest).map(ref=>ref.id) })
       }
@@ -380,11 +448,11 @@ export class CloudSessions {
    */
   async tokenActivity(): Promise<StudioTokenActivity> {
     const state = await this.load()
-    const allEvents: (readonly SessionEvent[])[] = []
+    const logs: UsageSourceLog[] = []
     for (const stored of Object.values(state.histories)) {
-      const { events } = await this.artifact(stored.manifest)
-      allEvents.push(events)
+      const restored = await this.artifact(stored.manifest)
+      logs.push(this.usageLog(stored.manifest, restored))
     }
-    return calculateTokenActivity(allEvents)
+    return calculateTokenActivity(logs)
   }
 }

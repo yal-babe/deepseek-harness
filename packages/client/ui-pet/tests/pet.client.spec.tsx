@@ -761,7 +761,9 @@ describe('balance and click responses', () => {
   it('offers the balance only for packs with balance tiers and reports an empty reading', () => {
     const slot = vi.fn((_name: string, _props: Record<string, unknown>) => null)
     const { props, packStore } = setup({ connected: true, snapshot: snapshot() })
-    packStore.set({ ...BUILTIN_FRAME_SET, motion: { ...motion, events: undefined } })
+    const withoutEvents = { ...motion }
+    delete withoutEvents.events
+    packStore.set({ ...BUILTIN_FRAME_SET, motion: withoutEvents })
     render(<PetOverlay {...props} renderSlot={slot as unknown as PetProps['renderSlot']} />)
     fireEvent.contextMenu(screen.getByRole('button', { name: /characterLabel/u }))
     expect(screen.queryByRole('menuitem', { name: 'menu.balance' })).toBeNull()

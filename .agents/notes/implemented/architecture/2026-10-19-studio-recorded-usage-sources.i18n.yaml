@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-19-studio-recorded-usage-sources.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-19-studio-recorded-usage-sources.md
+/agent-note-studio-recorded-usage-source-identities:
+  en: 041cec6005fa1eb6
+  zh: a080715830270220
+/agent-note-studio-recorded-usage-source-identities/problem:
+  en: 6adf6e3d12c71b03
+  zh: b43be9604dc5f7e3
+/agent-note-studio-recorded-usage-source-identities/decision:
+  en: d526206118b9fd86
+  zh: 04da537df7dc5acc
+/agent-note-studio-recorded-usage-source-identities/alternatives-considered:
+  en: 8c5d35a6c56544a6
+  zh: 69f020eb0246fa57
+/agent-note-studio-recorded-usage-source-identities/consequences:
+  en: 1153274f18a08aa8
+  zh: 9c5bf1abd8266364

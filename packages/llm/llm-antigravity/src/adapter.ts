@@ -17,6 +17,7 @@ import type {
   GenerateOptions,
   LlmModelInfo,
   LlmResolvedModelInfo,
+  Message,
   StreamChunk,
   TokenUsage,
   ToolSchema,
@@ -57,6 +58,7 @@ interface OpenBlock {
   name?: string
   arguments: string
   started: boolean
+  thoughtSignature?: string
 }
 
 /**
@@ -141,7 +143,7 @@ export class AntigravityAdapter extends LlmAdapter {
     connection: ResolvedAntigravityConfig,
   ): AsyncGenerator<StreamChunk> {
     const consumer = new AbortController()
-    using requestTimer = deadline(options.signal, connection.requestTimeoutMs, REQUEST_CODE)
+    using requestTimer = deadline(options.signal, connection.generationTimeoutMs, REQUEST_CODE)
     const fused = options.signal === undefined
       ? AbortSignal.any([consumer.signal, requestTimer.signal])
       : AbortSignal.any([consumer.signal, requestTimer.signal, options.signal])
@@ -196,7 +198,7 @@ export class AntigravityAdapter extends LlmAdapter {
       throw providerHttpError(response.status, raw, text, response.headers)
     }
     if (response.body === null) throw new LlmError('Antigravity Cloud Code returned no response body', 'PROTOCOL')
-    yield* translateSse(response.body, activity)
+    yield* translateSse(response.body, activity, options.model)
   }
 }
 
@@ -378,7 +380,7 @@ function serializeContents(options: GenerateOptions): {
         pushContent(contents, 'user', textParts(textOf(message.content)))
         break
       case 'assistant':
-        pushContent(contents, 'model', serializeAssistantParts(message.content, toolNames))
+        pushContent(contents, 'model', serializeAssistantParts(message.content, toolNames, readThoughtSignatures(message, options.model)))
         break
       case 'tool':
         pushContent(contents, 'user', [serializeFunctionResponse(message.toolCallId, textOf(message.content), toolNames)])
@@ -408,12 +410,31 @@ function textParts(text: string): Record<string, unknown>[] {
   return text.length === 0 ? [] : [{ text }]
 }
 
+/** Read only same-model Antigravity signatures aligned with durable content. */
+function readThoughtSignatures(message: Message, model: string): (string | undefined)[] | undefined {
+  if (message.source.kind !== 'model' || message.source.provider !== PROVIDER || message.source.model !== model) return undefined
+  const replay = asObject(message.source.replayState)
+  if (replay === undefined) return undefined
+  const response = asObject(replay.response)
+  if (response?.kind !== 'antigravity' || response.version !== 1 || response.model !== model) return undefined
+  if (!Array.isArray(replay.blocks) || replay.blocks.length !== message.content.length) return undefined
+  const signatures: (string | undefined)[] = []
+  for (const [index, value] of replay.blocks.entries()) {
+    const block = asObject(value)
+    if (block === undefined || block.type !== message.content[index]?.type) return undefined
+    if (block.thoughtSignature !== undefined && typeof block.thoughtSignature !== 'string') return undefined
+    signatures.push(stringField(block.thoughtSignature))
+  }
+  return signatures
+}
+
 function serializeAssistantParts(
   content: readonly ContentBlock[],
   toolNames: Map<string, string>,
+  signatures?: readonly (string | undefined)[],
 ): Record<string, unknown>[] {
   const parts: Record<string, unknown>[] = []
-  for (const block of content) {
+  for (const [index, block] of content.entries()) {
     switch (block.type) {
       case 'text':
         if (block.text.length > 0) parts.push({ text: block.text })
@@ -423,6 +444,7 @@ function serializeAssistantParts(
       case 'tool-call':
         toolNames.set(block.id, block.name)
         parts.push({
+          ...signatures?.[index] === undefined ? {} : { thoughtSignature: signatures[index] },
           functionCall: {
             id: block.id,
             name: block.name,
@@ -505,11 +527,13 @@ function textOf(content: readonly ContentBlock[]): string {
  * Translate Cloud Code SSE into harness chunks.
  * @param body - response bytes.
  * @param activity - idle-watchdog pulse.
+ * @param model - requested model identity for durable signature replay.
  * @returns translated model response chunks.
  */
 export async function* translateSse(
   body: ReadableStream<BufferSource>,
   activity: () => void,
+  model?: string,
 ): AsyncGenerator<StreamChunk> {
   const events = body.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream({ onComment: activity }))
   const blocks = new Map<number, OpenBlock>()
@@ -553,6 +577,9 @@ export async function* translateSse(
         const call = asObject(wire.functionCall)
         if (call !== undefined) {
           const allocated = appendFunctionCall(blocks, toolKeys, nextIndex, nextTool, call)
+          const signature = stringField(wire.thoughtSignature)
+          const block = blocks.get(allocated.index)
+          if (block !== undefined && signature !== undefined) block.thoughtSignature = signature
           yield* allocated.chunks
           if (allocated.started && allocated.index === nextIndex) {
             nextIndex += 1
@@ -582,7 +609,19 @@ export async function* translateSse(
     throw new LlmError('Antigravity Cloud Code returned no content', 'EMPTY_RESPONSE')
   }
   if (usage !== undefined) yield { type: 'usage', usage }
-  yield { type: 'finish', reason: finish }
+  yield {
+    type: 'finish',
+    reason: finish,
+    ...model === undefined ? {} : {
+      replayState: {
+        response: { kind: 'antigravity', version: 1, model },
+        blocks: [...blocks.values()].sort((left, right) => left.index - right.index).map(block => ({
+          type: block.type,
+          ...block.thoughtSignature === undefined ? {} : { thoughtSignature: block.thoughtSignature },
+        })),
+      },
+    },
+  }
 }
 
 function firstCandidate(response: Record<string, unknown>): Record<string, unknown> | undefined {

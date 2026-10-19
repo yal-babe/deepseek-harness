@@ -15,7 +15,7 @@ const area = { x: 0, y: 0, width: 1920, height: 1040 }
 const panel = { x: 0, y: 0, width: 1920, height: 1080 }
 const GEOMETRY = { window: { x: 1000, y: 400, width: 340, height: 560 }, areas: [area], panels: [panel] }
 
-function bench(partial: Partial<DesktopPetBridge> = {}) {
+function bench(partial: Partial<DesktopPetBridge> = {}, absent?: 'place' | 'onGeometry' | 'bridge') {
   let geometry: ((value: unknown) => void) | undefined
   const bridge = {
     protocolVersion: 1, role: 'pet', setInteractive: vi.fn(), setVisible: vi.fn(), openMain: vi.fn(),
@@ -24,6 +24,7 @@ function bench(partial: Partial<DesktopPetBridge> = {}) {
     onGeometry: vi.fn((listener: (value: unknown) => void) => { geometry = listener; return () => { geometry = undefined } }),
     ...partial,
   } as DesktopPetBridge & { drag: ReturnType<typeof vi.fn>; place: ReturnType<typeof vi.fn>; body: ReturnType<typeof vi.fn> }
+  if (absent === 'place' || absent === 'onGeometry') Reflect.deleteProperty(bridge, absent)
   const controller = new PetController({
     view: createSnapshotStore({ snapshot: undefined, connected: true }, { flush: 'sync' }),
     sessionStatus: createSnapshotStore(new Map(), { flush: 'sync' }),
@@ -31,7 +32,8 @@ function bench(partial: Partial<DesktopPetBridge> = {}) {
       createSession: vi.fn(async () => ({ ok: true as const, value: { sessionId: S2 } })), upload: vi.fn(),
       prompt: vi.fn(async () => ({ ok: true as const, value: { accepted: true as const } })), requestId: () => brandString<SessionRequestId>('r'),
     },
-    setVisible: vi.fn(async () => {}), acknowledge: vi.fn(async () => {}), bridge, openSession: vi.fn(),
+    setVisible: vi.fn(async () => {}), acknowledge: vi.fn(async () => {}),
+    bridge: absent === 'bridge' ? undefined : bridge, openSession: vi.fn(),
     preferences: new PetPreferenceStore(undefined), notifications: undefined, now: () => 0,
   })
   return { bridge, controller, emit: (value: unknown) => { geometry?.(value) } }
@@ -134,8 +136,8 @@ describe('Desktop throws', () => {
 
   it('needs a bridge that can place the window', () => {
     expect(bench().controller.canThrow).toBe(true)
-    expect(bench({ place: undefined }).controller.canThrow).toBe(false)
-    expect(bench({ onGeometry: undefined }).controller.canThrow).toBe(false)
+    expect(bench({}, 'place').controller.canThrow).toBe(false)
+    expect(bench({}, 'onGeometry').controller.canThrow).toBe(false)
     expect(bench().controller.canWalk).toBe(false)
     const walker = bench({ travel: vi.fn() })
     expect(walker.controller.canWalk).toBe(true)
@@ -162,6 +164,6 @@ describe('Desktop geometry', () => {
     emit(GEOMETRY)
     expect(listener).toHaveBeenCalledExactlyOnceWith(GEOMETRY)
     stop()
-    expect(new PetController({ ...{} as never, bridge: undefined } as never).onGeometry(listener)).toBeTypeOf('function')
+    expect(bench({}, 'bridge').controller.onGeometry(listener)).toBeTypeOf('function')
   })
 })

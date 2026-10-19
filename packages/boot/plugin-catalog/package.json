@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-plugin-catalog",
   "description": "Aggregated plugin marketplace catalog: community (dsh-plugin.org) and Codex (openai/plugins) feeds with search and install dispatch",
-  "version": "0.2.1-alpha.4",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },

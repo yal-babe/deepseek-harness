@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { SessionId, SessionSeq, type SessionEvent } from '@deepseek-ai/dsh-session'
 import UsageStats from '../src/index.ts'
+import { createAssistantMessage } from '@deepseek-ai/dsh-llm'
 
 const seq = (value: number) => SessionSeq(value)
 
@@ -9,23 +10,24 @@ describe('UsageStats.snapshot', () => {
   it('excludes archived sessions', async () => {
     const live = SessionId('live')
     const archived = SessionId('archived')
+    const dispose = vi.fn()
     const events: SessionEvent[] = [{
       type: 'assistant/message',
       seq: seq(1),
       time: 1,
       surfaceOp: 'append',
       data: {
-        turn: 1, step: 1, message: { role: 'assistant', content: [] }, stream: [],
+        turn: 1, step: 1, message: createAssistantMessage({ source: { provider: 'test', model: 'test' }, content: [] }), stream: [],
         usage: { inputTokens: 3, outputTokens: 2 },
       },
-    } as unknown as SessionEvent]
+    } satisfies SessionEvent]
     const ctx = new Context()
     ctx.provide('sessionQuery', {
       listSessions: vi.fn(async () => [
         { header: { id: live }, live: true, persisted: true },
         { header: { id: archived }, live: false, persisted: true },
       ]),
-      readSession: vi.fn(async (id: typeof live) => ({ session: { id }, inheritedEventCount: 0, events })),
+      observeSession: vi.fn(async (id: typeof live) => ({ header: { id }, inheritedEventCount: 0, events, [Symbol.dispose]: dispose })),
       readTitle: vi.fn(async () => ({ title: 'Kept' })),
     })
     ctx.provide('workspaceRegistry', { archivedSessionIds: [archived] })
@@ -33,6 +35,7 @@ describe('UsageStats.snapshot', () => {
     const snapshot = await stats.snapshot(0)
     expect(snapshot.sessions.map(row => row.sessionId)).toEqual(['live'])
     expect(snapshot.totals.uncachedInputTokens).toBe(3)
+    expect(dispose).toHaveBeenCalledOnce()
   })
 
   it('skips unreadable logs and uses the session id when the title is missing', async () => {
@@ -44,10 +47,11 @@ describe('UsageStats.snapshot', () => {
         { header: { id: readable }, live: true, persisted: true },
         { header: { id: broken }, live: true, persisted: true },
       ]),
-      readSession: vi.fn(async (id: typeof readable) => {
+      observeSession: vi.fn(async (id: typeof readable) => {
         if (id === broken) throw new Error('gone')
         return {
-          session: { id },
+          header: { id },
+          [Symbol.dispose]: () => {},
           inheritedEventCount: 0,
           events: [{
             type: 'assistant/message',
@@ -55,10 +59,10 @@ describe('UsageStats.snapshot', () => {
             time: 1,
             surfaceOp: 'append',
             data: {
-              turn: 1, step: 1, message: { role: 'assistant', content: [] }, stream: [],
+              turn: 1, step: 1, message: createAssistantMessage({ source: { provider: 'test', model: 'test' }, content: [] }), stream: [],
               usage: { inputTokens: 1, outputTokens: 0 },
             },
-          } as unknown as SessionEvent],
+          } satisfies SessionEvent],
         }
       }),
       readTitle: vi.fn(async () => undefined),
@@ -74,8 +78,9 @@ describe('UsageStats.snapshot', () => {
     const ctx = new Context()
     ctx.provide('sessionQuery', {
       listSessions: vi.fn(async () => [{ header: { id: live }, live: true, persisted: true }]),
-      readSession: vi.fn(async () => ({
-        session: { id: live },
+      observeSession: vi.fn(async () => ({
+        header: { id: live },
+        [Symbol.dispose]: () => {},
         inheritedEventCount: 0,
         events: [{
           type: 'assistant/message',
@@ -83,10 +88,10 @@ describe('UsageStats.snapshot', () => {
           time: 1,
           surfaceOp: 'append',
           data: {
-            turn: 1, step: 1, message: { role: 'assistant', content: [] }, stream: [],
+            turn: 1, step: 1, message: createAssistantMessage({ source: { provider: 'test', model: 'test' }, content: [] }), stream: [],
             usage: { inputTokens: 1, outputTokens: 0 },
           },
-        } as unknown as SessionEvent],
+        } satisfies SessionEvent],
       })),
       readTitle: vi.fn(async () => { throw new Error('title store down') }),
     })

@@ -45,8 +45,9 @@ Mount the plugin beside `dsh-llm`. The adapter registers immediately. `listModel
 | `oauthRedirectPath` | `/oauth/antigravity/callback` | Host callback pathname when `webServer` is mounted |
 | `apiKeyEnv` | `ANTIGRAVITY_API_KEY` | Credential reference used when no grant is stored |
 | `models` | empty | Advisory catalog; empty fetches Cloud Code after sign-in |
-| `requestTimeoutMs` | `30000` | Deadline for each HTTP request, including token exchange |
-| `streamIdleTimeoutMs` | `300000` | Maximum idle interval while one stream read is outstanding |
+| `requestTimeoutMs` | `30000` | Deadline for non-generation HTTP requests, including token exchange and catalog requests |
+| `generationTimeoutMs` | `600000` | Total deadline for one generation, including setup and streamed output; independent of `requestTimeoutMs` |
+| `streamIdleTimeoutMs` | `300000` | Maximum idle interval while one stream read is outstanding; provider activity rearms this timer but not the generation deadline |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-llm-antigravity) is the exhaustive source for every accepted field.
 
@@ -117,7 +118,7 @@ Conversion preserves logical request order. Changing provider, model, system tex
 
 #### What the model sees
 
-SSE `response.candidates[].content.parts` become harness reasoning, text, and tool-call chunks. Thought parts become reasoning; `functionCall` parts become tool-call chunks whose `arguments` are JSON strings. Usage is emitted before the terminal finish chunk.
+SSE `response.candidates[].content.parts` become harness reasoning, text, and tool-call chunks. Thought parts become reasoning; `functionCall` parts become tool-call chunks whose `arguments` are JSON strings. Tool-call `thoughtSignature` values are retained in block-aligned replay metadata and restored verbatim for history from the same Antigravity model, including after session persistence. Signatures are not reused across models; historical calls recorded without signatures cannot have them reconstructed and may require a new conversation. Usage is emitted before the terminal finish chunk.
 
 #### Token effect
 

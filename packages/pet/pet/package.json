@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-pet",
   "description": "Built-in Studio Pet Host module: folds live Session events into one pet snapshot served on the pet Remote",
-  "version": "0.2.1-alpha.4",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },

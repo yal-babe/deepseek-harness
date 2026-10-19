@@ -21,6 +21,25 @@ HTTP 支持内网使用，但密码和令牌没有传输加密；可选端到端
 
 首次初始化后可以清空部署配置中的 `BOOTSTRAP_PASSWORD`。不要更换或丢失 `MASTER_KEY`：SMTP/S3 凭据和服务备份依赖它解密。数据库备份不替代持久卷和主密钥的运维备份。
 
+## 源码更新
+
+服务端和管理后台没有通过 HTTP 自我升级的接口。Ubuntu 22.04 可使用部署脚本，由运维人员通过命令拉取源码更新，依赖 Git、Docker Compose v2.20 或更新版本、`flock`（util-linux）及 `timeout`（coreutils）。更新会重启单实例并产生短暂中断，不属于滚动部署。应用容器不需要挂载 Docker socket。
+
+使用已有 PostgreSQL 时，先执行 `./deploy.sh http://你的服务器:8788` 生成 `.env`，将其中 `DATABASE_URL` 指向专用数据库和账号，再执行同一命令。`compose.external-pg.yaml` 只启动应用。若 PostgreSQL 安装在同一宿主机，使用 `host.docker.internal`，在 PostgreSQL 监听及认证配置中放行所需容器网段，并保留提供的 host-gateway 映射；容器中的 `localhost` 不指向宿主机。保持部署目录和 Compose 项目名称不变，才能复用已有文件卷。
+
+```sh
+./deploy.sh check
+./deploy.sh update
+```
+
+默认更新来源是 `https://github.com/yal-babe/deepseek-harness.git` 的 `studio/main` 分支，可通过 `STUDIO_UPDATE_REPOSITORY` 和 `STUDIO_UPDATE_BRANCH` 更换；私有仓库使用服务器的 Git 凭据帮助程序或 SSH 配置，不弹出交互登录提示。`check` 获取分支但不重启服务。`update` 仅导出固定提交中的 `services/studio-cloud`，先构建带版本标签的镜像，构建成功后将 `STUDIO_CLOUD_IMAGE` 写入 `.env`，并仅替换 `app`。凭据和其他环境字段保留。Compose 就绪检查和容器健康检查均通过后，才记录成功版本。成功更新后，相同服务源码树不会重复重启。
+
+使用自带 PostgreSQL 的配置时，在默认 `compose.yaml` 下执行 `bash scripts/update.sh check` 和 `bash scripts/update.sh update`。可用 `STUDIO_UPDATE_COMPOSE_FILE` 选择其他接入 `STUDIO_CLOUD_IMAGE` 的配置文件。更新已有部署时，不要切换 Compose 文件、目录或项目名称。旧源码包需要一次性安装新版部署脚本及匹配的 Compose 配置，此后更新应用无需重新传包。远端源码更新不会自动覆盖部署脚本和本地 Compose 配置。
+
+更新前创建并验证专用数据库、文件卷及 `MASTER_KEY` 的完整备份；更新脚本不会自动创建备份。获取或构建失败时，现有镜像选择保持不变。替换容器后健康检查失败，会在 `.studio-update/FAILED` 留下明确失败记录；数据库迁移可能已经提交，因此不会自动降级镜像或数据库。检查应用日志、修复后重试更新，或使用备份恢复匹配的数据库与文件。旧镜像标识和环境配置保留在私有的 `.studio-update/` 中，不要公开该目录。源码缓存和更新锁也使用此目录。
+
+获取、构建和启动的超时预算可通过 `STUDIO_UPDATE_FETCH_TIMEOUT`、`STUDIO_UPDATE_BUILD_TIMEOUT` 和 `STUDIO_UPDATE_START_TIMEOUT` 配置（单位秒，默认 180、900、180）。可执行 `npm run test:update`，在不连接真实数据库或 Docker daemon 的情况下测试更新脚本；测试使用本地 Git 仓库及隔离的 Docker 命令替身验证部署决策和失败处理。
+
 ## 已提供的功能
 
 - 管理员创建个人账号、发出/撤销一次性邀请；无开放注册。

@@ -126,10 +126,11 @@ describe('StudioForm', () => {
       visible: true,
       error: false,
       tokenActivity: {
-        totalTokens: 5000,
+        totalTokens: 5500,
         inputTokens: 3500,
         outputTokens: 1500,
         cacheReadTokens: 500,
+        cacheWriteTokens: 0,
         reasoningTokens: 200,
         turnsCount: 12,
         sessionsCount: 3,
@@ -142,7 +143,7 @@ describe('StudioForm', () => {
 
     render(<StudioForm snapshot={snapshot} t={key => en[key]} {...operations} />)
 
-    expect(screen.getByText(/Total tokens: 5,000/)).toBeDefined()
+    expect(screen.getByText(/Recorded tokens: 5,500/)).toBeDefined()
     expect(screen.getByText(/Input tokens: 3,500/)).toBeDefined()
     expect(screen.getByText(/Turns: 12/)).toBeDefined()
 

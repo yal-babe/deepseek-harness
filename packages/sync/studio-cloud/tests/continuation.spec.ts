@@ -219,7 +219,7 @@ describe('CloudSessions.fork', () => {
             content: [{ type: 'text', text: 'response' }],
             source: { provider: 'deepseek-official', model: 'deepseek-chat' },
           }),
-          usage: { inputTokens: 40, outputTokens: 15, totalTokens: 55, cacheReadTokens: 10, reasoningTokens: 5 },
+          usage: { inputTokens: 40, outputTokens: 15, totalTokens: 65, cacheReadTokens: 10, reasoningTokens: 5 },
         },
       },
       { type: 'step/end', seq: SessionSeq(3), time: 1015, data: { turn: 1, step: 1 } },
@@ -254,10 +254,12 @@ describe('CloudSessions.fork', () => {
 
     const activity = await cloudSessions.tokenActivity()
     expect(activity).toEqual({
-      totalTokens: 55,
+      totalTokens: 65,
       inputTokens: 40,
       outputTokens: 15,
       cacheReadTokens: 10,
+      cacheWriteTokens: 0,
+      cacheWriteUnknown: true,
       reasoningTokens: 5,
       turnsCount: 1,
       sessionsCount: 1,

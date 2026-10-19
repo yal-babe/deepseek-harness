@@ -1,103 +1,50 @@
-/** Deduplicated token activity calculation across synchronized sessions and branches. */
-import { createHash } from 'node:crypto'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+/** Recorded token activity deduplicated by original Session and request position. */
+import { attributeRecordedUsage, type UsageSourceLog } from '@deepseek-ai/dsh-token-meter'
 import type { StudioTokenActivity } from './types.ts'
 
-interface TurnTokens {
-  inputTokens: number
-  outputTokens: number
-  totalTokens: number
-  cacheReadTokens: number
-  reasoningTokens: number
-}
-
-function isCount(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
-}
-
-function extractTurnTokens(events: readonly SessionEvent[]): TurnTokens | undefined {
-  let input = 0
-  let output = 0
-  let total = 0
-  let cacheRead = 0
-  let reasoning = 0
-  let hasUsage = false
-
-  for (const event of events) {
-    if (event.type === 'assistant/message') {
-      const usage = event.data.usage
-      if (usage && isCount(usage.inputTokens) && isCount(usage.outputTokens)) {
-        hasUsage = true
-        input += usage.inputTokens
-        output += usage.outputTokens
-        total += isCount(usage.totalTokens) ? usage.totalTokens : usage.inputTokens + usage.outputTokens
-        if (isCount(usage.cacheReadTokens)) cacheRead += usage.cacheReadTokens
-        if (isCount(usage.reasoningTokens)) reasoning += usage.reasoningTokens
-      }
-    }
-  }
-
-  if (!hasUsage) return undefined
-  return { inputTokens: input, outputTokens: output, totalTokens: total, cacheReadTokens: cacheRead, reasoningTokens: reasoning }
-}
-
 /**
- * Fold turn events across multiple sessions into deduplicated aggregate token metrics.
- * Inherited fork turns produce identical fingerprints and are counted exactly once.
- * @param sessionsEvents - complete contiguous event logs for each synchronized session.
- * @returns validated aggregate token counts and counts of evaluated turns/sessions.
+ * Aggregate known request usage across synchronized histories and fork prefixes.
+ * @param sessions - original source identities, exact inherited prefixes, and optional source ranges.
+ * @returns known totals with missing provider usage or ancestry explicitly labeled incomplete.
  */
-export function calculateTokenActivity(sessionsEvents: readonly (readonly SessionEvent[])[]): StudioTokenActivity {
-  const seenTurns = new Set<string>()
+export function calculateTokenActivity(sessions: readonly UsageSourceLog[]): StudioTokenActivity {
+  const attributed = attributeRecordedUsage(sessions)
+  const turns = new Set<string>()
   let totalTokens = 0
   let inputTokens = 0
   let outputTokens = 0
   let cacheReadTokens = 0
+  let cacheWriteTokens = 0
   let reasoningTokens = 0
-  let turnsCount = 0
-  let sessionsCount = 0
-
-  for (const events of sessionsEvents) {
-    sessionsCount++
-    let currentTurn: SessionEvent[] = []
-    let inTurn = false
-
-    for (const event of events) {
-      if (event.type === 'turn/start') {
-        inTurn = true
-        currentTurn = [event]
-      } else if (inTurn) {
-        currentTurn.push(event)
-        if (event.type === 'turn/end') {
-          inTurn = false
-          const fingerprint = createHash('sha256')
-            .update(JSON.stringify(currentTurn.map(e => [e.type, e.time, e.data])))
-            .digest('hex')
-
-          if (!seenTurns.has(fingerprint)) {
-            seenTurns.add(fingerprint)
-            const turnUsage = extractTurnTokens(currentTurn)
-            if (turnUsage !== undefined) {
-              turnsCount++
-              totalTokens += turnUsage.totalTokens
-              inputTokens += turnUsage.inputTokens
-              outputTokens += turnUsage.outputTokens
-              cacheReadTokens += turnUsage.cacheReadTokens
-              reasoningTokens += turnUsage.reasoningTokens
-            }
-          }
-        }
-      }
+  let incomplete = attributed.incomplete
+  let cacheReadUnknown = false
+  let cacheWriteUnknown = false
+  let reasoningUnknown = false
+  for (const { sourceSessionId, attempt } of attributed.attempts) {
+    const usage = attempt.usage
+    if (usage === undefined) {
+      incomplete = true
+      cacheReadUnknown = cacheWriteUnknown = reasoningUnknown = true
+      continue
     }
+    turns.add(JSON.stringify([sourceSessionId, attempt.turn]))
+    totalTokens += usage.totalTokens
+    inputTokens += usage.inputTokens
+    outputTokens += usage.outputTokens
+    cacheReadTokens += usage.cacheReadTokens ?? 0
+    cacheWriteTokens += usage.cacheWriteTokens ?? 0
+    reasoningTokens += usage.reasoningTokens ?? 0
+    incomplete ||= usage.incomplete === true
+    cacheReadUnknown ||= usage.cacheReadTokens === undefined
+    cacheWriteUnknown ||= usage.cacheWriteTokens === undefined
+    reasoningUnknown ||= usage.reasoningTokens === undefined
   }
-
   return {
-    totalTokens,
-    inputTokens,
-    outputTokens,
-    cacheReadTokens,
-    reasoningTokens,
-    turnsCount,
-    sessionsCount,
+    totalTokens, inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, reasoningTokens,
+    turnsCount: turns.size, sessionsCount: new Set(sessions.map(log => log.sessionId)).size,
+    ...(incomplete ? { incomplete: true } : {}),
+    ...(cacheReadUnknown ? { cacheReadUnknown: true } : {}),
+    ...(cacheWriteUnknown ? { cacheWriteUnknown: true } : {}),
+    ...(reasoningUnknown ? { reasoningUnknown: true } : {}),
   }
 }

@@ -1,17 +1,12 @@
-/** Cached Host usage snapshot plus live tokenUsage from the open Session. */
+/** Cached Host usage snapshots invalidated by durable Session settlements. */
 
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-token-meter/src/projection.ts'
-import type { UsageSnapshot, UsageTokenTotals } from '@deepseek-ai/dsh-usage-stats/types'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { UsageSnapshot } from '@deepseek-ai/dsh-usage-stats/types'
 import type { AccountWallet, AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { AntigravityQuotaView, CodexQuotaView } from '@deepseek-ai/dsh-api-provider-quota/types'
-
-const emptyTokens = (): UsageTokenTotals => ({
-  uncachedInputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0,
-})
 
 /** Viewing grain for the heatmap. */
 export type HeatmapMode = 'daily' | 'weekly' | 'cumulative'
@@ -44,7 +39,7 @@ export interface PersonalCenterState {
 }
 
 function cacheKey(): string {
-  return `dsh.usage-stats.v1:${typeof location === 'undefined' ? 'local' : location.host}`
+  return `dsh.usage-stats.v2:${typeof location === 'undefined' ? 'local' : location.host}`
 }
 
 /**
@@ -54,6 +49,10 @@ export class PersonalCenterStore {
   /** Snapshot store holding the latest personal center state. */
   readonly store: SnapshotStore<PersonalCenterState>
   private generation = 0
+  private disposed = false
+  private readonly usageObservers = new Set<symbol>()
+  private usageDirty = false
+  private usageRefresh: Promise<void> | undefined
 
   /**
    * @param ctx - Client context with usageStats Remote and optional live Sessions.
@@ -71,6 +70,8 @@ export class PersonalCenterStore {
 
   /** Drop in-flight loads. */
   dispose(): void {
+    this.disposed = true
+    this.usageObservers.clear()
     this.generation += 1
   }
 
@@ -78,47 +79,15 @@ export class PersonalCenterStore {
    * Open the panel: paint cache, then refresh Host usage and quota.
    */
   async load(): Promise<void> {
+    if (this.disposed) return
     const generation = ++this.generation
     const current = this.store.getSnapshot()
-    this.store.set({
-      ...current,
-      status: current.usage === null ? 'loading' : current.status,
-    })
-    const offset = -new Date().getTimezoneOffset() * 60
-    try {
-      const [result, deepseek, quota] = await Promise.all([
-        this.ctx.remote.usageStats.snapshot(offset),
-        this.loadDeepSeek(),
-        this.loadQuota(),
-      ])
-      if (generation !== this.generation) return
-      if (!result.ok) {
-        this.store.set({
-          ...this.store.getSnapshot(),
-          deepseek,
-          quota,
-          status: current.usage === null ? 'error' : 'ready',
-          cached: current.usage !== null,
-        })
-        return
-      }
-      writeCache(result.value)
-      this.store.set({
-        ...this.store.getSnapshot(),
-        status: 'ready',
-        usage: result.value,
-        deepseek,
-        quota,
-        cached: false,
-      })
-    } catch (_usageUnavailable) {
-      if (generation !== this.generation) return
-      this.store.set({
-        ...this.store.getSnapshot(),
-        status: current.usage === null ? 'error' : 'ready',
-        cached: current.usage !== null,
-      })
-    }
+    this.store.set({ ...current, status: current.usage === null ? 'loading' : current.status })
+    const [, deepseek, quota] = await Promise.all([
+      this.refreshUsage(), this.loadDeepSeek(), this.loadQuota(),
+    ])
+    if (this.disposed || generation !== this.generation) return
+    this.store.set({ ...this.store.getSnapshot(), deepseek, quota })
   }
 
   private async loadQuota(): Promise<PersonalQuotaSnapshot> {
@@ -160,37 +129,52 @@ export class PersonalCenterStore {
   }
 
   /**
-   * Replace the current session's token row from the live projection.
-   * @param sessionId - open session.
-   * @param tokens - latest tokenUsage totals.
+   * Keep automatic usage refresh active while one summary is visible.
+   * @returns an idempotent release operation for the mounted summary.
    */
-  mergeSession(sessionId: SessionId, tokens: UsageTokenTotals): void {
+  observeUsage(): () => void {
+    const observer = Symbol()
+    if (!this.disposed) this.usageObservers.add(observer)
+    return () => { this.usageObservers.delete(observer) }
+  }
+
+  /**
+   * Refresh usage after a durable settlement without querying provider balances.
+   * Concurrent notifications share one operation; an in-flight change requests a fresh snapshot.
+   * @param visibleOnly - skip automatic notifications when no summary is visible; explicit loads always refresh.
+   * @returns completion of the coalesced Host refresh.
+   */
+  refreshUsage(visibleOnly = false): Promise<void> {
+    if (visibleOnly && this.usageObservers.size === 0) return Promise.resolve()
     const current = this.store.getSnapshot()
-    if (current.usage === null) return
-    const usage = structuredClone(current.usage)
-    const existing = usage.sessions.find(row => row.sessionId === String(sessionId))
-    const previous = existing?.tokens ?? emptyTokens()
-    if (existing === undefined) {
-      usage.sessions.unshift({
-        sessionId: String(sessionId),
-        title: String(sessionId),
-        tokens,
-        updatedAt: Date.now(),
-      })
-      usage.sessionCount += 1
-    } else {
-      existing.tokens = tokens
-      existing.updatedAt = Date.now()
-    }
-    addDelta(usage.totals, previous, tokens)
-    const today = localDay(Date.now(), usage.timezoneOffsetSeconds)
-    const day = usage.days.find(row => row.day === today)
-    if (day !== undefined) addDelta(day.tokens, previous, tokens)
-    else {
-      usage.days.push({ day: today, tokens: { ...tokens }, sessionCount: 1, toolCalls: 0 })
-    }
-    writeCache(usage)
-    this.store.set({ ...current, usage, status: 'ready' })
+    if (this.disposed || (current.usage === null && current.status === 'idle')) return Promise.resolve()
+    this.usageDirty = true
+    if (this.usageRefresh !== undefined) return this.usageRefresh
+    this.usageRefresh = Promise.resolve().then(async () => {
+      while (this.usageDirty && !this.disposed) {
+        this.usageDirty = false
+        try {
+          const result = await this.ctx.remote.usageStats.snapshot(-new Date().getTimezoneOffset() * 60)
+          if (this.disposed) return
+          if (this.usageDirty) continue
+          if (!result.ok) {
+            const snapshot = this.store.getSnapshot()
+            this.store.set({ ...snapshot, status: snapshot.usage === null ? 'error' : 'ready', cached: snapshot.usage !== null })
+            return
+          }
+          writeCache(result.value)
+          this.store.set({ ...this.store.getSnapshot(), status: 'ready', usage: result.value, cached: false })
+        } catch (_usageUnavailable) {
+          if (this.usageDirty && !this.disposed) continue
+          if (!this.disposed) {
+            const snapshot = this.store.getSnapshot()
+            this.store.set({ ...snapshot, status: snapshot.usage === null ? 'error' : 'ready', cached: snapshot.usage !== null })
+          }
+          return
+        }
+      }
+    }).finally(() => { this.usageRefresh = undefined })
+    return this.usageRefresh
   }
 
   /**
@@ -230,13 +214,6 @@ function writeCache(usage: UsageSnapshot): void {
   }
 }
 
-function addDelta(into: UsageTokenTotals, previous: UsageTokenTotals, next: UsageTokenTotals): void {
-  into.uncachedInputTokens += next.uncachedInputTokens - previous.uncachedInputTokens
-  into.cacheReadTokens += next.cacheReadTokens - previous.cacheReadTokens
-  into.cacheWriteTokens += next.cacheWriteTokens - previous.cacheWriteTokens
-  into.outputTokens += next.outputTokens - previous.outputTokens
-}
-
 function accountClient(locale: string, version: string | undefined): AccountClientMetadata {
   if (version === undefined || version === '') throw new Error('account: this client build carries no DSH_CLIENT_VERSION')
   return { version, locale, timezoneOffsetSeconds: -new Date().getTimezoneOffset() * 60 }
@@ -265,12 +242,4 @@ function failedCodex(): CodexQuotaView {
 
 function failedAntigravity(): AntigravityQuotaView {
   return { provider: 'antigravity', status: 'failed', plan: null, tierId: null, groups: [] }
-}
-
-function localDay(ms: number, offsetSeconds: number): string {
-  const local = new Date(ms + offsetSeconds * 1000)
-  const year = local.getUTCFullYear()
-  const month = String(local.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(local.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }

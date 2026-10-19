@@ -1,0 +1,110 @@
+{
+  "totals": {
+    "uncachedInputTokens": 25,
+    "cacheReadTokens": 0,
+    "cacheWriteTokens": 0,
+    "outputTokens": 7,
+    "cacheReadUnknown": true,
+    "cacheWriteUnknown": true,
+    "totalTokens": 38
+  },
+  "models": [
+    {
+      "provider": "first",
+      "model": "same",
+      "tokens": {
+        "uncachedInputTokens": 14,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 4,
+        "cacheReadUnknown": true,
+        "cacheWriteUnknown": true,
+        "totalTokens": 21
+      }
+    },
+    {
+      "provider": "second",
+      "model": "same",
+      "tokens": {
+        "uncachedInputTokens": 11,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 3,
+        "cacheReadUnknown": true,
+        "cacheWriteUnknown": true,
+        "totalTokens": 17
+      }
+    }
+  ],
+  "days": [
+    {
+      "day": "2026-10-18",
+      "tokens": {
+        "uncachedInputTokens": 8,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 2
+      },
+      "sessionCount": 2,
+      "toolCalls": 0
+    },
+    {
+      "day": "2026-10-19",
+      "tokens": {
+        "uncachedInputTokens": 17,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 5,
+        "cacheReadUnknown": true,
+        "cacheWriteUnknown": true,
+        "totalTokens": 28
+      },
+      "sessionCount": 3,
+      "toolCalls": 2
+    }
+  ],
+  "sessions": [
+    {
+      "sessionId": "child",
+      "title": "child",
+      "tokens": {
+        "uncachedInputTokens": 14,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 4,
+        "cacheReadUnknown": true,
+        "cacheWriteUnknown": true,
+        "totalTokens": 21
+      },
+      "updatedAt": 1792368001001
+    },
+    {
+      "sessionId": "independent",
+      "title": "independent",
+      "tokens": {
+        "uncachedInputTokens": 11,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 3,
+        "cacheReadUnknown": true,
+        "cacheWriteUnknown": true,
+        "totalTokens": 17
+      },
+      "updatedAt": 1792368001001
+    },
+    {
+      "sessionId": "parent",
+      "title": "parent",
+      "tokens": {
+        "uncachedInputTokens": 11,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "outputTokens": 3,
+        "cacheReadUnknown": true,
+        "cacheWriteUnknown": true,
+        "totalTokens": 17
+      },
+      "updatedAt": 1792368001001
+    }
+  ]
+}

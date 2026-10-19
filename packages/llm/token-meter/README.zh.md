@@ -54,6 +54,10 @@ const price = ctx.tokenMeter.estimateMessage(message)
 
 `deriveTurnTokenUsage(events)` 为浏览器消费方把一个完整轮次折叠为经校验的逐次尝试与整轮用量。生命周期证据缺失、计数不安全或精确总量矛盾时不返回结果；只有每次参与的尝试都报告可选缓存、推理或路由值时，相应汇总才会出现。
 
+`collectRecordedUsage(events)` 向 Host 历史消费方提供持久调用统计。它复用轮次统计的标准化规则，支持最终消息或内嵌流用量，区分重试，并明确记录缺失用量。它不估算请求、不改变上下文压力，也不识别分支来源；调用方提供 Session 标识及继承前缀长度。
+
+`resolveUsageSources(log, logs)` 根据已知祖先或持久化来源区间解析原始事件位置归属。`attributeRecordedUsage(logs)` 按原始 Session ID 和首次结算位置去重，保留后续替换样本。祖先缺失及相互矛盾的副本会被排除并标记不完整，不根据内容、时间戳或种子标记相同来推断。这些辅助函数不修改 Session 日志或 Agent 执行。
+
 ### 组合
 
 ```yaml

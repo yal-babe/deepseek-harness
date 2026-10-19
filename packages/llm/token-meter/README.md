@@ -54,6 +54,10 @@ Image offload reprices existing node identities while preserving prior usage anc
 
 `deriveTurnTokenUsage(events)` folds one complete turn into validated per-attempt and whole-turn usage for browser consumers. It returns no result when lifecycle evidence is missing, counts are unsafe, or exact totals conflict; each corresponding aggregate appears only when every participating attempt reports its optional cache, reasoning, or route value.
 
+`collectRecordedUsage(events)` exposes durable per-call accounting to Host history consumers. It uses the same normalization as turn accounting, accepts final message or embedded stream usage, separates retries, and records missing usage explicitly. It does not estimate requests, change context pressure, or identify fork origins; callers supply Session identities and inherited prefix lengths.
+
+`resolveUsageSources(log, logs)` resolves original event-position ranges from known ancestors or persisted source ranges. `attributeRecordedUsage(logs)` deduplicates the original Session ID and first settlement position, retaining later replacement samples. Missing ancestors and contradictory copies are excluded with an incomplete indication, never inferred from matching contents, timestamps, or seed markers. These helpers do not modify Session logs or Agent execution.
+
 ### Composition
 
 ```yaml

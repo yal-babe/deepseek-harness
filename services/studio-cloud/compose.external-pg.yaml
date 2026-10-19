@@ -1,0 +1,22 @@
+services:
+  app:
+    image: ${STUDIO_CLOUD_IMAGE:-dsh-studio-cloud:local}
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8788}:8788"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to your existing PostgreSQL database}
+      MASTER_KEY: ${MASTER_KEY:?Set MASTER_KEY to 64 random hex characters}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8788}
+      ALLOW_HTTP: ${ALLOW_HTTP:-false}
+      BOOTSTRAP_ADMIN: ${BOOTSTRAP_ADMIN:-admin}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
+      DATA_DIR: /service/data
+    volumes:
+      - app-data:/service/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  app-data:

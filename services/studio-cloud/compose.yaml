@@ -1,5 +1,6 @@
 services:
   app:
+    image: ${STUDIO_CLOUD_IMAGE:-dsh-studio-cloud:local}
     build: .
     restart: unless-stopped
     ports:

@@ -25,7 +25,7 @@ Host Remote that folds unarchived Session logs into local usage statistics for P
 <a id="use-this-package"></a>
 ## Use this package
 
-Base-backed Web profiles compose this service next to session-query. Personal Center calls `usageStats.snapshot(timezoneOffsetSeconds)` with seconds east of UTC. The Client may cache the last snapshot in `localStorage` and merge the open session's live `tokenUsage` projection; the Host snapshot remains the authority for unarchived history.
+Base-backed Web profiles compose this service next to session-query. Personal Center calls `usageStats.snapshot(timezoneOffsetSeconds)` with seconds east of UTC. The Client caches the last snapshot in `localStorage`; changes to live `tokenUsage` request a coalesced Host refresh while a summary is visible instead of modifying calendar buckets in the browser. Opening a hidden summary explicitly refreshes it.
 
 -----
 
@@ -35,7 +35,7 @@ Base-backed Web profiles compose this service next to session-query. Personal Ce
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-`UsageStats` is a `TypertRemoteService` namespace `usageStats`. `snapshot` lists sessions through `sessionQuery`, skips ids in `workspaceRegistry.archivedSessionIds` when that service exists, and folds `assistant/message` usage, `tool/call` names, and `request/context` model ids into day buckets in the Client-supplied offset. Recents omit sessions whose folded token total is zero; `sessionCount` still counts every unarchived session.
+`UsageStats` is a `TypertRemoteService` namespace `usageStats`. `snapshot` lists sessions through `sessionQuery`, excludes archived workspace ids, and uses token-meter's shared request accounting for message and failed-attempt settlements, including embedded stream usage. Final samples replace earlier samples within one attempt; retries contribute separate calls. Calls retain their settlement dates and provider/model attribution. Exact provider totals are preserved independently of cache details; missing or invalid usage marks totals incomplete, and missing cache buckets remain unknown. Global totals, model rows, and day buckets count original source positions once; inherited tool calls and activity are excluded from child contributions. Per-Session rows include the full inherited prefix, matching chat consumption, so those rows must not be summed to reconstruct the global total. Recents omit known zero-total sessions but retain unavailable usage; `sessionCount` counts every unarchived session. Session observations reuse session-query's bounded, revision-checked preparation cache; each observation lease is released before the next read.
 
 </details>
 

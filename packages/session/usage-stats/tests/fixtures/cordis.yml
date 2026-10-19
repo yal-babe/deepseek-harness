@@ -1,0 +1,12 @@
+- name: cordis:usage-test-sessions
+- name: cordis:usage-test-persistence
+  config:
+    root: __SESSION_ROOT__
+    compression: none
+- name: cordis:usage-test-query
+  config:
+    path: ':memory:'
+    openAt: never
+- name: cordis:usage-test-projections
+- name: cordis:usage-test-meter
+- name: cordis:usage-test-stats

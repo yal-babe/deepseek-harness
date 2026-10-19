@@ -16,6 +16,7 @@ import css from './PetUsageSummary.module.css'
 export function PetUsageSummary({ visible, sessionId, taskState, balanceRequest, reportBalance, t, controller, useSnapshot }:
   Pick<PropsRuntime<'pet.panel.metrics'>, 'visible' | 'sessionId' | 'taskState' | 'balanceRequest' | 'reportBalance'> & PersonalCenterPageProps) {
   const state = useSnapshot(value => value)
+  useEffect(() => visible ? controller.observeUsage() : undefined, [visible, controller])
   const previous = useRef({ visible: false, taskState })
   useEffect(() => {
     const opened = visible && !previous.current.visible
@@ -31,8 +32,10 @@ export function PetUsageSummary({ visible, sessionId, taskState, balanceRequest,
     const report = (): void => { reportBalance?.(petBalanceReadings(controller.store.getSnapshot(), t)) }
     void controller.load().then(report, report)
   }, [balanceRequest, controller])
-  const number = (tokens: UsageTokenTotals): string =>
-    (tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens).toLocaleString(t('numberLocale'))
+  const number = (tokens: UsageTokenTotals): string => {
+    const total = tokens.totalTokens ?? tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens
+    return total === 0 && tokens.incomplete ? t('balanceUnavailable') : total.toLocaleString(t('numberLocale'))
+  }
   const current = state.usage?.sessions.find(row => row.sessionId === sessionId)
   const wallets = state.deepseek.wallets
   return <section className={css.summary} aria-label={t('petTokens')} aria-busy={state.status === 'loading'}>
@@ -47,6 +50,7 @@ export function PetUsageSummary({ visible, sessionId, taskState, balanceRequest,
       <span>{t('bonusBalance')}</span><span>{wallet.currency} {wallet.balance}</span>
     </div>)}
     <small>{t('petScope')}</small>
+    {state.usage?.totals.incomplete && <small>{t('partialUsage')}</small>}
     {state.usage !== null && <small>{state.cached ? t('petCached') : t('petUpdated')} · {new Date(state.usage.generatedAt).toLocaleTimeString(t('numberLocale'))}</small>}
     <Button size="sm" variant="ghost" onClick={() => { void controller.load() }}>{t('petRefresh')}</Button>
   </section>

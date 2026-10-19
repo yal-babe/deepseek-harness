@@ -3,6 +3,7 @@
  */
 
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import { collectRecordedUsage, type RecordedUsageAttempt } from '@deepseek-ai/dsh-token-meter'
 import type {
   UsageDayBucket,
   UsageModelRow,
@@ -24,9 +25,11 @@ export interface FoldedSession {
   sessionId: string
   title: string
   tokens: UsageTokenTotals
+  /** Complete logical Session consumption, including inherited requests, for per-Session display. */
+  sessionTokens: UsageTokenTotals
   updatedAt: number
   toolCalls: Map<string, number>
-  models: Map<string, UsageTokenTotals>
+  models: Map<string, UsageModelRow>
   days: Map<string, { tokens: UsageTokenTotals; toolCalls: number }>
 }
 
@@ -50,10 +53,16 @@ export function dayKey(ms: number, timezoneOffsetSeconds: number): string {
  * @param add - increment.
  */
 export function addTokens(into: UsageTokenTotals, add: UsageTokenTotals): void {
+  const total = totalOf(into) + totalOf(add)
+  if (add.incomplete) into.incomplete = true
+  if (add.cacheReadUnknown) into.cacheReadUnknown = true
+  if (add.cacheWriteUnknown) into.cacheWriteUnknown = true
   into.uncachedInputTokens += add.uncachedInputTokens
   into.cacheReadTokens += add.cacheReadTokens
   into.cacheWriteTokens += add.cacheWriteTokens
   into.outputTokens += add.outputTokens
+  delete into.totalTokens
+  if (total !== totalOf(into)) into.totalTokens = total
 }
 
 /**
@@ -62,6 +71,8 @@ export function addTokens(into: UsageTokenTotals, add: UsageTokenTotals): void {
  * @param title - latest title, or the id when none exists.
  * @param events - complete raw log.
  * @param timezoneOffsetSeconds - seconds east of UTC.
+ * @param attempts - deduplicated request settlements assigned to this session; defaults to its full log.
+ * @param inheritedEventCount - copied prefix omitted from tool and activity counts.
  * @returns Folded session statistics.
  */
 export function foldSessionUsage(
@@ -69,36 +80,44 @@ export function foldSessionUsage(
   title: string,
   events: readonly SessionEvent[],
   timezoneOffsetSeconds: number,
+  attempts?: readonly RecordedUsageAttempt[],
+  inheritedEventCount = 0,
 ): FoldedSession {
+  const recorded = collectRecordedUsage(events)
+  const sessionTokens = emptyTokens()
+  for (const attempt of recorded) addTokens(sessionTokens, attemptTokens(attempt))
   const tokens = emptyTokens()
   const toolCalls = new Map<string, number>()
-  const models = new Map<string, UsageTokenTotals>()
+  const models = new Map<string, UsageModelRow>()
   const days = new Map<string, { tokens: UsageTokenTotals; toolCalls: number }>()
-  let model = 'unknown'
   let updatedAt = 0
   for (const event of events) {
+    if (event.seq < inheritedEventCount) continue
     if (event.time > updatedAt) updatedAt = event.time
     const day = dayKey(event.time, timezoneOffsetSeconds)
     const bucket = days.get(day) ?? { tokens: emptyTokens(), toolCalls: 0 }
     if (!days.has(day)) days.set(day, bucket)
-    if (event.type === 'request/context') {
-      model = event.data.model
-      continue
-    }
     if (event.type === 'tool/call') {
       toolCalls.set(event.data.name, (toolCalls.get(event.data.name) ?? 0) + 1)
       bucket.toolCalls += 1
       continue
     }
-    if (event.type !== 'assistant/message' || event.data.usage === undefined) continue
-    const usage = tokensOf(event.data.usage)
+  }
+  for (const attempt of attempts ?? recorded) {
+    const day = dayKey(attempt.time, timezoneOffsetSeconds)
+    const bucket = days.get(day) ?? { tokens: emptyTokens(), toolCalls: 0 }
+    days.set(day, bucket)
+    const usage = attemptTokens(attempt)
     addTokens(tokens, usage)
     addTokens(bucket.tokens, usage)
-    const modelTokens = models.get(model) ?? emptyTokens()
-    if (!models.has(model)) models.set(model, modelTokens)
-    addTokens(modelTokens, usage)
+    const provider = attempt.route?.provider ?? 'unknown'
+    const model = attempt.route?.model ?? 'unknown'
+    const key = JSON.stringify([provider, model])
+    const row = models.get(key) ?? { provider, model, tokens: emptyTokens() }
+    models.set(key, row)
+    addTokens(row.tokens, usage)
   }
-  return { sessionId, title, tokens, updatedAt, toolCalls, models, days }
+  return { sessionId, title, tokens, sessionTokens, updatedAt, toolCalls, models, days }
 }
 
 /**
@@ -116,7 +135,7 @@ export function assembleSnapshot(
   const totals = emptyTokens()
   let toolCalls = 0
   const dayMap = new Map<string, UsageDayBucket>()
-  const modelMap = new Map<string, UsageTokenTotals>()
+  const modelMap = new Map<string, UsageModelRow>()
   const toolMap = new Map<string, number>()
   const sessionRows: UsageSessionRow[] = []
   for (const session of sessions) {
@@ -124,17 +143,17 @@ export function assembleSnapshot(
     sessionRows.push({
       sessionId: session.sessionId,
       title: session.title,
-      tokens: session.tokens,
+      tokens: session.sessionTokens,
       updatedAt: session.updatedAt,
     })
     for (const [name, count] of session.toolCalls) {
       toolCalls += count
       toolMap.set(name, (toolMap.get(name) ?? 0) + count)
     }
-    for (const [model, tokens] of session.models) {
-      const row = modelMap.get(model) ?? emptyTokens()
-      if (!modelMap.has(model)) modelMap.set(model, row)
-      addTokens(row, tokens)
+    for (const [key, row] of session.models) {
+      const previous = modelMap.get(key) ?? { provider: row.provider, model: row.model, tokens: emptyTokens() }
+      modelMap.set(key, previous)
+      addTokens(previous.tokens, row.tokens)
     }
     for (const [day, bucket] of session.days) {
       const row = dayMap.get(day) ?? {
@@ -150,10 +169,9 @@ export function assembleSnapshot(
     }
   }
   sessionRows.sort((left, right) => right.updatedAt - left.updatedAt)
-  const recents = sessionRows.filter(row => totalOf(row.tokens) > 0)
+  const recents = sessionRows.filter(row => totalOf(row.tokens) > 0 || row.tokens.incomplete)
   const days = [...dayMap.values()].sort((left, right) => left.day.localeCompare(right.day))
-  const models: UsageModelRow[] = [...modelMap.entries()]
-    .map(([model, tokens]) => ({ model, tokens }))
+  const models: UsageModelRow[] = [...modelMap.values()]
     .sort((left, right) => totalOf(right.tokens) - totalOf(left.tokens))
   const tools: UsageToolRow[] = [...toolMap.entries()]
     .map(([name, count]) => ({ name, count }))
@@ -171,6 +189,17 @@ export function assembleSnapshot(
   }
 }
 
+function attemptTokens(attempt: RecordedUsageAttempt): UsageTokenTotals {
+  return attempt.usage === undefined
+    ? { ...emptyTokens(), incomplete: true, cacheReadUnknown: true, cacheWriteUnknown: true }
+    : {
+      ...tokensOf(attempt.usage), totalTokens: attempt.usage.totalTokens,
+      ...(attempt.usage.incomplete ? { incomplete: true } : {}),
+      ...(attempt.usage.cacheReadTokens === undefined ? { cacheReadUnknown: true } : {}),
+      ...(attempt.usage.cacheWriteTokens === undefined ? { cacheWriteUnknown: true } : {}),
+    }
+}
+
 function tokensOf(usage: {
   inputTokens: number
   outputTokens: number
@@ -186,5 +215,5 @@ function tokensOf(usage: {
 }
 
 function totalOf(tokens: UsageTokenTotals): number {
-  return tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens
+  return tokens.totalTokens ?? tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens
 }

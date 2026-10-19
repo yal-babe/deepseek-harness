@@ -350,7 +350,7 @@ describe('measured walking', () => {
   const move = { direction: 'left' as const, travel: [0, 0, 10, 20, 20], leadMs: 0, tailMs: 0 }
   const walking: PetMotionView = {
     ...motion, width: 412,
-    clips: { ...motion.clips, crab: { ...clip('crab'), frames: 5, move }, look_around: { ...clip('look_around'), turn: true } },
+    clips: { ...motion.clips, crab: { ...clip('crab'), move }, look_around: { ...clip('look_around'), turn: true } },
     categories: [{ id: 'small', label: { zh: '甲', en: 'A' }, weight: 1, life: ['idle'], clips: ['idle_stretch'] }],
     chain: { idle: 10, turn: 5, move: 5 },
   }
@@ -365,7 +365,9 @@ describe('measured walking', () => {
     expect(nextAutonomousClip(walking, 'idle', undefined, undefined, sequence(0.9, 0), { allowed: false, room: () => true })).toBe('idle_stretch')
     // Play and packs without weights keep the category chain.
     expect(nextAutonomousClip(walking, 'play', undefined, undefined, sequence(0.9, 0), open)).toBeUndefined()
-    expect(nextAutonomousClip({ ...walking, chain: undefined }, 'idle', undefined, undefined, sequence(0.9, 0), open)).toBe('idle_stretch')
+    const withoutChain = { ...walking }
+    delete withoutChain.chain
+    expect(nextAutonomousClip(withoutChain, 'idle', undefined, undefined, sequence(0.9, 0), open)).toBe('idle_stretch')
     expect(nextAutonomousClip({ ...walking, chain: { idle: 0, turn: 0, move: 0 } }, 'idle', undefined, undefined, sequence(0.9, 0), open))
       .toBe('idle_stretch')
   })

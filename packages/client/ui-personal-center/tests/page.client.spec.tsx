@@ -16,7 +16,7 @@ const usage: UsageSnapshot = {
   sessionCount: 1,
   toolCalls: 3,
   days: [{ day: '2026-10-15', tokens: { uncachedInputTokens: 10, cacheReadTokens: 2, cacheWriteTokens: 1, outputTokens: 4 }, sessionCount: 1, toolCalls: 3 }],
-  models: [{ model: 'deepseek-v4-flash', tokens: { uncachedInputTokens: 10, cacheReadTokens: 2, cacheWriteTokens: 1, outputTokens: 4 } }],
+  models: [{ provider: 'deepseek', model: 'deepseek-v4-flash', tokens: { uncachedInputTokens: 10, cacheReadTokens: 2, cacheWriteTokens: 1, outputTokens: 4 } }],
   tools: [{ name: 'bash', count: 3 }],
   sessions: [
     { sessionId: 'empty', title: 'Empty', tokens: { uncachedInputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 }, updatedAt: 1 },
@@ -28,6 +28,7 @@ it('renders KPIs, heatmap modes, and opens a recent session', () => {
   const openSession = vi.fn()
   const controller = {
     load: vi.fn(async () => {}),
+    observeUsage: vi.fn(() => () => {}),
     setHeatmap: vi.fn(),
     store: createSnapshotStore<PersonalCenterState>({
       status: 'ready',
@@ -38,12 +39,13 @@ it('renders KPIs, heatmap modes, and opens a recent session', () => {
       cached: false,
     }),
   } as unknown as PersonalCenterStore
-  render(<PersonalCenterPage
+  const view = () => <PersonalCenterPage
     t={key => (en as Record<string, string>)[key] ?? key}
     controller={controller}
     useSnapshot={selector => selector(controller.store.getSnapshot())}
     openSession={openSession}
-  />)
+  />
+  const { rerender } = render(view())
   expect(screen.getByText(en.title)).toBeTruthy()
   expect(screen.getByText('bash')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: en.weekly }))
@@ -51,11 +53,30 @@ it('renders KPIs, heatmap modes, and opens a recent session', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Demo' }))
   expect(openSession).toHaveBeenCalled()
   expect(screen.queryByRole('button', { name: 'Empty' })).toBeNull()
+  controller.store.set({
+    ...controller.store.getSnapshot(),
+    usage: { ...usage, totals: { ...usage.totals, totalTokens: 500, cacheReadUnknown: true, cacheWriteUnknown: true } },
+  })
+  rerender(view())
+  expect(screen.getByText(en.allTime, { selector: 'span' }).parentElement?.textContent).toContain('500')
+  expect(screen.getByText(en.cacheRead).parentElement?.textContent).toContain(en.balanceUnavailable)
+  expect(screen.getByText(en.cacheWrite).parentElement?.textContent).toContain(en.balanceUnavailable)
+  const unknown = { ...emptyDay(0), incomplete: true }
+  controller.store.set({
+    ...controller.store.getSnapshot(),
+    usage: { ...usage, totals: unknown, sessions: [{ ...usage.sessions[1]!, tokens: unknown }] },
+  })
+  rerender(view())
+  expect(screen.getByText(en.partialUsage)).toBeTruthy()
+  expect(screen.getByText(en.allTime, { selector: 'span' }).parentElement?.textContent).toContain(en.balanceUnavailable)
+  expect(screen.getByText(en.today).parentElement?.textContent).toContain(en.balanceUnavailable)
+  expect(screen.getByRole('button', { name: 'Demo' }).textContent).toContain(en.balanceUnavailable)
 })
 
 it('renders weekly and cumulative heatmaps and retries a cached failure', () => {
   const controller = {
     load: vi.fn(async () => {}),
+    observeUsage: vi.fn(() => () => {}),
     setHeatmap: vi.fn(),
     store: createSnapshotStore<PersonalCenterState>({
       status: 'error',
@@ -103,6 +124,7 @@ it('renders weekly and cumulative heatmaps and retries a cached failure', () => 
 it('shows a skeleton while the first snapshot is loading', () => {
   const controller = {
     load: vi.fn(async () => {}),
+    observeUsage: vi.fn(() => () => {}),
     setHeatmap: vi.fn(),
     store: createSnapshotStore<PersonalCenterState>({
       status: 'loading',
@@ -127,12 +149,13 @@ it('formats large token totals and empty heatmaps', () => {
     ...usage,
     totals: { uncachedInputTokens: 2_000_000, cacheReadTokens: 1_500, cacheWriteTokens: 0, outputTokens: 0 },
     days: [],
-    models: [{ model: '', tokens: usage.totals }],
+    models: [{ provider: 'deepseek', model: '', tokens: usage.totals }],
     tools: [],
     sessions: [],
   }
   const controller = {
     load: vi.fn(async () => {}),
+    observeUsage: vi.fn(() => () => {}),
     setHeatmap: vi.fn(),
     store: createSnapshotStore<PersonalCenterState>({
       status: 'ready',
@@ -165,6 +188,7 @@ it('formats large token totals and empty heatmaps', () => {
 it('renders ready KPIs when usage is still null', () => {
   const controller = {
     load: vi.fn(async () => {}),
+    observeUsage: vi.fn(() => () => {}),
     setHeatmap: vi.fn(),
     store: createSnapshotStore<PersonalCenterState>({
       status: 'ready',
@@ -187,6 +211,7 @@ it('renders ready KPIs when usage is still null', () => {
 it('shows the empty error when no cache exists', () => {
   const controller = {
     load: vi.fn(async () => {}),
+    observeUsage: vi.fn(() => () => {}),
     setHeatmap: vi.fn(),
     store: createSnapshotStore<PersonalCenterState>({
       status: 'error',
@@ -209,6 +234,7 @@ it('shows the empty error when no cache exists', () => {
 it('paints heatmap intensity from zero through the highest bucket', () => {
   const controller = {
     load: vi.fn(async () => {}),
+    observeUsage: vi.fn(() => () => {}),
     setHeatmap: vi.fn(),
     store: createSnapshotStore<PersonalCenterState>({
       status: 'ready',

@@ -27,7 +27,7 @@ Desktop 产品事件走可选的[产品分析服务](../product-analytics/README
 <a id="use-this-package"></a>
 ## 使用本包
 
-Web profile 挂载本插件。侧栏 **个人中心**（`sidebar.panellist` id `personal-center`，order 5）打开同 id 的主面板。打开面板时若有 `localStorage` 快照先绘制，再刷新 Host `usageStats` 与 `providerQuota`。刷新失败保留缓存并提供重试。点击最近会话会在工作区打开它。已归档会话和 token 为零的会话不会出现在最近列表中。
+Web profile 挂载本插件。侧栏 **个人中心**（`sidebar.panellist` id `personal-center`，order 5）打开同 id 的主面板。打开面板时若有 `localStorage` 快照先绘制，再刷新 Host `usageStats` 与 `providerQuota`。刷新失败保留缓存并提供重试。点击最近会话会在工作区打开它。已归档会话和已知总量为零的会话不会出现在最近列表中；用量不可获取的会话仍可见。
 
 Desktop 侧栏点击上报 `sidebar_menu_click`，`menu_name` 为 `personal`。
 
@@ -39,7 +39,7 @@ Desktop 侧栏点击上报 `sidebar_menu_click`，`menu_name` 为 `personal`。
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-浏览器半边注册侧栏图标（`IconUserOutlineRegular`）与主面板。store 把 `usageStats.snapshot` 缓存在 `dsh.usage-stats.v1:<host>`（不含令牌或凭据），并合并当前打开会话的 `tokenUsage` 投影。额度摘要调用与 [ui-settings-account](../ui-settings-account/README.zh.md) 相同的 `providerQuota` Remote。DeepSeek 名称与余额在同一次刷新中来自 account Remote。
+浏览器半边注册侧栏图标（`IconUserOutlineRegular`）与主面板。store 把 `usageStats.snapshot` 缓存在 `dsh.usage-stats.v2:<host>`，不含凭据。实时 `tokenUsage` 变化仅在页面或宠物摘要可见时请求合并处理的 Host 用量刷新，不查询提供方余额。各可见性租约独立，隐藏或卸载时释放；重新打开时显式刷新快照。浏览器不会把历史消耗移入今天的分桶。总量保留提供方精确计数并标记不完整统计，缺失缓存明细不显示为零。模型行区分提供方／模型组合。额度摘要调用与 [ui-settings-account](../ui-settings-account/README.zh.md) 相同的 `providerQuota` Remote。显式页面刷新还会查询 DeepSeek 名称与余额。
 
 </details>
 

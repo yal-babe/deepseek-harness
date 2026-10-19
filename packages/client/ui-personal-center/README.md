@@ -27,7 +27,7 @@ Sidebar Personal Center: local usage statistics and Codex/Antigravity quota summ
 <a id="use-this-package"></a>
 ## Use this package
 
-Web profiles mount this plugin. **Personal** in the sidebar (`sidebar.panellist` id `personal-center`, order 5) opens the same-id main panel. Opening the panel paints the last `localStorage` snapshot when one exists, then refreshes Host `usageStats` and `providerQuota`. A failed refresh keeps the cache and offers Retry. Clicking a recent session opens it in the workspace. Archived sessions and sessions with zero tokens never appear in recents.
+Web profiles mount this plugin. **Personal** in the sidebar (`sidebar.panellist` id `personal-center`, order 5) opens the same-id main panel. Opening the panel paints the last `localStorage` snapshot when one exists, then refreshes Host `usageStats` and `providerQuota`. A failed refresh keeps the cache and offers Retry. Clicking a recent session opens it in the workspace. Archived sessions and sessions with a known zero total do not appear in recents; unavailable consumption remains visible.
 
 Desktop sidebar clicks report `sidebar_menu_click` with `menu_name` `personal`.
 
@@ -39,7 +39,7 @@ Desktop sidebar clicks report `sidebar_menu_click` with `menu_name` `personal`.
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The browser half registers the sidebar icon (`IconUserOutlineRegular`) and the main panel. The store caches `usageStats.snapshot` under `dsh.usage-stats.v1:<host>` (no tokens or credentials) and merges the open session's `tokenUsage` projection. Quota summaries call the same `providerQuota` Remote as [ui-settings-account](../ui-settings-account/README.md). DeepSeek name and balance come from the account Remote on the same refresh.
+The browser half registers the sidebar icon (`IconUserOutlineRegular`) and the main panel. The store caches `usageStats.snapshot` under `dsh.usage-stats.v2:<host>` without credentials. Live `tokenUsage` changes request a coalesced Host usage refresh only while the page or pet summary is visible, without querying provider balances. Visibility leases are independent and release on hiding or unmounting; reopening explicitly refreshes the snapshot. The browser does not move historical consumption into today's bucket. Totals preserve exact provider counts and label incomplete accounting; unavailable cache details are not displayed as zero. Model rows distinguish provider/model pairs. Quota summaries call the same `providerQuota` Remote as [ui-settings-account](../ui-settings-account/README.md). Explicit page refreshes also query DeepSeek name and balance.
 
 </details>
 

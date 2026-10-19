@@ -3,11 +3,12 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import { snapshotSessionEvent, type SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-query'
 import type {} from '@deepseek-ai/dsh-workspace'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { assembleSnapshot, foldSessionUsage } from './fold.ts'
+import { attributeRecordedUsage, type UsageSourceLog, type RecordedUsageAttempt } from '@deepseek-ai/dsh-token-meter'
 import type { UsageSnapshot } from './types.ts'
 
 export type * from './types.ts'
@@ -40,19 +41,40 @@ export class UsageStats extends TypertRemoteService {
       (this.ctx.get('workspaceRegistry')?.archivedSessionIds ?? []).map(id => String(id)),
     )
     const records = await this.ctx.sessionQuery.listSessions()
-    const folded = []
+    const logs: UsageSourceLog[] = []
+    const titles = new Map<string, string>()
+    let incomplete = false
     for (const record of records) {
       const sessionId = String(record.header.id)
       if (archived.has(sessionId)) continue
-      let events
       try {
-        events = (await this.ctx.sessionQuery.readSession(record.header.id)).events
+        using snapshot = await this.ctx.sessionQuery.observeSession(record.header.id, { projectionMode: 'none' })
+        logs.push({
+          sessionId, parentSessionId: snapshot.header.parentSession ?? null,
+          inheritedEventCount: snapshot.inheritedEventCount, events: snapshot.events.map(snapshotSessionEvent),
+        })
       } catch (_unreadableLog) {
+        incomplete = true
         continue
       }
-      folded.push(foldSessionUsage(sessionId, await this.titleOf(record.header.id, sessionId), events, offset))
+      titles.set(sessionId, await this.titleOf(record.header.id, sessionId))
     }
-    return assembleSnapshot(offset, Date.now(), folded)
+    const attributed = attributeRecordedUsage(logs)
+    const assignments = new Map<string, RecordedUsageAttempt[]>()
+    const ids = new Set(logs.map(log => log.sessionId))
+    for (const record of attributed.attempts) {
+      const owner = ids.has(record.sourceSessionId) ? record.sourceSessionId : record.observedSessionId
+      const attempts = assignments.get(owner) ?? []
+      attempts.push(record.attempt)
+      assignments.set(owner, attempts)
+    }
+    const folded = logs.map(log => foldSessionUsage(
+      log.sessionId, titles.get(log.sessionId) ?? log.sessionId, log.events, offset,
+      assignments.get(log.sessionId) ?? [], log.inheritedEventCount,
+    ))
+    const snapshot = assembleSnapshot(offset, Date.now(), folded)
+    if (incomplete || attributed.incomplete) snapshot.totals.incomplete = true
+    return snapshot
   }
 
   /**

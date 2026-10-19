@@ -31,6 +31,8 @@ The Web and Desktop profiles mount this service separately from the legacy batch
 
 Contributions declare a namespace, payload version, top-level field allowlist, exporter, and importer. Export filters fields before text redaction. The built-in preference contributor includes theme, language, chat presentation, Coding Tools visibility, and model provider settings; custom provider headers stay local; project metadata excludes local directory paths, and downloaded projects require an explicit workspace binding. Unknown payload versions remain visible in preview but cannot be imported. Unregistered plugin configuration and storage are never exported.
 
+Selected conversations use `dsh-session-2`, retaining original Session IDs and event-position source ranges; `dsh-session-1` remains readable. Token activity uses token-meter's normalized durable settlements, including failed and retried calls, without comparing message content. Totals preserve provider-reported totals; missing usage, contradictory copies, and unresolved ancestry are explicitly incomplete. Cache-write counts and unknown-detail flags remain separate from provider balances. Update all devices before exporting the new format; see the [upgrade guide](../../../docs/upgrade-guide/v0.2.1-rc.2/studio-usage-sources/guide.md).
+
 Login restores a cloud snapshot and later downloads use an incremental cursor. Locked model credentials remain deferred. Upload categories include future objects; advanced preview retains explicit local/cloud conflict resolution. Subsequent sync uses the incremental cursor and retains immutable queued requests until acknowledgement. A failed import retains its checkpoint. Pausing retains all local data.
 
 -----
@@ -79,6 +81,7 @@ None; synchronization does not modify model requests.
 - The passphrase and key are held in Host memory only; restart or Studio sign-out locks credential sync. New devices use the same passphrase. Password recovery cannot recover encrypted credentials. Ordinary data remains unencrypted unless the server independently enables whole-space encryption, which this client does not support.
 - Plugin inventory restores for review; arbitrary plugin storage requires an owner-registered contribution and plugins are not installed or enabled automatically.
 - Arbitrary unapproved plugin code execution is prevented during restore.
+- Legacy forks need original ancestors to recover exact source ranges. Histories migrated from another Session format generation have unavailable event-position attribution until a compatible export is available; their activity is labeled incomplete rather than guessed.
 
 <a id="dev-note"></a>
 ### Dev Note

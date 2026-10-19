@@ -294,7 +294,7 @@ describe('PetReducer completion hold', () => {
   })
 
   it('uses the 1500 ms default quiet window', () => {
-    const fold = hold({ completionQuietMs: undefined })
+    const fold = reducer({ holdCompletions: true })
     fold.apply(top(S1), turnStart(1))
     fold.apply(childOf(SUB, S1), turnStart(2))
     fold.apply(top(S1), turnEnd(3, completed))

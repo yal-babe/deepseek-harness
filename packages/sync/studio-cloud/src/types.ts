@@ -77,6 +77,12 @@ export interface StudioHistoryView extends StudioHistoryItem {
 
 /** Deduplicated token activity calculated across synced sessions and branches. */
 export interface StudioTokenActivity {
+  /** Some source ancestry, request usage, or exact totals are unavailable. */
+  incomplete?: boolean
+  cacheReadUnknown?: boolean
+  cacheWriteUnknown?: boolean
+  reasoningUnknown?: boolean
+  cacheWriteTokens: number
   totalTokens: number
   inputTokens: number
   outputTokens: number

@@ -53,6 +53,12 @@ interface TokenSurfaceNode {
 
 表层顺序具有权威性；替换节点的持久 seq 可能高于位置排在其后的节点。该快照不可变，不会随底层回放折叠推进而增长。
 
+## 已记录用量类型
+
+[`RecordedUsageAttempt`](../../packages/llm/token-meter/src/recorded-usage.ts) 携带首次结算 `seq`、最新替换 `settledSeq`、结算 `time`、`turn`、`step`、可选提供方／模型 `route` 及可选归一化 `usage`。缺少 `usage` 表示报告不可获取或非法，不是零消耗。
+
+[`UsageSourceLog` 与 `UsageSourceRange`](../../packages/llm/token-meter/src/usage-sources.ts) 将 Session 标识、可空父标识与精确继承事件数及事件关联。可选来源区间结束于不含末位的逻辑事件偏移；来源标识为空表示祖先不可获取。`AttributedUsage` 携带唯一的来源归属尝试与 `incomplete` 标记。[包参考](../../packages/llm/token-meter/README.zh.md) 定义收集及归属操作；这些类型不改变请求压力测量。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>

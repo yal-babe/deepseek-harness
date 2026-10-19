@@ -4,3 +4,4 @@ dist
 .env
 data
 tests
+.studio-update

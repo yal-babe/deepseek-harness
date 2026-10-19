@@ -69,12 +69,7 @@ export function apply(ctx: ClientContext): void {
         unsubscribers.push(face.subscribe(() => {
           const value = face.getSnapshot() as TokenUsageProjection | undefined | null
           if (value === undefined || value === null) return
-          controller.mergeSession(id, {
-            uncachedInputTokens: value.uncachedInputTokens,
-            cacheReadTokens: value.cacheReadTokens,
-            cacheWriteTokens: value.cacheWriteTokens,
-            outputTokens: value.outputTokens,
-          })
+          void controller.refreshUsage(true)
         }))
       }
     }

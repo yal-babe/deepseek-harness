@@ -25,7 +25,7 @@ describe('foldSessionUsage', () => {
       uncachedInputTokens: 10, cacheReadTokens: 2, cacheWriteTokens: 1, outputTokens: 4,
     })
     expect(folded.toolCalls.get('bash')).toBe(1)
-    expect(folded.models.get('deepseek-v4-flash')?.outputTokens).toBe(4)
+    expect(folded.models.get(JSON.stringify(['deepseek-official', 'deepseek-v4-flash']))?.tokens.outputTokens).toBe(4)
   })
 
   it('ignores assistant messages without usage and still counts later tools', () => {
@@ -37,6 +37,57 @@ describe('foldSessionUsage', () => {
     ], 0)
     expect(folded.tokens.outputTokens).toBe(0)
     expect(folded.toolCalls.get('grep')).toBe(1)
+  })
+})
+
+describe('recorded request accounting', () => {
+  it('counts failed attempts and retries once, including embedded stream usage', () => {
+    const folded = foldSessionUsage('retry', 'Retry', [
+      event('request/context', 1, { provider: 'codex', model: 'shared-model' }),
+      event('assistant/attempt', 2, {
+        turn: 1, step: 1,
+        stream: [{ type: 'chunk', time: 2, chunk: { type: 'usage', usage: {
+          inputTokens: 10, outputTokens: 2, totalTokens: 20,
+        } } }],
+      }),
+      event('llm/retry-started', 3, { turn: 1, step: 1 }),
+      event('assistant/message', 4, {
+        turn: 1, step: 1, message: { role: 'assistant', content: [] }, stream: [],
+        usage: { inputTokens: 30, outputTokens: 4, totalTokens: 40 },
+      }),
+    ], 0)
+    expect(folded.tokens).toEqual({
+      uncachedInputTokens: 40, outputTokens: 6, cacheReadTokens: 0, cacheWriteTokens: 0,
+      totalTokens: 60, cacheReadUnknown: true, cacheWriteUnknown: true,
+    })
+  })
+
+  it('keeps missing usage explicit and separates equal model names by provider', () => {
+    const folded = foldSessionUsage('mixed', 'Mixed', [
+      event('request/context', 1, { provider: 'first', model: 'same' }),
+      event('assistant/message', 2, { turn: 1, step: 1, message: { role: 'assistant', content: [] }, stream: [] }),
+      event('request/context', 3, { provider: 'second', model: 'same' }),
+      event('assistant/message', 4, {
+        turn: 1, step: 2, message: { role: 'assistant', content: [] }, stream: [],
+        usage: { inputTokens: 8, outputTokens: 2 },
+      }),
+    ], 0)
+    expect(folded.tokens.incomplete).toBe(true)
+    expect(assembleSnapshot(0, 5, [folded]).models.map(row => row.provider)).toEqual(['second', 'first'])
+  })
+
+  it('places each settled call on its own date in a cross-midnight session', () => {
+    const before = Date.parse('2026-10-18T23:59:00Z')
+    const after = Date.parse('2026-10-19T00:01:00Z')
+    const message = (step: number) => ({
+      turn: 1, step, message: { role: 'assistant', content: [] }, stream: [],
+      usage: { inputTokens: 10, outputTokens: 2, cacheReadTokens: 0, cacheWriteTokens: 0 },
+    })
+    const folded = foldSessionUsage('cross-day', 'Cross day', [
+      event('assistant/message', before, message(1)), event('assistant/message', after, message(2)),
+    ], 0)
+    expect(assembleSnapshot(0, after, [folded]).days.map(day => [day.day, day.tokens.uncachedInputTokens]))
+      .toEqual([['2026-10-18', 10], ['2026-10-19', 10]])
   })
 })
 

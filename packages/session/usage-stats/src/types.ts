@@ -11,6 +11,14 @@ export interface UsageTokenTotals {
   cacheReadTokens: number
   cacheWriteTokens: number
   outputTokens: number
+  /** Exact provider total when different from the known bucket sum. */
+  totalTokens?: number
+  /** Some request usage or exact totals are unavailable. */
+  incomplete?: boolean
+  /** At least one request omitted cache-read accounting. */
+  cacheReadUnknown?: boolean
+  /** At least one request omitted cache-write accounting. */
+  cacheWriteUnknown?: boolean
 }
 
 /** One local-calendar day of usage. */
@@ -24,6 +32,7 @@ export interface UsageDayBucket {
 
 /** Token totals for one model id. */
 export interface UsageModelRow {
+  provider: string
   model: string
   tokens: UsageTokenTotals
 }

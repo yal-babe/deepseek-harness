@@ -51,6 +51,38 @@ async function harness(baseURL: string, extra: Record<string, unknown> = {}): Pr
 }
 
 describe('AntigravityAdapter streaming', () => {
+  it('persists tool signatures through assembly and restores them only for the same model', async () => {
+    const server = await mockServer([assistProject, { events: [
+      cloudEvent([{ text: 'Looking for files' }]),
+      cloudEvent([
+        { thoughtSignature: 'opaque-signature', functionCall: { id: 'c1', name: 'glob', args: { pattern: '*' } } },
+        { functionCall: { id: 'c2', name: 'read', args: { path: 'README.md' } } },
+      ], 'STOP'),
+    ] }])
+    const ctx = await harness(server.url)
+    try {
+      const result = await assemble(ctx, {
+        model: 'gemini-flash',
+        messages: [createUserMessage({ content: [{ type: 'text', text: 'Explore' }], source: { kind: 'user' } })],
+      })
+      const message = JSON.parse(JSON.stringify(result.message)) as typeof result.message
+      if (message.source.kind !== 'model') throw new Error('Expected model source')
+      expect(message.source.replayState).toMatchObject({
+        response: { kind: 'antigravity', version: 1, model: 'gemini-flash' },
+        blocks: [{ type: 'text' }, { type: 'tool-call', thoughtSignature: 'opaque-signature' }, { type: 'tool-call' }],
+      })
+      const body = (model: string) => serializeRequest({ provider: PROVIDER, model, messages: [message] }, 'p')
+      expect(body('gemini-flash').request).toMatchObject({ contents: [{ role: 'model', parts: [
+        { text: 'Looking for files' },
+        { thoughtSignature: 'opaque-signature', functionCall: { id: 'c1', name: 'glob' } },
+        { functionCall: { id: 'c2', name: 'read' } },
+      ] }] })
+      expect(JSON.stringify(body('another-model'))).not.toContain('opaque-signature')
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
   it('streams text, usage before finish, and Cloud Code headers', async () => {
     const server = await mockServer([assistProject, { events: textEvents }])
     const ctx = await harness(server.url)
@@ -464,10 +496,35 @@ describe('provider failures and cancellation', () => {
     vi.useRealTimers()
   })
 
-  it('times out a hung HTTP request', async () => {
+  it('does not cut streamed output off at the non-generation request deadline', async () => {
+    const server = await mockServer([assistProject, { events: [cloudEvent([{ text: 'partial' }])], holdOpen: true }])
+    const current = new AntigravityAdapter({
+      options: () => connection(server.url, { requestTimeoutMs: 30_000, generationTimeoutMs: 600_000, streamIdleTimeoutMs: 300_000 }),
+      resolveAccessToken: () => Promise.resolve('k'),
+    })
+    const controller = new AbortController()
+    const progress = Promise.withResolvers<undefined>()
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const pending = (async () => {
+      for await (const chunk of current.stream({ provider: PROVIDER, model: 'm', messages: [], signal: controller.signal })) {
+        if (chunk.type === 'text-delta') progress.resolve(undefined)
+      }
+    })()
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'ABORTED' })
+    try {
+      await progress.promise
+      await vi.advanceTimersByTimeAsync(31_000)
+    } finally {
+      controller.abort()
+      await rejected
+      vi.useRealTimers()
+    }
+  })
+
+  it('times out a generation at its own total deadline', async () => {
     const server = await mockServer([assistProject, { events: textEvents, delayMs: 60_000 }])
     const current = new AntigravityAdapter({
-      options: () => connection(server.url, { requestTimeoutMs: 20, streamIdleTimeoutMs: 30_000 }),
+      options: () => connection(server.url, { generationTimeoutMs: 20, streamIdleTimeoutMs: 30_000 }),
       resolveAccessToken: () => Promise.resolve('k'),
     })
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })

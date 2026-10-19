@@ -91,8 +91,10 @@ export interface Config {
    * sign-in. A non-empty list replaces that listing.
    */
   models: Volatile<AntigravityCatalogModel[]>
-  /** Deadline for each HTTP request, including token exchange and refresh. */
+  /** Deadline for non-generation HTTP requests, including token exchange and refresh. */
   requestTimeoutMs: Volatile<number>
+  /** Total generation deadline, including setup and streamed output. */
+  generationTimeoutMs: Volatile<number>
   /** Maximum age of the credential-scoped model catalog before background refresh. */
   catalogMaxAgeMs: Volatile<number>
   /** Maximum provider idle time while one stream read is outstanding. */
@@ -117,6 +119,7 @@ export const Config = z.object({
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV).volatile(),
   models: z.array(catalogModel).default([]).volatile(),
   requestTimeoutMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(DEFAULT_REQUEST_TIMEOUT_MS).volatile(),
+  generationTimeoutMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(600_000).volatile(),
   catalogMaxAgeMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(300_000).volatile(),
   streamIdleTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_STREAM_IDLE_TIMEOUT_MS).volatile(),
 })
@@ -139,8 +142,10 @@ export interface ResolvedAntigravityConfig {
   apiKeyEnv: string
   /** Detached advisory catalog; empty means list Cloud Code at request time. */
   models: AntigravityCatalogModel[]
-  /** HTTP request deadline in milliseconds. */
+  /** Non-generation HTTP request deadline in milliseconds. */
   requestTimeoutMs: number
+  /** Total generation deadline in milliseconds, including setup and streamed output. */
+  generationTimeoutMs: number
   /** Model catalog freshness in milliseconds. */
   catalogMaxAgeMs: number
   /** Stream idle deadline in milliseconds. */
@@ -164,6 +169,7 @@ export function resolvedConfig(config: Config): ResolvedAntigravityConfig {
     apiKeyEnv: config.apiKeyEnv.get(),
     models: config.models.get().map(model => ({ ...model })),
     requestTimeoutMs: config.requestTimeoutMs.get(),
+    generationTimeoutMs: config.generationTimeoutMs.get(),
     catalogMaxAgeMs: config.catalogMaxAgeMs.get(),
     streamIdleTimeoutMs: config.streamIdleTimeoutMs.get(),
   }

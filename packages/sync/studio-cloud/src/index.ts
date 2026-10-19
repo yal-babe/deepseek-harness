@@ -242,7 +242,7 @@ export class StudioCloud extends TypertRemoteService {
         return this.sessionOwner(record,{ persistence:scope.sessionPersistence,attachments:scope.attachments,sessions:scope.get('sessions') })
       }
       scope.effect(()=>this.register({ namespace:'studio.sessions',version:1,fields:['format','sessionFormatVersion','sourceSessionId',
-        'parentSourceSessionId','inheritedEventCount','createdAt','throughSeq','title','chunks','attachments'],
+        'parentSourceSessionId','inheritedEventCount','createdAt','throughSeq','title','chunks','attachments','sourceRanges'],
       export:async (ids,signal)=>(await owner()).contribution().export(ids,signal),
       prepare:async(value,connection)=>{
         const contribution=(await owner()).contribution()

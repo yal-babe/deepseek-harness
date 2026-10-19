@@ -3,10 +3,10 @@
  */
 
 import { z } from 'zod'
-import { lastAssistantStreamChunk, type TokenUsage } from '@deepseek-ai/dsh-llm'
+import type { TokenUsage } from '@deepseek-ai/dsh-llm'
+import { settlementUsage as usageOf } from './recorded-usage.ts'
 import type {} from '@deepseek-ai/dsh-llm-retry/types'
 import { SessionSeq } from '@deepseek-ai/dsh-session'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import type { ContextPressureProjection, TokenUsageProjection } from './projection.ts'
 import { normalizeUsage } from './turn-usage.ts'
@@ -76,13 +76,6 @@ const pressureSchema: z.ZodType<ContextPressureProjection> = z.object({
 /** Prompt-side pressure of one request: input plus cache traffic, no output. */
 const pressureFrom = (usage: TokenUsage): number =>
   usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
-
-/** The usage one durable Assistant settlement reports for its attempt, if any. */
-function usageOf(event: SessionEvent): TokenUsage | undefined {
-  if (event.type === 'assistant/message' && event.data.usage !== undefined) return event.data.usage
-  if (event.type !== 'assistant/message' && event.type !== 'assistant/attempt') return undefined
-  return lastAssistantStreamChunk(event.data.stream, 'usage')?.usage
-}
 
 declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionStateMap {

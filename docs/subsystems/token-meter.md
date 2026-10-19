@@ -53,6 +53,12 @@ interface TokenSurfaceNode {
 
 Surface order is authoritative; replacement nodes can have higher durable seqs than later positional nodes. The snapshot is immutable and does not grow when the underlying replay fold advances.
 
+## Recorded usage types
+
+[`RecordedUsageAttempt`](../../packages/llm/token-meter/src/recorded-usage.ts) carries the first settlement `seq`, latest replacement `settledSeq`, settlement `time`, `turn`, `step`, optional provider/model `route`, and optional normalized `usage`. Missing `usage` denotes unavailable or invalid reporting, not zero consumption.
+
+[`UsageSourceLog` and `UsageSourceRange`](../../packages/llm/token-meter/src/usage-sources.ts) pair a Session identity and nullable parent identity with the exact inherited event count and events. Optional source ranges end at exclusive logical event offsets; a null source identity denotes unavailable ancestry. `AttributedUsage` carries unique source-attributed attempts and an `incomplete` indicator. The [package reference](../../packages/llm/token-meter/README.md) defines the collection and attribution operations; these types do not change request-pressure measurement.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>

@@ -157,7 +157,7 @@ describe('ui-personal-center apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
   })
 
-  it('merges live tokenUsage, opens a session, and refreshes after reconnect once loaded', async () => {
+  it('refreshes Host usage after settlements, opens a session, and reconnects', async () => {
     const tokens = createSnapshotStore({
       uncachedInputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 2,
     })
@@ -176,38 +176,126 @@ describe('ui-personal-center apply', () => {
     const injected = slots.entries('main')[0]!.inject!() as unknown as PersonalCenterInjected
     await injected.controller.load()
     expect(usageStats.snapshot).toHaveBeenCalledOnce()
+    const stopObserving = injected.controller.observeUsage()
+    const refreshed = emptyUsage()
+    refreshed.totals.uncachedInputTokens = 3
+    usageStats.snapshot.mockResolvedValue({ ok: true, value: refreshed })
     tokens.set({ uncachedInputTokens: 3, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 2 })
-    expect(injected.controller.store.getSnapshot().usage?.totals.uncachedInputTokens).toBe(3)
+    await vi.waitFor(() => { expect(injected.controller.store.getSnapshot().usage?.totals.uncachedInputTokens).toBe(3) })
     injected.openSession(live)
     expect(ctx.get('layout')?.selectPanel).toHaveBeenCalledWith(null)
     expect(openSession).toHaveBeenCalledWith(live)
     ctx.emit('connection/reset')
     await vi.waitFor(() => { expect(usageStats.snapshot.mock.calls.length).toBeGreaterThan(1) })
     list.set({ ids: [] })
+    stopObserving()
   })
 })
 
 describe('PersonalCenterStore', () => {
-  it('merges live tokenUsage into the cached snapshot', async () => {
-    const { ctx } = await bench()
+  it('replaces usage from the Host and coalesces simultaneous refresh notifications', async () => {
+    const { ctx, usageStats, providerQuota } = await bench()
     const store = new PersonalCenterStore(ctx)
     await store.load()
-    store.mergeSession(SessionId('live'), {
-      uncachedInputTokens: 4, cacheReadTokens: 1, cacheWriteTokens: 0, outputTokens: 2,
-    })
-    expect(store.store.getSnapshot().usage?.totals.uncachedInputTokens).toBe(4)
-    expect(store.store.getSnapshot().usage?.sessionCount).toBe(1)
-    store.mergeSession(SessionId('live'), {
-      uncachedInputTokens: 8, cacheReadTokens: 1, cacheWriteTokens: 0, outputTokens: 2,
-    })
-    expect(store.store.getSnapshot().usage?.totals.uncachedInputTokens).toBe(8)
+    const next = emptyUsage()
+    next.totals = { uncachedInputTokens: 4, outputTokens: 2, cacheReadTokens: 0, cacheWriteTokens: 0, totalTokens: 10 }
+    next.days = [{ day: '2026-10-18', tokens: next.totals, sessionCount: 1, toolCalls: 0 }]
+    usageStats.snapshot.mockResolvedValue({ ok: true, value: next })
+    await Promise.all([store.refreshUsage(), store.refreshUsage()])
+    expect(usageStats.snapshot).toHaveBeenCalledTimes(2)
+    expect(providerQuota.get).toHaveBeenCalledTimes(2)
+    expect(store.store.getSnapshot().usage).toEqual(next)
     store.dispose()
+    await store.refreshUsage()
+    expect(usageStats.snapshot).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not scan Host history for hidden summaries and releases visible observers independently', async () => {
+    const { ctx, usageStats } = await bench()
+    const store = new PersonalCenterStore(ctx)
+    await store.load()
+    await Promise.all(Array.from({ length: 100 }, () => store.refreshUsage(true)))
+    expect(usageStats.snapshot).toHaveBeenCalledOnce()
+    const first = store.observeUsage()
+    const second = store.observeUsage()
+    await store.refreshUsage(true)
+    expect(usageStats.snapshot).toHaveBeenCalledTimes(2)
+    first()
+    first()
+    await store.refreshUsage(true)
+    expect(usageStats.snapshot).toHaveBeenCalledTimes(3)
+    second()
+    await store.refreshUsage(true)
+    expect(usageStats.snapshot).toHaveBeenCalledTimes(3)
+    await store.load()
+    expect(usageStats.snapshot).toHaveBeenCalledTimes(4)
+    store.dispose()
+  })
+
+  it('keeps account refresh results when a usage notification arrives during panel loading', async () => {
+    const { ctx, usageStats, account, providerQuota } = await bench()
+    const profile = Promise.withResolvers<undefined>()
+    account.getProfile.mockImplementationOnce(async () => {
+      await profile.promise
+      return { ok: true, value: { status: 'ready', value: { id: 'u1', name: 'Ada', contact: null } } }
+    })
+    const store = new PersonalCenterStore(ctx)
+    const loading = store.load()
+    await vi.waitFor(() => { expect(usageStats.snapshot).toHaveBeenCalledOnce() })
+    const refreshing = store.refreshUsage()
+    profile.resolve(undefined)
+    await Promise.all([loading, refreshing])
+    expect(store.store.getSnapshot().deepseek.name).toBe('Ada')
+    expect(store.store.getSnapshot().status).toBe('ready')
+    expect(providerQuota.get).toHaveBeenCalledTimes(2)
+    store.dispose()
+  })
+
+  it('discards an obsolete in-flight usage snapshot', async () => {
+    const { ctx, usageStats } = await bench()
+    const store = new PersonalCenterStore(ctx)
+    await store.load()
+    const first = Promise.withResolvers<{ ok: true; value: UsageSnapshot }>()
+    usageStats.snapshot.mockReturnValueOnce(first.promise)
+    const pending = store.refreshUsage()
+    await vi.waitFor(() => { expect(usageStats.snapshot).toHaveBeenCalledTimes(2) })
+    const next = emptyUsage()
+    next.totals.outputTokens = 9
+    usageStats.snapshot.mockResolvedValueOnce({ ok: true, value: next })
+    const repeated = store.refreshUsage()
+    first.resolve({ ok: true, value: emptyUsage() })
+    await Promise.all([pending, repeated])
+    expect(store.store.getSnapshot().usage).toEqual(next)
+    expect(usageStats.snapshot).toHaveBeenCalledTimes(3)
+    store.dispose()
+  })
+
+  it('retains failed refreshes and ignores responses after disposal', async () => {
+    const { ctx, usageStats } = await bench()
+    const store = new PersonalCenterStore(ctx)
+    await store.load()
+    usageStats.snapshot.mockRejectedValueOnce(new Error('offline'))
+    await store.refreshUsage()
+    expect(store.store.getSnapshot().cached).toBe(true)
+    usageStats.snapshot.mockResolvedValueOnce({ ok: false, error: { code: 'OFFLINE', message: 'offline' } })
+    await store.refreshUsage()
+    expect(store.store.getSnapshot().cached).toBe(true)
+    const response = Promise.withResolvers<{ ok: true; value: UsageSnapshot }>()
+    usageStats.snapshot.mockReturnValueOnce(response.promise)
+    const pending = store.refreshUsage()
+    await vi.waitFor(() => { expect(usageStats.snapshot).toHaveBeenCalledTimes(4) })
+    store.dispose()
+    const next = emptyUsage()
+    next.totals.outputTokens = 50
+    response.resolve({ ok: true, value: next })
+    await pending
+    expect(store.store.getSnapshot().usage?.totals.outputTokens).toBe(0)
   })
 
   it('paints cache then keeps it when Host usage fails', async () => {
     const usage = emptyUsage()
     usage.totals.outputTokens = 9
-    localStorage.setItem(`dsh.usage-stats.v1:${location.host}`, JSON.stringify(usage))
+    localStorage.setItem(`dsh.usage-stats.v2:${location.host}`, JSON.stringify(usage))
     const { ctx, usageStats } = await bench()
     usageStats.snapshot.mockRejectedValueOnce(new Error('down'))
     const store = new PersonalCenterStore(ctx)
@@ -238,22 +326,22 @@ describe('PersonalCenterStore', () => {
   })
 
   it('covers cache, unsigned account, and discarded in-flight loads', async () => {
-    localStorage.setItem(`dsh.usage-stats.v1:${location.host}`, '{')
+    localStorage.setItem(`dsh.usage-stats.v2:${location.host}`, '{')
     const { ctx, usageStats, account } = await bench()
     expect(new PersonalCenterStore(ctx).store.getSnapshot().usage).toBeNull()
-    localStorage.setItem(`dsh.usage-stats.v1:${location.host}`, JSON.stringify({ totals: {} }))
+    localStorage.setItem(`dsh.usage-stats.v2:${location.host}`, JSON.stringify({ totals: {} }))
     expect(new PersonalCenterStore(ctx).store.getSnapshot().usage).toBeNull()
-    localStorage.setItem(`dsh.usage-stats.v1:${location.host}`, JSON.stringify({
+    localStorage.setItem(`dsh.usage-stats.v2:${location.host}`, JSON.stringify({
       totals: {}, sessions: [], days: [], timezoneOffsetSeconds: 'x',
     }))
     expect(new PersonalCenterStore(ctx).store.getSnapshot().usage).toBeNull()
-    localStorage.setItem(`dsh.usage-stats.v1:${location.host}`, JSON.stringify(emptyUsage()))
+    localStorage.setItem(`dsh.usage-stats.v2:${location.host}`, JSON.stringify(emptyUsage()))
     usageStats.snapshot.mockResolvedValueOnce({ ok: false, error: { code: 'x', message: 'no' } })
     const failed = new PersonalCenterStore(ctx)
     await failed.load()
     expect(failed.store.getSnapshot().status).toBe('ready')
     expect(failed.store.getSnapshot().cached).toBe(true)
-    localStorage.removeItem(`dsh.usage-stats.v1:${location.host}`)
+    localStorage.removeItem(`dsh.usage-stats.v2:${location.host}`)
     usageStats.snapshot.mockResolvedValueOnce({ ok: false, error: { code: 'x', message: 'no' } })
     const emptyFail = new PersonalCenterStore(ctx)
     await emptyFail.load()
@@ -262,7 +350,7 @@ describe('PersonalCenterStore', () => {
     const thrown = new PersonalCenterStore(ctx)
     await thrown.load()
     expect(thrown.store.getSnapshot().status).toBe('error')
-    failed.mergeSession(SessionId('x'), emptyUsage().totals)
+    await failed.refreshUsage()
     account.getProfile.mockRejectedValueOnce(new Error('down'))
     const down = new PersonalCenterStore(ctx)
     await down.load()
@@ -304,8 +392,8 @@ describe('PersonalCenterStore', () => {
     await pending
     expect(discarded.store.getSnapshot().status).not.toBe('ready')
     localStorage.clear()
-    new PersonalCenterStore(ctx).mergeSession(SessionId('none'), emptyUsage().totals)
-    localStorage.setItem(`dsh.usage-stats.v1:${location.host}`, 'null')
+    await new PersonalCenterStore(ctx).refreshUsage()
+    localStorage.setItem(`dsh.usage-stats.v2:${location.host}`, 'null')
     expect(new PersonalCenterStore(ctx).store.getSnapshot().usage).toBeNull()
     const originalLocation = globalThis.location
     vi.stubGlobal('location', undefined)

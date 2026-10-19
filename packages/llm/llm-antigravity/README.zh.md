@@ -45,8 +45,9 @@ kind: "package-reference"
 | `oauthRedirectPath` | `/oauth/antigravity/callback` | 存在 `webServer` 时注册的 Host 回调路径 |
 | `apiKeyEnv` | `ANTIGRAVITY_API_KEY` | 没有 grant 时使用的凭据引用 |
 | `models` | 空 | 建议目录；为空时登录后从 Cloud Code 拉取 |
-| `requestTimeoutMs` | `30000` | 每次 HTTP 请求的截止时间，包括 token 兑换 |
-| `streamIdleTimeoutMs` | `300000` | 一次 stream 读取允许的最长空闲间隔 |
+| `requestTimeoutMs` | `30000` | 非生成 HTTP 请求的截止时间，包括 token 兑换和目录请求 |
+| `generationTimeoutMs` | `600000` | 单次生成的总时限，包括前置准备与流式输出；独立于 `requestTimeoutMs` |
+| `streamIdleTimeoutMs` | `300000` | 一次 stream 读取允许的最长空闲间隔；提供方活动会重置空闲计时，但不重置生成总时限 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-llm-antigravity)是每个已接受字段的完整来源。
 
@@ -117,7 +118,7 @@ Host 额度辅助函数按管理中心的 URL 回退顺序 POST `retrieveUserQuo
 
 #### What the model sees
 
-SSE 的 `response.candidates[].content.parts` 成为 harness 的 reasoning、text 与 tool-call 分片。thought 分片成为 reasoning；`functionCall` 分片成为工具调用，其 `arguments` 为 JSON 字符串。usage 在终止 finish 分片之前发出。
+SSE 的 `response.candidates[].content.parts` 成为 harness 的 reasoning、text 与 tool-call 分片。thought 分片成为 reasoning；`functionCall` 分片成为工具调用，其 `arguments` 为 JSON 字符串。工具调用的 `thoughtSignature` 保存在与内容块对齐的回放元数据中，并对来自同一 Antigravity 模型的历史原样回传，会话持久化后也适用。签名不跨模型复用；未记录签名的历史调用无法重建签名，可能需要新建对话。usage 在终止 finish 分片之前发出。
 
 #### Token effect
 

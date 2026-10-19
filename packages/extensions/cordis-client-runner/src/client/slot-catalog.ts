@@ -2231,10 +2231,11 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      '/** Visibility and focus supplied by the pet panel. */\nexport interface PetMetricsOwnerProps {\n  /** Whether the panel is currently expanded. */\n  readonly visible: boolean\n  /** Session whose task the pet currently describes. */\n  readonly sessionId?: SessionId | undefined\n  /** Event-derived task state, used to refresh after a result. */\n  readonly taskState: PetAgentState\n}',
+      '/** Visibility and focus supplied by the pet panel. */\nexport interface PetMetricsOwnerProps {\n  /** Whether the panel is currently expanded. */\n  readonly visible: boolean\n  /** Session whose task the pet currently describes. */\n  readonly sessionId?: SessionId | undefined\n  /** Event-derived task state, used to refresh after a result. */\n  readonly taskState: PetAgentState\n  /** Increments each time the user asks the pet for the balance; an owner refreshes and then reports. */\n  readonly balanceRequest?: number | undefined\n  /**\n   * Report balance readings after a balance request; an empty list means nothing is available.\n   * @param readings - readings the owner can compute; the pet animates the most used one.\n   */\n  readonly reportBalance?: ((readings: readonly PetBalanceReading[]) => void) | undefined\n}',
     ],
     ownerPropsReferences: [
       'PetAgentState',
+      'PetBalanceReading',
       'SessionId',
     ],
     standardProps: [
@@ -2257,7 +2258,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'pet.panel.metrics\', () => ctx.slots.register(\n      { name: \'pet.panel.metrics\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-pet/src/client/metrics-slot.ts:19',
+    source: 'packages/client/ui-pet/src/client/metrics-slot.ts:34',
   },
   {
     key: 'plugins.add.actions',

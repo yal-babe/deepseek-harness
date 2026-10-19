@@ -21,6 +21,25 @@ HTTP supports intranet use, but passwords and tokens have no transport encryptio
 
 `BOOTSTRAP_PASSWORD` can be cleared from deployment configuration after initial setup. Never rotate or lose `MASTER_KEY`: SMTP/S3 credentials and service backups depend on it for decryption. Database backups do not replace operational backups of persistent volumes and master keys.
 
+## Source Updates
+
+The server and admin dashboard do not provide an HTTP self-update endpoint. On Ubuntu 22.04, the deployment scripts support an operator-triggered source update using Git, Docker Compose v2.20 or later, `flock` (util-linux), and `timeout` (coreutils). This is a single-instance restart with brief downtime, not a rolling deployment. No Docker socket is exposed to the application.
+
+For an existing PostgreSQL server, use `./deploy.sh http://your-server:8788` to create `.env`, set its `DATABASE_URL` to a dedicated database and role, then rerun the command. `compose.external-pg.yaml` starts only the application. For a PostgreSQL installation on the same host, use `host.docker.internal`, permit the required container network in PostgreSQL listen/authentication settings, and retain the supplied host-gateway mapping; container `localhost` does not address the host. Keep the deployment directory and Compose project name stable so the existing file volume is reused.
+
+```sh
+./deploy.sh check
+./deploy.sh update
+```
+
+The default update source is `https://github.com/yal-babe/deepseek-harness.git`, branch `studio/main`. Override it with `STUDIO_UPDATE_REPOSITORY` and `STUDIO_UPDATE_BRANCH`; private repositories use the server's Git credential helper or SSH configuration, without interactive prompts. `check` fetches the branch without restarting services. `update` archives only `services/studio-cloud` from a pinned commit, builds a tagged image before touching the running service, persists `STUDIO_CLOUD_IMAGE` in `.env`, and replaces only `app` after a successful build. Credentials and other environment fields remain intact. Compose readiness and the container health check must both succeed before a successful revision is recorded. Identical service source trees are skipped after a successful update.
+
+For the bundled PostgreSQL configuration, use `bash scripts/update.sh check` and `bash scripts/update.sh update` with the default `compose.yaml`. `STUDIO_UPDATE_COMPOSE_FILE` selects another compatible file using `STUDIO_CLOUD_IMAGE`. Do not switch Compose files, directories, or project names when upgrading an existing deployment. An older source package needs the new deployment scripts and matching Compose configuration installed once; later application updates do not require new archives. Deployment scripts and local Compose configuration are not automatically overwritten by remote source updates.
+
+Before updating, create and verify a full backup of the dedicated database, file volume, and `MASTER_KEY`. The updater does not create backups. Build or fetch failure leaves the existing image selection unchanged. After container replacement, a failed health check leaves a visible failure in `.studio-update/FAILED`; database migrations may already have committed, so no automatic image or database downgrade is attempted. Inspect application logs, fix the problem and rerun the update, or recover the matching database and files from backup. Previous image identity and environment settings are retained privately in `.studio-update/`, which must not be published. Source cache and update locking also use that directory.
+
+Fetch, build, and startup budgets are configurable through `STUDIO_UPDATE_FETCH_TIMEOUT`, `STUDIO_UPDATE_BUILD_TIMEOUT`, and `STUDIO_UPDATE_START_TIMEOUT` (seconds; defaults 180, 900, and 180). Test the updater without a real database or Docker daemon using `npm run test:update`; its fixtures use local Git repositories and an isolated Docker command stub to verify deployment decisions and failures.
+
 ## Provided Features
 
 - Administrators create personal accounts and issue/revoke one-time invitations; open registration is disabled.

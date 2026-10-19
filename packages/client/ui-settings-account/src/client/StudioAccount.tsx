@@ -518,8 +518,10 @@ export function StudioForm({
               </Button>
               {snapshot.tokenActivity && (
                 <div className={css.preview}>
+                  {snapshot.tokenActivity.incomplete && <p className={css.description}>{t('studioPartialUsage')}</p>}
                   <p className={css.description}>
-                    {t('studioTotalTokens')}: {snapshot.tokenActivity.totalTokens.toLocaleString()}
+                    {t('studioTotalTokens')}: {snapshot.tokenActivity.totalTokens === 0 && snapshot.tokenActivity.incomplete
+                      ? t('studioUsageUnavailable') : snapshot.tokenActivity.totalTokens.toLocaleString()}
                   </p>
                   <p className={css.description}>
                     {t('studioInputTokens')}: {snapshot.tokenActivity.inputTokens.toLocaleString()} ·{' '}

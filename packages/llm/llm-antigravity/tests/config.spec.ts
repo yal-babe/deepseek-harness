@@ -26,8 +26,16 @@ describe('Antigravity Config', () => {
       apiKeyEnv: DEFAULT_API_KEY_ENV,
       models: [],
       requestTimeoutMs: DEFAULT_REQUEST_TIMEOUT_MS,
+      generationTimeoutMs: 600_000,
       streamIdleTimeoutMs: DEFAULT_STREAM_IDLE_TIMEOUT_MS,
     })
+  })
+
+  it('resolves generation deadlines independently of ordinary request deadlines', () => {
+    const snapshot = resolvedConfig(Config({ requestTimeoutMs: 1000, generationTimeoutMs: 900_000 }))
+    expect(snapshot.requestTimeoutMs).toBe(1000)
+    expect(snapshot.generationTimeoutMs).toBe(900_000)
+    expect(() => Config({ generationTimeoutMs: 0 })).toThrow()
   })
 
   it('strips a trailing slash from baseURL and prefixes oauthRedirectPath', () => {
