@@ -34,12 +34,12 @@ export function PetUsageSummary({ visible, sessionId, taskState, balanceRequest,
   }, [balanceRequest, controller])
   const number = (tokens: UsageTokenTotals): string => {
     const total = tokens.totalTokens ?? tokens.uncachedInputTokens + tokens.cacheReadTokens + tokens.cacheWriteTokens + tokens.outputTokens
-    return total === 0 && tokens.incomplete ? t('balanceUnavailable') : total.toLocaleString(t('numberLocale'))
+    return total.toLocaleString(t('numberLocale'))
   }
   const current = state.usage?.sessions.find(row => row.sessionId === sessionId)
   return <section className={css.summary} aria-label={t('petTokens')} aria-busy={state.status === 'loading'}>
     <div><span>{t('petTokens')}</span><strong>{state.usage === null ? t('balanceUnavailable') : number(state.usage.totals)}</strong></div>
-    <div><span>{t('petSessionTokens')}</span><span>{current === undefined ? t('balanceUnavailable') : number(current.tokens)}</span></div>
+    <div><span>{t('petSessionTokens')}</span><span>{state.usage === null ? t('balanceUnavailable') : current === undefined ? (0).toLocaleString(t('numberLocale')) : number(current.tokens)}</span></div>
     <div className={css.accounts} aria-label={t('quota')}>
       {state.deepseek.status !== 'unsigned' && <WalletCard summary={state.deepseek} t={t} />}
       {state.quota.codex !== null && state.quota.codex.status !== 'unsigned' && <>

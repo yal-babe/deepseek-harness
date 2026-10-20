@@ -125,6 +125,11 @@ export async function openWelcomeWindow(locale: DesktopLocale, operations: Welco
   }
   if (active && !window.isDestroyed()) {
     window.show()
+    window.focus()
+    if (process.platform === 'darwin') {
+      app.dock?.show()
+      app.focus({ steal: true })
+    }
     void operations.analytics?.('auth_page_view', {})
   }
   return window

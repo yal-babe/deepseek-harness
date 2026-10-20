@@ -49,8 +49,9 @@ describe('motion scheduling', () => {
     expect(idleDelay('quiet', 0)).toBe(20000)
     expect(idleDelay('lively', 1)).toBe(7000)
     expect(nextIdleClip('idle_stretch', 0)).not.toBe('idle_stretch')
-    expect(taskClip('WORKING', 'search')).toBe('working_search')
-    expect(taskClip('WORKING', 'test')).toBe('working_command')
+    expect(taskClip('WORKING', 'search')).toBe('working')
+    expect(taskClip('WORKING', 'test')).toBe('working')
+    expect(taskClip('THINKING')).toBe('working')
   })
 
   it('rests after the idle clip ends and immediately returns to a new task', () => {
@@ -163,20 +164,16 @@ it('uses a continuous animation with bubbles instead of playing the eight-pose s
 })
 
 
-it('rotates thinking variants without repeating the current clip and yields to tool work', () => {
-  vi.spyOn(Math, 'random').mockReturnValue(0)
+it('stays on the working animation during conversation to prevent flickering', () => {
   const variants = { ...motion, clips: { ...motion.clips,
     thinking_chin: clip('thinking_chin'), thinking_idea: clip('thinking_idea'), work_read: clip('work_read'),
   } }
   const props = { motion: variants, state: 'THINKING' as const, dragging: false, preferences, paused: false, onFailure: vi.fn() }
   const view = render(<PetMotion {...props} />)
   const source = () => view.container.querySelector('video')!.getAttribute('src')
-  expect(source()).toBe('/thinking_chin.webm')
-  fireEvent.ended(view.container.querySelector('video')!)
-  expect(source()).toBe('/thinking.webm')
-  expect(view.container.querySelector('video')!.loop).toBe(false)
+  expect(source()).toBe('/working.webm')
   view.rerender(<PetMotion {...props} state="WORKING" activity="search" />)
-  expect(source()).toBe('/working_search.webm')
+  expect(source()).toBe('/working.webm')
 })
 
 
@@ -263,8 +260,8 @@ describe('pack event tiers, click areas, and the pack clip allowlist', () => {
     expect(eventClip(pack, 'balance', 2)).toBeUndefined()
     expect(eventClip(motion, 'balance', 0)).toBeUndefined()
     expect(eventClip(pack, 'balance', 5, () => 0.9)).toBe('balance_empty')
-    expect(taskClip('WORKING', 'command', pack)).toBe('working_command')
-    expect(taskClip('WORKING', 'search', pack)).toBe('working_search')
+    expect(taskClip('WORKING', 'command', pack)).toBe('working')
+    expect(taskClip('WORKING', 'search', pack)).toBe('working')
     const renamed = { ...pack, clips: { ...pack.clips, busy: clip('busy') }, events: { workStatus: tiers('busy', 'busy', 'busy', 'busy', 'busy', 'busy') } }
     expect(['THINKING', 'WORKING', 'WAITING', 'SUCCESS', 'ERROR'].map(state => taskClip(state as 'IDLE', undefined, renamed))).toEqual(Array(5).fill('busy'))
     expect(taskClip('WORKING', 'test', renamed)).toBe('busy')

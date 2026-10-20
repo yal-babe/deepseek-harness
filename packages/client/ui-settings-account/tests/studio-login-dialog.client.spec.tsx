@@ -11,6 +11,7 @@ afterEach(cleanup)
 function mockOperations(overrides: Partial<StudioOperations> = {}): StudioOperations {
   return {
     studioConfigureServer: vi.fn(),
+    studioTestConnection: vi.fn(),
     studioConfigureSync: vi.fn(),
     studioUnlockCredentials: vi.fn(),
     studioLogin: vi.fn(),

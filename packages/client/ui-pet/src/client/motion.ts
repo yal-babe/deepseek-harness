@@ -325,9 +325,7 @@ export function idleDelay(level: PetActivityLevel, random: number): number {
 }
 
 /** Work-status tier of each task state (upstream `events.workStatus`: thinking, working, result, waiting, success, error). */
-const WORK_TIER: Readonly<Partial<Record<PetAgentState, number>>> = { THINKING: 0, WORKING: 1, WAITING: 3, SUCCESS: 4, ERROR: 5 }
-/** Tier played while commands or tests run: upstream's result tier, which Studio already used for them. */
-const RESULT_TIER = 2
+const WORK_TIER: Readonly<Partial<Record<PetAgentState, number>>> = { THINKING: 1, WORKING: 1, WAITING: 3, SUCCESS: 4, ERROR: 5 }
 
 /** First candidate of an event tier that the pack has.
  * @param motion - available character media.
@@ -343,25 +341,21 @@ export function eventClip(motion: PetMotionView | undefined, event: 'balance' | 
   return random === undefined ? candidates[0] : nextIdleClip(previous, random(), candidates)
 }
 
-/** Map the Host state and tool activity to a full-length clip: the pack's work-status tier when it declares one,
- * with the activity-specific search clip kept, otherwise the built-in names.
+/** Map the Host state to a full-length clip: active conversation and task states (THINKING and WORKING)
+ * stay on the working clip to prevent flickering from frequent state transitions.
  * @param state - current task state.
- * @param activity - current tool activity.
+ * @param _activity - unused tool activity; states avoid switching clips during a task.
  * @param motion - available character media, whose event tiers take precedence.
  * @returns the animation name to play.
  */
-export function taskClip(state: PetAgentState, activity?: PetWorkActivity, motion?: PetMotionView): string {
-  if (state === 'WORKING' && motion !== undefined) {
-    if ((activity === 'reply' || activity === 'search') && motion.clips.jot_notes !== undefined) return 'jot_notes'
-    if ((activity === 'edit' || activity === 'command' || activity === 'test') && motion.clips.write_code !== undefined) return 'write_code'
+export function taskClip(state: PetAgentState, _activity?: PetWorkActivity, motion?: PetMotionView): string {
+  if (state === 'THINKING' || state === 'WORKING') {
+    return eventClip(motion, 'workStatus', WORK_TIER.WORKING ?? 1) ?? 'working'
   }
-  const command = state === 'WORKING' && (activity === 'command' || activity === 'test')
-  if (state === 'WORKING' && activity === 'search' && (motion === undefined || motion.clips.working_search !== undefined)) return 'working_search'
-  const tier = command ? RESULT_TIER : WORK_TIER[state]
+  const tier = WORK_TIER[state]
   const declared = tier === undefined ? undefined : eventClip(motion, 'workStatus', tier)
   if (declared !== undefined) return declared
-  if (state === 'WORKING') return activity === 'search' ? 'working_search' : command ? 'working_command' : 'working'
-  return { IDLE: 'idle', DISCONNECTED: 'idle', THINKING: 'thinking', WAITING: 'waiting', SUCCESS: 'success', ERROR: 'error' }[state]
+  return { IDLE: 'idle', DISCONNECTED: 'idle', THINKING: 'working', WORKING: 'working', WAITING: 'waiting', SUCCESS: 'success', ERROR: 'error' }[state]
 }
 
 /** Body area of a click, top to bottom. */

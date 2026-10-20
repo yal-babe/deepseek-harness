@@ -1,5 +1,16 @@
 .section { width: 100%; max-width: 100%; box-sizing: border-box; }
 .section h2 { font-size: 18px; font-weight: 500; margin: 0 0 24px; }
+.settingsCards { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.settingsCard { display: flex; flex-direction: column; gap: 20px; min-width: 0; padding: 24px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-lg); }
+.settingsCard > h3 { margin: 0; font-size: 14px; font-weight: 500; color: var(--dsw-alias-label-primary); }
+.settingsCard > .form { padding: 0; }
+.connectionRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.connectionStatus { margin: 0; font-size: 13px; color: var(--dsw-alias-label-secondary); }
+@media (max-width: 520px) {
+  .settingsCard { padding: 16px; }
+  .connectionRow { align-items: stretch; flex-direction: column; }
+  .connectionRow > .actions { justify-content: flex-start; }
+}
 .form { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 0 24px 24px; box-sizing: border-box; }
 .section > .form { padding: 24px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-lg); }
 .form .form { padding: 0; }

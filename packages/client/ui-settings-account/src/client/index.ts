@@ -18,7 +18,7 @@ import { BrowserLogin } from './browser-login.ts'
 import { AccountModelCard } from './AccountModelCard.tsx'
 import { AccountOnboarding } from './AccountOnboarding.tsx'
 import { AccountPlatformHost, type AccountPlatformHostInjected } from './AccountPlatformHost.tsx'
-import { StudioSection, StudioServerSection, StudioOverlay, StudioIntroduction, type StudioInjected, type StudioSnapshot } from './StudioAccount.tsx'
+import { StudioSection, StudioOverlay, StudioIntroduction, type StudioInjected, type StudioSnapshot } from './StudioAccount.tsx'
 import { AccountMenu } from './AccountMenu.tsx'
 import { createPlatformPages, type PlatformPages } from './platform-pages.ts'
 import { AccountSection, type AccountSnapshot, type AccountSectionInjected } from './AccountSection.tsx'
@@ -196,6 +196,10 @@ export function apply(ctx: Context): void {
         },
       },
     },
+    studioTestConnection: async (origin) => {
+      const result = await ctx.remote.studioCloud.testConnection(origin)
+      if (!result.ok) throw result.error
+    },
     studioConfigureServer: async (origin) => {
       const result = await ctx.remote.studioCloud.configureServer(origin)
       if (!result.ok) throw result.error
@@ -358,10 +362,6 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('settings.section',()=>ctx.slots.register({
     name:'settings.section',id:'studio-cloud',order:-20,label:()=>t('studioNav'),locale:'settings.account',inject:()=>studio,
   },StudioSection))
-  ctx.slots.inject('settings.section', () => ctx.slots.register({
-    name: 'settings.section', id: 'studio-server', order: -21, label: () => t('studioServerConfig'),
-    locale: 'settings.account', inject: () => studio,
-  }, StudioServerSection))
   ctx.slots.inject('shell.overlay',()=>ctx.slots.register({
     name:'shell.overlay',id:'studio-cloud.login',locale:'settings.account',inject:()=>studio,
   },StudioOverlay))

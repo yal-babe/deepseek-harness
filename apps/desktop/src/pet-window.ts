@@ -179,8 +179,12 @@ export class DesktopPetWindow {
   position(): PetPoint {
     const displays = screen.getAllDisplays()
     const saved = this.options.positions?.get(petDisplayLayout(displays))
-    return (saved === undefined ? undefined : fitPetBody(saved, displays, this.body))
-      ?? petDefaultPosition(screen.getPrimaryDisplay().workArea, PET_WINDOW_SIZE)
+    const origin = saved === undefined ? undefined : {
+      x: saved.x + PET_DEFAULT_BODY.x - this.body.x,
+      y: saved.y + PET_DEFAULT_BODY.y - this.body.y,
+    }
+    return (origin === undefined ? undefined : fitPetBody(origin, displays, this.body))
+      ?? petDefaultPosition(screen.getPrimaryDisplay().workArea, this.window?.getBounds() ?? PET_WINDOW_SIZE)
   }
 
   /**
@@ -252,7 +256,7 @@ export class DesktopPetWindow {
   setInteractive(interactive: boolean): void {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
-    if (this.drag !== undefined && !interactive) return
+    if ((this.drag !== undefined || this.panelOpen) && !interactive) return
     if (this.interactive === interactive) return
     this.interactive = interactive
     if (interactive) this.stopWanderMove()
@@ -284,6 +288,7 @@ export class DesktopPetWindow {
     this.endFlight()
     this.revealed = undefined
     this.walkX = undefined
+    this.resizeForContent(false)
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
     const [x = 0, y = 0] = window.getPosition()
@@ -375,27 +380,51 @@ export class DesktopPetWindow {
    */
   setBody(body: PetRect): void {
     this.body = body
+    if (this.revealed === undefined && !this.panelOpen && this.drag === undefined && this.flight === undefined) this.resizeForContent(false)
     this.sendGeometry()
   }
 
+  /** Resize around the character's bottom-right anchor, preserving its screen position. */
+  private resizeForContent(expanded: boolean, passive = false): void {
+    const window = this.window
+    if (window === undefined || window.isDestroyed()) return
+    const bounds = window.getBounds()
+    const width = Math.ceil(expanded ? Math.max(this.body.width + 16, passive ? 264 : PET_WINDOW_SIZE.width) : this.body.width + 16)
+    const height = Math.ceil(expanded ? Math.max(this.body.height + 112, passive ? 244 : PET_WINDOW_SIZE.height) : this.body.height + 16)
+    if (bounds.width === width && bounds.height === height) return
+    const dx = width - bounds.width, dy = height - bounds.height
+    this.body = { ...this.body, x: this.body.x + dx, y: this.body.y + dy }
+    window.setBounds({ x: bounds.x - dx, y: bounds.y - dy, width, height }, false)
+  }
+
   /**
-   * Keep the whole window, including the panel or menu, on screen while one is open; put it back afterwards.
-   * @param open - whether a panel or menu is open.
+   * Reserve on-screen overlay space, restoring the original body position when it closes.
+   * @param open - whether an overlay is visible.
+   * @param passive - speech only, without taking focus; defaults to an interactive panel or menu.
    */
-  reveal(open: boolean): void {
-    this.panelOpen = open
+  reveal(open: boolean, passive = false): void {
+    this.panelOpen = open && !passive
     const window = this.window
     if (this.drag !== undefined || window === undefined || window.isDestroyed()) return
     const [x = 0, y = 0] = window.getPosition()
     if (open) {
-      const inside = revealPetWindow({ x, y }, screen.getAllDisplays(), PET_WINDOW_SIZE, this.body)
-      if (inside === undefined || inside.x === x && inside.y === y) return
-      this.revealed ??= { x, y }
-      this.moveTo(inside)
-    } else if (this.revealed !== undefined) {
-      const back = this.revealed
+      this.revealed ??= { x: x + this.body.x, y: y + this.body.y }
+      this.resizeForContent(true, passive)
+      const bounds = window.getBounds()
+      const inside = revealPetWindow(bounds, screen.getAllDisplays(), bounds, this.body)
+      if (inside !== undefined) this.moveTo(inside)
+      if (!passive) {
+        this.setInteractive(true)
+        window.focus()
+      }
+    } else {
+      const anchor = this.revealed
       this.revealed = undefined
-      this.moveTo(fitPetBody(back, screen.getAllDisplays(), this.body) ?? this.position())
+      this.resizeForContent(false)
+      if (anchor !== undefined) {
+        const back = { x: anchor.x - this.body.x, y: anchor.y - this.body.y }
+        this.moveTo(fitPetBody(back, screen.getAllDisplays(), this.body) ?? this.position())
+      }
     }
     this.sendGeometry()
   }
@@ -423,8 +452,16 @@ export class DesktopPetWindow {
     const displays = screen.getAllDisplays()
     const fitted = fitPetBody(point, displays, this.body) ?? this.position()
     this.moveTo(fitted)
-    void this.options.positions?.set(petDisplayLayout(displays), fitted)
+    this.remember(fitted)
     this.sendGeometry()
+  }
+
+  /** Persist a fixed-frame origin so compact and expanded windows share the same remembered body position. */
+  private remember(point: PetPoint): void {
+    void this.options.positions?.set(petDisplayLayout(screen.getAllDisplays()), {
+      x: point.x + this.body.x - PET_DEFAULT_BODY.x,
+      y: point.y + this.body.y - PET_DEFAULT_BODY.y,
+    })
   }
 
   /** Keep a mid-flight origin so the body centre stays within the hull of all displays. */
@@ -542,7 +579,7 @@ export class DesktopPetWindow {
             this.moveTo({ x: x + (target.x - x) * eased, y: y + (target.y - y) * eased })
             if (progress === 1) {
               this.stopWanderMove()
-              void this.options.positions?.set(petDisplayLayout(screen.getAllDisplays()), target)
+              this.remember(target)
               this.sendGeometry()
             }
           }, 33)
@@ -625,10 +662,14 @@ export class DesktopPetWindow {
         if (request !== undefined) this.travel(request.dx, request.final)
       })],
       [PET_IPC.body, guard((value) => {
-        const body = petBodyRect(value, PET_WINDOW_SIZE)
+        const body = petBodyRect(value, this.window?.getBounds() ?? PET_WINDOW_SIZE)
         if (body !== undefined) this.setBody(body)
       })],
-      [PET_IPC.reveal, guard((value) => { if (typeof value === 'boolean') this.reveal(value) })],
+      [PET_IPC.reveal, guard((value) => {
+        if (typeof value === 'boolean') this.reveal(value)
+        else if (typeof value === 'object' && value !== null && 'open' in value && typeof value.open === 'boolean'
+          && 'passive' in value && value.passive === true) this.reveal(value.open, true)
+      })],
       [PET_IPC.wander, guard((value) => {
         if (typeof value === 'boolean') this.setWandering(value)
         else if (typeof value === 'object' && value !== null && 'active' in value && typeof value.active === 'boolean'

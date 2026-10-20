@@ -259,11 +259,13 @@ export class PetController {
   }
 
   /**
-   * Report that a panel or menu opened or closed in the Desktop pet window.
-   * @param open - whether one is open.
+   * Report visible overlays in the Desktop pet window.
+   * @param open - whether an overlay is visible.
+   * @param passive - speech only; defaults to an interactive panel or menu.
    */
-  reveal(open: boolean): void {
-    this.deps.bridge?.reveal?.(open)
+  reveal(open: boolean, passive = false): void {
+    if (passive) this.deps.bridge?.reveal?.(open, true)
+    else this.deps.bridge?.reveal?.(open)
   }
 
   /**

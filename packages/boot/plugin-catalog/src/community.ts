@@ -1,5 +1,6 @@
 /** dsh-plugin.org catalog feed: compact JSON list at api.dsh-plugin.org. */
 
+import semver from 'semver'
 import type { CatalogEntry } from './types.ts'
 
 /** Default community catalog origin (API center, not the marketing site). */
@@ -41,6 +42,10 @@ export interface CommunityWireRow {
   sg?: number
   /** Forks. */
   fk?: number
+  /** Whether the directory permits one-click installation. Absent in legacy feeds. */
+  webInstallable?: boolean
+  /** Directory-supplied explanation of manual installation requirements. */
+  installNote?: string
 }
 
 /**
@@ -79,6 +84,8 @@ export function parseCommunityFeed(raw: unknown): CommunityWireRow[] {
     const a = optionalString(row, 'a')
     const sg = optionalNumber(row, 'sg')
     const fk = optionalNumber(row, 'fk')
+    const webInstallable = typeof row.webInstallable === 'boolean' ? row.webInstallable : undefined
+    const installNote = optionalString(row, 'installNote')
     rows.push({
       s, o, n,
       ...iconUrl === undefined ? {} : { iconUrl },
@@ -95,6 +102,8 @@ export function parseCommunityFeed(raw: unknown): CommunityWireRow[] {
       ...a === undefined ? {} : { a },
       ...sg === undefined ? {} : { sg },
       ...fk === undefined ? {} : { fk },
+      ...webInstallable === undefined ? {} : { webInstallable },
+      ...installNote === undefined ? {} : { installNote },
     })
   }
   return rows
@@ -113,7 +122,7 @@ export function communityEntry(
   installedVersions: ReadonlyMap<string, string>,
 ): CatalogEntry {
   const repo = row.r ?? `${row.o}/${row.s}`
-  const installSpec = installSpecFromCommands(row.ic, row.igc, repo)
+  const installSpec = row.webInstallable === false ? undefined : installSpecFromCommands(row.ic, row.igc, repo)
   const packageName = guessPackageName(row.n, installSpec)
   const installed = packageName !== undefined && installedNames.has(packageName.toLowerCase())
   const features = row.f ?? []
@@ -133,7 +142,7 @@ export function communityEntry(
     kinds: ['bundle'],
     compatibility: installSpec === undefined ? 'unsupported' : 'full',
     ...installSpec === undefined
-      ? { compatibilityNote: 'This listing has no installable package or GitHub spec.' }
+      ? { compatibilityNote: row.installNote || 'This listing has no installable package or GitHub spec.' }
       : {},
     name: packageName ?? row.n,
     title: row.n,
@@ -171,7 +180,15 @@ export function catalogUpdateAvailable(
   installedVersion: string | undefined,
 ): boolean {
   if (!installed || catalogVersion === undefined || installedVersion === undefined) return false
-  return stripVersion(catalogVersion) !== stripVersion(installedVersion)
+  const cleanCatalog = stripVersion(catalogVersion)
+  const cleanInstalled = stripVersion(installedVersion)
+  if (cleanCatalog === cleanInstalled) return false
+  const validCatalog = semver.valid(semver.coerce(cleanCatalog))
+  const validInstalled = semver.valid(semver.coerce(cleanInstalled))
+  if (validCatalog && validInstalled) {
+    return semver.gt(validCatalog, validInstalled)
+  }
+  return false
 }
 
 function stripVersion(value: string): string {

@@ -65,8 +65,8 @@ export interface DesktopPetBridge {
   readonly place?: (point: { readonly x: number; readonly y: number }, final: boolean) => void
   /** Report the character body inside the window, in DIP, so the main process keeps it on screen. */
   readonly body?: (rect: PetDesktopRect) => void
-  /** Report that a panel or menu opened or closed; the main process keeps the whole window on screen meanwhile. */
-  readonly reveal?: (open: boolean) => void
+  /** Report visible overlays; passive speech reserves space without taking focus or forcing pointer capture. */
+  readonly reveal?: (open: boolean, passive?: boolean) => void
   /** Observe the window bounds and the work areas and panels of all displays. */
   readonly onGeometry?: (listener: (geometry: unknown) => void) => () => void
   /**

@@ -50,6 +50,7 @@ export interface StudioInjected {
   studioChangePassword: (current: string, next: string) => Promise<void>
   studioRefresh: () => Promise<void>
   studioConfigureServer: (origin: string) => Promise<void>
+  studioTestConnection: (origin: string) => Promise<void>
   studioUnlockCredentials: (passphrase: string) => Promise<void>
   studioConfigureSync: (categories: StudioSyncCategory[], automatic: boolean) => Promise<void>
   studioPreview: () => Promise<void>
@@ -72,6 +73,7 @@ export interface StudioInjected {
 export type StudioOperations = Pick<
   StudioInjected,
   | 'studioConfigureServer'
+  | 'studioTestConnection'
   | 'studioLogin'
   | 'studioLogout'
   | 'studioChangePassword'
@@ -578,12 +580,22 @@ export function StudioSection({ useStudio, t, ...operations }: StudioSectionProp
   return (
     <section className={css.section}>
       <h2>{t('studioNav')}</h2>
-      <StudioForm
-        key={`${snapshot.state?.origin}:${snapshot.state?.identity?.id}`}
-        snapshot={snapshot}
-        t={t}
-        {...operations}
-      />
+      <div className={css.settingsCards}>
+        <section className={css.settingsCard}>
+          <h3>{t('studioServerConfig')}</h3>
+          <StudioServerForm origin={snapshot.state?.origin ?? ''} signedIn={!!snapshot.state?.identity}
+            studioConfigureServer={operations.studioConfigureServer} studioTestConnection={operations.studioTestConnection} t={t} />
+        </section>
+        <section className={css.settingsCard}>
+          <h3>{t('studioAccountHeading')}</h3>
+          <StudioForm
+            key={`${snapshot.state?.origin}:${snapshot.state?.identity?.id}`}
+            snapshot={snapshot}
+            t={t}
+            {...operations}
+          />
+        </section>
+      </div>
     </section>
   )
 }
@@ -611,15 +623,3 @@ export function StudioIntroduction({ complete, useStudio, t, ...operations }:
   return <StudioLoginDialog snapshot={snapshot} t={t} {...operations} onClose={() => { operations.studioClose(); complete() }} />
 }
 
-/** Device-local server configuration, shared by every Studio account operation.
- * @param props - safe connection state and Host configuration action.
- * @returns the server settings form.
- */
-export function StudioServerSection({ useStudio, studioConfigureServer, t }: StudioSectionProps) {
-  const snapshot = useStudio(value => value)
-  return <section className={css.section}>
-    <h2>{t('studioServerConfig')}</h2>
-    <StudioServerForm origin={snapshot.state?.origin ?? ''} signedIn={!!snapshot.state?.identity}
-      studioConfigureServer={studioConfigureServer} t={t} />
-  </section>
-}

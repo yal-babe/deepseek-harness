@@ -426,6 +426,10 @@ async function main(): Promise<void> {
     if (window.isMinimized()) window.restore()
     window.show()
     window.focus()
+    if (process.platform === 'darwin') {
+      app.dock?.show()
+      app.focus({ steal: true })
+    }
     if (sessionId !== undefined && enteredWorkspace) window.webContents.send(PET_IPC.openSession, sessionId)
   }
   const removePetIpc = pet.installIpc(ipcMain)
@@ -1029,6 +1033,9 @@ async function main(): Promise<void> {
     tray?.relabel()
   }
   refreshApplicationMenu()
+  if (process.platform === 'darwin') {
+    app.dock?.show()
+  }
   const trayIconPath = development ? join(app.getAppPath(), 'resources', 'tray-windows.ico') : join(process.resourcesPath, 'tray.ico')
   if (process.platform === 'win32') {
     // The tray is the way back to a hidden window; without it, relaunching the application still focuses it.
@@ -1164,8 +1171,16 @@ async function main(): Promise<void> {
     const window = mainWindow ?? createMainWindow()
     await navigateMain(applicationUrl)
     if (isQuitting() || recovery.active || window.isDestroyed()) return
-    if (activate) window.show()
-    else window.showInactive()
+    if (activate) {
+      window.show()
+      window.focus()
+      if (process.platform === 'darwin') {
+        app.dock?.show()
+        app.focus({ steal: true })
+      }
+    } else {
+      window.showInactive()
+    }
     enteredWorkspace = true
     if (petEnabled) pet.start()
     if (welcomeWindow !== undefined) {
@@ -1189,6 +1204,10 @@ async function main(): Promise<void> {
       if (!welcomeWindow.isVisible()) void track('auth_page_view', {})
       welcomeWindow.show()
       welcomeWindow.focus()
+      if (process.platform === 'darwin') {
+        app.dock?.show()
+        app.focus({ steal: true })
+      }
       return Promise.resolve()
     }
     openingWelcome ??= (async () => {
@@ -1267,6 +1286,10 @@ async function main(): Promise<void> {
     if (window.isMinimized()) window.restore()
     window.show()
     window.focus()
+    if (process.platform === 'darwin') {
+      app.dock?.show()
+      app.focus({ steal: true })
+    }
   }
 
   if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient('dsh')

@@ -59,11 +59,12 @@ You can verify success by watching the conversation continue past the point wher
 
 ### Tuning when condensation starts
 
-All settings are optional. With context window `W`, effective request output cap `O`, and headroom `B`, the default trigger is `floor(min(W × 0.8, W − O − B))`, where `B = 65,536` tokens. Retention keeps the newest 16% of `W − O` verbatim. The table below lists every setting; the generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-compaction-basic) also includes their types.
+All settings are optional. With context window `W`, effective request output cap `O`, headroom `B`, and optional absolute cap `C`, the default trigger is `floor(min(W × 0.8, W − O − B, C))`, where `B = 65,536` tokens. Retention keeps the newest 16% of `W − O` verbatim; when `C` is below `W × thresholdRatio`, retention is computed from the capped threshold instead, so the retained tail stays below the trigger. The table below lists every setting; the generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-compaction-basic) also includes their types.
 
 | Field | Default | Meaning |
 |---|---|---|
 | `thresholdRatio` | `0.8` | Window fraction used in `floor(min(W × thresholdRatio, W − O − headroomTokens))`. |
+| `thresholdCapTokens` | — | Absolute ceiling on the pressure threshold; useful for large-window routes that would otherwise grow to a fraction of the window before condensing. When below the window fraction, retention is computed from the capped threshold. |
 | `headroomTokens` | `65536` | Additional pressure headroom beyond the routed output reservation; a non-negative integer. |
 | `retainRatio` | `0.16` | Recent conversation kept verbatim as a fraction of `W − O`; mutually exclusive with `retainTokens`. |
 | `retainTokens` | — | Absolute recent-conversation budget kept verbatim; mutually exclusive with `retainRatio` and must be below the resolved threshold. |

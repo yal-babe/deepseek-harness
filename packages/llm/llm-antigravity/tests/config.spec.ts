@@ -3,6 +3,7 @@ import {
   Config,
   DEFAULT_API_KEY_ENV,
   DEFAULT_BASE_URL,
+  DEFAULT_CONTEXT_WINDOW,
   DEFAULT_OAUTH_AUTHORIZE_URL,
   DEFAULT_OAUTH_CLIENT_ID,
   DEFAULT_OAUTH_CLIENT_SECRET,
@@ -25,6 +26,7 @@ describe('Antigravity Config', () => {
       oauthRedirectPath: DEFAULT_OAUTH_REDIRECT_PATH,
       apiKeyEnv: DEFAULT_API_KEY_ENV,
       models: [],
+      defaultContextWindow: DEFAULT_CONTEXT_WINDOW,
       requestTimeoutMs: DEFAULT_REQUEST_TIMEOUT_MS,
       generationTimeoutMs: 600_000,
       streamIdleTimeoutMs: DEFAULT_STREAM_IDLE_TIMEOUT_MS,
@@ -36,6 +38,10 @@ describe('Antigravity Config', () => {
     expect(snapshot.requestTimeoutMs).toBe(1000)
     expect(snapshot.generationTimeoutMs).toBe(900_000)
     expect(() => Config({ generationTimeoutMs: 0 })).toThrow()
+  })
+
+  it('rejects a non-positive context fallback', () => {
+    expect(() => Config({ defaultContextWindow: 0 })).toThrow()
   })
 
   it('strips a trailing slash from baseURL and prefixes oauthRedirectPath', () => {

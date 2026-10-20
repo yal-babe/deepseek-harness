@@ -449,6 +449,39 @@ describe('compact configuration and defaults', () => {
       .toThrow(/headroom tokens.*leaving no pressure budget/)
   })
 
+  it('caps the pressure threshold and scales the retained tail from the cap', () => {
+    const policy = resolveTargetPolicy(resolveConfig({ thresholdCapTokens: 1_000 }), { provider: MODEL, model: MODEL })
+
+    expect(resolveCompactSpec(policy, 100_000, 0)).toMatchObject({
+      thresholdTokens: 1_000,
+      retainTokens: 160,
+    })
+  })
+
+  it('ignores a cap above the window fraction and keeps the window-derived tail', () => {
+    const policy = resolveTargetPolicy(resolveConfig({ thresholdCapTokens: 900_000 }), { provider: MODEL, model: MODEL })
+
+    expect(resolveCompactSpec(policy, 1_000_000, 0)).toMatchObject({
+      thresholdTokens: 800_000,
+      retainTokens: 160_000,
+    })
+  })
+
+  it('merges a per-model threshold cap over the default cap', () => {
+    const config = resolveConfig({
+      thresholdCapTokens: 5_000,
+      modelPolicies: [{ provider: MODEL, model: MODEL, thresholdCapTokens: 2_000 }],
+    })
+
+    expect(resolveTargetPolicy(config, { provider: MODEL, model: MODEL }).thresholdCapTokens).toBe(2_000)
+    expect(resolveTargetPolicy(config, { provider: MODEL, model: 'other' }).thresholdCapTokens).toBe(5_000)
+  })
+
+  it('rejects a non-positive threshold cap', () => {
+    expect(() => resolveConfig({ thresholdCapTokens: 0 }))
+      .toThrow(/thresholdCapTokens \(0\) must be a positive integer/)
+  })
+
   it('rejects ratio retention that reaches the headroom-limited threshold', () => {
     const policy = resolveTargetPolicy(resolveConfig({ headroomTokens: 420 }), { provider: MODEL, model: MODEL })
     expect(() => resolveCompactSpec(policy, 1_000, 500))

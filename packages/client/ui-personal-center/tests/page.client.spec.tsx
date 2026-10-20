@@ -59,8 +59,8 @@ it('renders KPIs, heatmap modes, and opens a recent session', () => {
   })
   rerender(view())
   expect(screen.getByText(en.allTime, { selector: 'span' }).parentElement?.textContent).toContain('500')
-  expect(screen.getByText(en.cacheRead).parentElement?.textContent).toContain(en.balanceUnavailable)
-  expect(screen.getByText(en.cacheWrite).parentElement?.textContent).toContain(en.balanceUnavailable)
+  expect(screen.getByText(en.cacheRead).parentElement?.textContent).toContain('2')
+  expect(screen.getByText(en.cacheWrite).parentElement?.textContent).toContain('1')
   const unknown = { ...emptyDay(0), incomplete: true }
   controller.store.set({
     ...controller.store.getSnapshot(),
@@ -68,9 +68,9 @@ it('renders KPIs, heatmap modes, and opens a recent session', () => {
   })
   rerender(view())
   expect(screen.getByText(en.partialUsage)).toBeTruthy()
-  expect(screen.getByText(en.allTime, { selector: 'span' }).parentElement?.textContent).toContain(en.balanceUnavailable)
-  expect(screen.getByText(en.today).parentElement?.textContent).toContain(en.balanceUnavailable)
-  expect(screen.getByRole('button', { name: 'Demo' }).textContent).toContain(en.balanceUnavailable)
+  expect(screen.getByText(en.allTime, { selector: 'span' }).parentElement?.textContent).toContain('0')
+  expect(screen.getByText(en.today).parentElement?.textContent).toContain('0')
+  expect(screen.getByRole('button', { name: 'Demo' }).textContent).toContain('0')
 })
 
 it('renders weekly and cumulative heatmaps and retries a cached failure', () => {

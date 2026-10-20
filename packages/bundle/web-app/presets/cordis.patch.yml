@@ -71,6 +71,11 @@
             config:
               - id: compaction-basic
                 name: '@deepseek-ai/dsh-compaction-basic'
+                config:
+                  # Large-window routes (Gemini 1M, Codex 272k) would otherwise
+                  # grow to a fraction of the window before compacting; cap the
+                  # working set so long tool loops stay fast and cheap.
+                  thresholdCapTokens: 150000
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
               - id: tool-result-pruner

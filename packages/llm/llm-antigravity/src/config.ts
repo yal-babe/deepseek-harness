@@ -45,6 +45,14 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 /** Default maximum idle interval while one stream read is outstanding. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 
+/**
+ * Fallback context capacity for a route whose Cloud Code catalog entry omits
+ * `maxTokens` and whose explicit `models` entry omits `contextWindow`.
+ * Pressure compaction rejects a route without capacity, so an undisclosed
+ * window would otherwise disable automatic compaction for that route.
+ */
+export const DEFAULT_CONTEXT_WINDOW = 1_048_576
+
 /** OAuth scopes requested by the Antigravity browser flow. */
 export const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/cloud-platform',
@@ -91,6 +99,11 @@ export interface Config {
    * sign-in. A non-empty list replaces that listing.
    */
   models: Volatile<AntigravityCatalogModel[]>
+  /**
+   * Context capacity used when neither the catalog nor an explicit `models`
+   * entry discloses one. Keeps pressure compaction available on every route.
+   */
+  defaultContextWindow: Volatile<number>
   /** Deadline for non-generation HTTP requests, including token exchange and refresh. */
   requestTimeoutMs: Volatile<number>
   /** Total generation deadline, including setup and streamed output. */
@@ -118,6 +131,7 @@ export const Config = z.object({
   oauthRedirectPath: z.string().default(DEFAULT_OAUTH_REDIRECT_PATH).volatile(),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV).volatile(),
   models: z.array(catalogModel).default([]).volatile(),
+  defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW).volatile(),
   requestTimeoutMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(DEFAULT_REQUEST_TIMEOUT_MS).volatile(),
   generationTimeoutMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(600_000).volatile(),
   catalogMaxAgeMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(300_000).volatile(),
@@ -142,6 +156,8 @@ export interface ResolvedAntigravityConfig {
   apiKeyEnv: string
   /** Detached advisory catalog; empty means list Cloud Code at request time. */
   models: AntigravityCatalogModel[]
+  /** Context capacity used when no catalog entry or `models` entry discloses one. */
+  defaultContextWindow: number
   /** Non-generation HTTP request deadline in milliseconds. */
   requestTimeoutMs: number
   /** Total generation deadline in milliseconds, including setup and streamed output. */
@@ -168,6 +184,7 @@ export function resolvedConfig(config: Config): ResolvedAntigravityConfig {
     oauthRedirectPath: path.startsWith('/') ? path : `/${path}`,
     apiKeyEnv: config.apiKeyEnv.get(),
     models: config.models.get().map(model => ({ ...model })),
+    defaultContextWindow: config.defaultContextWindow.get(),
     requestTimeoutMs: config.requestTimeoutMs.get(),
     generationTimeoutMs: config.generationTimeoutMs.get(),
     catalogMaxAgeMs: config.catalogMaxAgeMs.get(),

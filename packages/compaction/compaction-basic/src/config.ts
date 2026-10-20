@@ -25,6 +25,7 @@ const DEFAULT_RETAIN_RATIO = 0.16
 /** Fields shared by top-level defaults and exact-target overrides. */
 const POLICY_CONFIG_KEYS = [
   'thresholdRatio',
+  'thresholdCapTokens',
   'headroomTokens',
   'retainRatio',
   'retainTokens',
@@ -97,6 +98,7 @@ export function resolveConfig(config: BasicCompactionConfig = {}): ResolvedConfi
 
   return deepFreeze({
     thresholdRatio,
+    thresholdCapTokens: config.thresholdCapTokens,
     headroomTokens,
     ...retention,
     summarizationProvider: config.summarizationProvider ?? '',
@@ -128,6 +130,7 @@ export function resolveTargetPolicy(
   return deepFreeze({
     target: { provider: target.provider, model: target.model },
     thresholdRatio: override?.thresholdRatio ?? config.thresholdRatio,
+    thresholdCapTokens: override?.thresholdCapTokens ?? config.thresholdCapTokens,
     headroomTokens: override?.headroomTokens ?? config.headroomTokens,
     ...resolveRetention(override ?? {}, inheritedRetention),
     summarizationProvider: override?.summarizationProvider ?? config.summarizationProvider,
@@ -141,9 +144,10 @@ export function resolveTargetPolicy(
 /**
  * Scale one routed policy into concrete token budgets for its model capacity.
  *
- * Pressure is capped by both the window fraction and the capacity remaining
- * after the routed output reservation plus compaction headroom. Retention scales
- * the message budget before headroom is deducted.
+ * Pressure is capped by the window fraction, the capacity remaining after the
+ * routed output reservation plus compaction headroom, and an optional absolute
+ * cap. Retention scales the message budget before headroom is deducted, or the
+ * capped threshold when the cap is the binding constraint.
  *
  * @param policy - merged policy for the exact routed target.
  * @param contextWindow - positive adapter-owned capacity for that target.
@@ -188,12 +192,22 @@ export function resolveCompactSpec(
       + 'compaction headroomTokens, or configure a larger adapter model contextWindow',
     )
   }
+  const ratioBudgetTokens = Math.floor(contextWindow * policy.thresholdRatio)
   const thresholdTokens = Math.floor(Math.min(
-    contextWindow * policy.thresholdRatio,
+    policy.thresholdCapTokens === undefined
+      ? ratioBudgetTokens
+      : Math.min(ratioBudgetTokens, policy.thresholdCapTokens),
     pressureBudgetTokens,
   ))
+  // A cap below the window fraction also bounds the verbatim tail: the default
+  // tail fraction of the whole message budget would exceed the earlier
+  // threshold, and `retainTokens` must stay below it.
+  const retentionBaseTokens = policy.thresholdCapTokens !== undefined
+    && policy.thresholdCapTokens < ratioBudgetTokens
+    ? Math.min(messageBudgetTokens, thresholdTokens)
+    : messageBudgetTokens
   const retainTokens = policy.retainTokens === undefined
-    ? Math.floor(messageBudgetTokens * policy.retainRatio)
+    ? Math.floor(retentionBaseTokens * policy.retainRatio)
     : policy.retainTokens
   if (retainTokens >= thresholdTokens) {
     throw new TargetPressureConfigError(
@@ -206,6 +220,7 @@ export function resolveCompactSpec(
     target: { ...policy.target },
     contextWindow,
     thresholdRatio: policy.thresholdRatio,
+    thresholdCapTokens: policy.thresholdCapTokens,
     thresholdTokens,
     retainTokens,
     summarizationProvider: policy.summarizationProvider,
@@ -279,6 +294,7 @@ function validatePolicy(
   name: string,
 ): void {
   const thresholdRatio = config.thresholdRatio
+  const thresholdCapTokens = config.thresholdCapTokens
   const headroomTokens = config.headroomTokens
   const retainRatio = config.retainRatio
   const retainTokens = config.retainTokens
@@ -286,6 +302,9 @@ function validatePolicy(
   const compactionRetries = config.compactionRetries
   const maxOverflowRetries = config.maxOverflowRetries
   if (thresholdRatio !== undefined) assertRatio(`${name}.thresholdRatio`, thresholdRatio)
+  if (thresholdCapTokens !== undefined) {
+    assertPositiveInteger(`${name}.thresholdCapTokens`, thresholdCapTokens)
+  }
   if (headroomTokens !== undefined) assertNonNegativeInteger(`${name}.headroomTokens`, headroomTokens)
   if (retainRatio !== undefined) assertRatio(`${name}.retainRatio`, retainRatio)
   if (retainTokens !== undefined) assertNonNegativeInteger(`${name}.retainTokens`, retainTokens)

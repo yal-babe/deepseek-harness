@@ -691,7 +691,7 @@ export type ThemePreference = typeof THEME_PREFERENCES[number]
 ## `@deepseek-ai/dsh-compaction-basic`
 
 - `inject`: `llm` · `tokenMeter` · `sessions`
-- `source`: [`packages/compaction/compaction-basic/src/types.ts:40`](../packages/compaction/compaction-basic/src/types.ts)
+- `source`: [`packages/compaction/compaction-basic/src/types.ts:47`](../packages/compaction/compaction-basic/src/types.ts)
 
 ```ts config-catalog
 /** Basic compaction configuration with an optional exact-target policy table. */
@@ -706,6 +706,13 @@ export interface BasicCompactionConfig extends CompactionPolicyConfig {
 export interface CompactionPolicyConfig {
   /** Window fraction for pressure; capped at context window minus reserved output and `headroomTokens`. Defaults to `0.8`. */
   thresholdRatio?: number
+  /**
+   * Absolute ceiling for the pressure threshold in tokens. The effective
+   * threshold is the smallest of the window fraction, the window budget after
+   * output reservation and headroom, and this cap. Omitted leaves large-window
+   * routes free to grow to their window fraction.
+   */
+  thresholdCapTokens?: number
   /** Additional pressure headroom beyond the routed output reservation. Non-negative integer; defaults to `65536`. */
   headroomTokens?: number
   /** Recent context retained as a fraction of context window minus reserved output tokens. Defaults to `0.16`. */
@@ -1761,7 +1768,7 @@ export interface Config {
 
 - `inject`: `llm`
 - `refs`: `Volatile` (`@deepseek-ai/cordis`)
-- `source`: [`packages/llm/llm-antigravity/src/config.ts:70`](../packages/llm/llm-antigravity/src/config.ts)
+- `source`: [`packages/llm/llm-antigravity/src/config.ts:78`](../packages/llm/llm-antigravity/src/config.ts)
 
 ```ts config-catalog
 /** Live plugin configuration. Volatile fields are read per request. */
@@ -1789,8 +1796,15 @@ export interface Config {
    * sign-in. A non-empty list replaces that listing.
    */
   models: Volatile<AntigravityCatalogModel[]>
-  /** Deadline for each HTTP request, including token exchange and refresh. */
+  /**
+   * Context capacity used when neither the catalog nor an explicit `models`
+   * entry discloses one. Keeps pressure compaction available on every route.
+   */
+  defaultContextWindow: Volatile<number>
+  /** Deadline for non-generation HTTP requests, including token exchange and refresh. */
   requestTimeoutMs: Volatile<number>
+  /** Total generation deadline, including setup and streamed output. */
+  generationTimeoutMs: Volatile<number>
   /** Maximum age of the credential-scoped model catalog before background refresh. */
   catalogMaxAgeMs: Volatile<number>
   /** Maximum provider idle time while one stream read is outstanding. */
@@ -2492,25 +2506,45 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-pet`
 
-- `source`: [`packages/pet/pet/src/index.ts:20`](../packages/pet/pet/src/index.ts)
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/pet/pet/src/index.ts:33`](../packages/pet/pet/src/index.ts)
 
 ```ts config-catalog
-/** Deployment options of the Studio Pet Host module. */
+/**
+ * Resolved options of the Studio Pet Host module. `Volatile` fields are the
+ * shared pet settings: the Settings page and `pet.setVisible()` write them
+ * through the `settings` service into the profile patch, and the module reads
+ * them live without remounting.
+ */
 export interface Config {
-  /** Initial "show desktop pet" value; hiding never stops the Host module. */
-  visible?: boolean
+  /** "Show desktop pet"; hiding never stops the Host module. */
+  visible: Volatile<boolean>
+  /** Whether tools listed in `restrictedTools` must be approved in the main window. Off by default: the pet may approve every tool. */
+  restrictTools: Volatile<boolean>
+  /** Tool names routed to the main window while `restrictTools` is on. */
+  restrictedTools: Volatile<string[]>
+  /** System notification for a new approval request. */
+  notifyWaiting: Volatile<boolean>
+  /** System notification when a turn finishes. */
+  notifySuccess: Volatile<boolean>
+  /** System notification when a turn fails. */
+  notifyError: Volatile<boolean>
   /** Track subagent Sessions as their own entries. */
-  includeSubagents?: boolean
+  includeSubagents: boolean
   /** Milliseconds a completed turn shows `SUCCESS` before reading as `IDLE`. */
-  successHoldMs?: number
+  successHoldMs: number
   /** Milliseconds a failed turn shows `ERROR` before reading as `IDLE`. */
-  errorHoldMs?: number
+  errorHoldMs: number
   /** Maximum Session entries per snapshot. */
-  maxSessions?: number
+  maxSessions: number
   /** Minimum milliseconds between two `watch()` frames. */
-  snapshotDebounceMs?: number
+  snapshotDebounceMs: number
   /** Whether a `WAITING` Session takes focus from a pinned Session. */
-  waitingPreempts?: boolean
+  waitingPreempts: boolean
+  /** Hold a successful result (and its notification) while subagent descendants still work. */
+  holdCompletionsWhileBusy: boolean
+  /** Milliseconds descendants must stay quiet before a held result settles. */
+  completionQuietMs: number
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-pet -->
@@ -2538,13 +2572,15 @@ export interface PlanModeConfig {
 ## `@deepseek-ai/dsh-plugin-catalog`
 
 - `inject`: `loader`
-- `source`: [`packages/boot/plugin-catalog/src/index.ts:77`](../packages/boot/plugin-catalog/src/index.ts)
+- `source`: [`packages/boot/plugin-catalog/src/index.ts:79`](../packages/boot/plugin-catalog/src/index.ts)
 
 ```ts config-catalog
 /** Configurable feed origins and cache lifetime. */
 export interface Config {
-  /** Community API origin (`https://api.dsh-plugin.org`). */
+  /** Explicit legacy compact-feed origin. Without either origin override, use the full community website directory. */
   communityOrigin?: string
+  /** Full directory website origin, including its same-origin category shards. */
+  communityDirectoryOrigin?: string
   /** Catalog language file: `en` or `zh`. */
   communityLocale?: 'en' | 'zh'
   /** Codex marketplace.json URL. */
@@ -3464,7 +3500,7 @@ export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ## `@deepseek-ai/dsh-studio-cloud`
 
 - `inject`: `credentials`
-- `source`: [`packages/sync/studio-cloud/src/index.ts:62`](../packages/sync/studio-cloud/src/index.ts)
+- `source`: [`packages/sync/studio-cloud/src/index.ts:69`](../packages/sync/studio-cloud/src/index.ts)
 
 ```ts config-catalog
 /** Deployment options; the service origin itself is selected by the login form. */

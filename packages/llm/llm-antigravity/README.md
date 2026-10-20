@@ -45,6 +45,7 @@ Mount the plugin beside `dsh-llm`. The adapter registers immediately. `listModel
 | `oauthRedirectPath` | `/oauth/antigravity/callback` | Host callback pathname when `webServer` is mounted |
 | `apiKeyEnv` | `ANTIGRAVITY_API_KEY` | Credential reference used when no grant is stored |
 | `models` | empty | Advisory catalog; empty fetches Cloud Code after sign-in |
+| `defaultContextWindow` | `1048576` | Context capacity used when neither the catalog nor an explicit model entry discloses one |
 | `requestTimeoutMs` | `30000` | Deadline for non-generation HTTP requests, including token exchange and catalog requests |
 | `generationTimeoutMs` | `600000` | Total deadline for one generation, including setup and streamed output; independent of `requestTimeoutMs` |
 | `streamIdleTimeoutMs` | `300000` | Maximum idle interval while one stream read is outstanding; provider activity rearms this timer but not the generation deadline |
@@ -53,7 +54,7 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### Sign in
 
-Model catalogs are cached per endpoint and credential. Cold loads coalesce; warm reads return immediately and refresh in the background after `catalogMaxAgeMs` (300000 ms by default). Failed background refreshes retain the last listing and retry after that interval. Sign-out clears the cache on the next read; plugin disposal aborts outstanding catalog work. Output usage includes candidate and thought tokens, with thoughts also disclosed as an output subset.
+Model catalogs are cached per endpoint and credential. Cold loads coalesce; warm reads return immediately and refresh in the background after `catalogMaxAgeMs` (300000 ms by default). Failed background refreshes retain the last listing and retry after that interval. Sign-out clears the cache on the next read; plugin disposal aborts outstanding catalog work. A discovered entry's `maxTokens` becomes the routed model's `contextWindow`, which automatic compaction requires; an explicit `models` entry's `contextWindow` wins, and `defaultContextWindow` covers entries that disclose neither. Output usage includes candidate and thought tokens, with thoughts also disclosed as an output subset.
 
 Host quota helpers POST `retrieveUserQuotaSummary` with the Management Center URL fallback and map `loadCodeAssist` `paidTier` then `currentTier`. [provider-quota](../../api/provider-quota/README.md) exposes those snapshots; Antigravity has no reset cards.
 

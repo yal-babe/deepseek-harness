@@ -437,7 +437,9 @@
   flex-shrink: 0;
 }
 
-.sprite[data-dense='true'] {
-  width: calc(142px * var(--pet-scale, 1));
-  height: calc(142px * var(--pet-scale, 1));
+.window .character {
+  width: max-content;
+  min-width: calc(112px * var(--pet-scale, 1));
+  height: max-content;
+  min-height: calc(112px * var(--pet-scale, 1));
 }

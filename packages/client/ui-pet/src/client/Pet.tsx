@@ -538,8 +538,12 @@ export function PetMenu({ t, actions, onAction, categories = [], onClip, onClose
     const outside = (event: globalThis.PointerEvent): void => {
       if (event.target instanceof Node && !menuRef.current?.contains(event.target)) onClose()
     }
-    document.addEventListener('pointerdown', outside)
-    return () => { document.removeEventListener('pointerdown', outside) }
+    document.addEventListener('pointerdown', outside, true)
+    window.addEventListener('blur', onClose)
+    return () => {
+      document.removeEventListener('pointerdown', outside, true)
+      window.removeEventListener('blur', onClose)
+    }
   }, [onClose])
   return (
     <MenuSurface ref={menuRef} className={css.menu} role="menu" aria-label={t('menuLabel')}
@@ -928,14 +932,13 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
     room: thrower.room,
     travel: (dx, final) => { controller.travel(dx, final) },
   }
-  // Keep the whole window on screen while a panel or menu is open; the character may otherwise sit at an edge.
-  const revealed = useRef(false)
-  useEffect(() => {
-    const showing = open || menu
-    if (showing === revealed.current) return
-    revealed.current = showing
-    controller.reveal(showing)
-  }, [controller, open, menu])
+  const passive = !open && !menu
+  const showing = open || menu || line !== undefined || !petIsIdle(state)
+  useEffect(() => { controller.reveal(showing, passive) }, [controller, showing, passive, state, line])
+  const drag = (phase: PetDragPhase): void => {
+    if (phase === 'start') { close(); setMenu(false) }
+    thrower.drag(phase)
+  }
   const glide = glides(pack)
   const visibleNow = useRef(visible)
   visibleNow.current = visible
@@ -964,7 +967,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
   const interactive = (on: boolean): void => { controller.setInteractive(on) }
   if (!visible) return null
   return (
-    <div className={css.window} data-surface="window" data-pet-root="" style={{ '--pet-character-height': `${142 * (preferences.size ?? 100) / 100}px` } as CSSProperties}>
+    <div className={css.window} data-surface="window" data-pet-root="" style={{ '--pet-character-height': `${112 * (preferences.size ?? 100) / 100}px` } as CSSProperties}>
       <div className={css.windowStack} onMouseEnter={() => { interactive(true) }} onMouseMove={() => { interactive(true) }}
         onMouseLeave={() => { interactive(false) }} onPointerMoveCapture={(event) => { thrower.track(event) }}>
         <div className={css.desktopPanels}>
@@ -978,7 +981,7 @@ export function PetWindowRoot(props: PetProps & { readonly onQuickAsk: (listener
         </div>
         <PetCharacter state={state} name={preferences.name?.trim() || props.t('defaultName')} label={props.t('characterLabel', { name: preferences.name?.trim() || props.t('defaultName'), state: props.t(`state.${state}`) })}
           onClick={toggle} onMenu={() => { setMenu(!menu) }}
-          movement={movement} onDrag={thrower.drag} walk={walk} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined}
+          movement={movement} onDrag={drag} walk={walk} onInteract={interact} action={action} preferences={preferences} paused={open || menu} activity={activity} pack={pack} badge={pack.dev ? props.t('devPack') : undefined}
           festivals={festivals} />
       </div>
     </div>

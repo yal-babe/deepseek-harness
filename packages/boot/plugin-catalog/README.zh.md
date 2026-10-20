@@ -27,9 +27,9 @@ Host Remote：下载并缓存社区插件目录与 Codex 市场源，为设置�
 
 `plugin-catalog/install-progress` 上报目录条目 id 与单调递增的阶段完成百分比。社区插件按元数据检查及 plugin-manager 安装、应用阶段推进，Codex 还包含技能文件完成计数。成功时上报 100%，失败则返回正常错误结果，不标记安装完成。不同条目可同时请求，plugin-manager 协调共享 profile 的修改。
 
-基于 base 的 Web profile 与 `plugin-manager` 一并组合本服务。设置中的 **插件市场** 页（[ui-settings-plugin-marketplace](../../client/ui-settings-plugin-marketplace/README.zh.md)）调用 `pluginCatalog.search` / `get` / `installEntry` / `uninstall`，带 Hub 分类、排序、已安装筛选与 Codex 源。Feed URL 与缓存时长为 Config 字段。Feed 下载或校验失败会抛出 `plugin-catalog/feed-failed`；UI 必须显示可重试错误，禁止静默空列表。
+基于 base 的 Web profile 与 `plugin-manager` 一并组合本服务。设置中的 **插件市场** 页（[ui-settings-plugin-marketplace](../../client/ui-settings-plugin-marketplace/README.zh.md)）调用 `pluginCatalog.search` / `get` / `installEntry` / `uninstall`，带 Hub 分类、排序、已安装筛选与 Codex 源。社区默认源为网站的完整本地化目录，包含全部分类分片。`communityDirectoryOrigin` 可切换目录网站；仅显式设置 `communityOrigin` 时选择旧版紧凑源。其他 Config 字段包括 `communityLocale`、`codexMarketplaceUrl`、`cacheTtlMs` 和 `fetchTimeoutMs`。Feed 下载或校验失败会抛出 `plugin-catalog/feed-failed`；UI 必须显示可重试错误，禁止静默空列表。
 
-可解析安装规格的社区条目为 `compatibility: full`，经 `pluginManager.inspect` + `installBundle` 安装。提供 skills 的 Codex 条目为 `partial`（skills 落到 `$DSH_HOME/skills/codex-<name>`）；仅 MCP/hooks 的表面为 `unsupported`，或在详情中说明部分兼容缺口。
+可解析安装规格且网站未禁止一键安装的社区条目为 `compatibility: full`，经 `pluginManager.inspect` + `installBundle` 安装。提供 skills 的 Codex 条目为 `partial`（skills 落到 `$DSH_HOME/skills/codex-<name>`）；仅 MCP/hooks 的表面为 `unsupported`，或在详情中说明部分兼容缺口。
 
 已安装的社区 bundle 通过 plugin-manager 切换启用状态。禁用的 Codex 技能保存在发现目录之外的 `$DSH_HOME/disabled-skills` 下；启用后恢复到 `$DSH_HOME/skills`。更新保留启用状态，卸载删除启用及禁用的文件。
 
@@ -41,7 +41,7 @@ Host Remote：下载并缓存社区插件目录与 Codex 市场源，为设置�
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-`PluginCatalog` 是命名空间为 `pluginCatalog` 的 `TypertRemoteService`。社区行来自 `GET {communityOrigin}/plugins.{locale}.json`（Hub 紧凑字段）。Codex 行来自 openai/plugins 的 `marketplace.json`，详情由各插件的 `.codex-plugin/plugin.json` 与 skills 目录的 GitHub Contents 列表补全。搜索在 Host 侧过滤与分页，浏览器不会收到完整的约 14k 社区目录。安装分发不删除无关凭据；社区卸载走 `removeBundle`，Codex 卸载只删除已物化的 skills 目录。
+`PluginCatalog` 是命名空间为 `pluginCatalog` 的 `TypertRemoteService`。社区条目来自本地化网站页面的 JSON 目录属性及同源 `/directory/{locale}/*.json` 分片，按作者与 slug 去重。下载并发数为四；同语言搜索共享进行中的加载，仅完整目录进入缓存。脚本不会执行。显式选择旧源时使用 `GET {communityOrigin}/plugins.{locale}.json`。Codex 行来自 openai/plugins 的 `marketplace.json`，详情由各插件的 `.codex-plugin/plugin.json` 与 skills 目录的 GitHub Contents 列表补全。搜索在 Host 侧过滤与分页，浏览器不会收到完整社区目录。安装分发不删除无关凭据；社区卸载走 `removeBundle`，Codex 卸载只删除已物化的 skills 目录。
 
 </details>
 
@@ -71,7 +71,7 @@ Host Remote：下载并缓存社区插件目录与 Codex 市场源，为设置�
 <a id="known-limitations-and-deferred-work"></a>
 
 - **Codex MCP 与 hooks 不提供一键安装** — 目录仅用于兼容徽章；需另行配置 `dsh-mcp-client` / `dsh-hooks-codex`。
-- **社区 API 形状钉死为 Hub 紧凑 JSON** — Feed 改版会响亮失败，直至解析器更新。
+- **完整目录依赖网站元数据与分片字段** — 网站改版或分片下载失败会显示可重试错误，不静默返回截断总数。旧版紧凑源可能包含较少条目。
 
 <a id="dev-note"></a>
 ### 开发备注
@@ -79,7 +79,7 @@ Host Remote：下载并缓存社区插件目录与 Codex 市场源，为设置�
 <details>
 <summary>维护者工作上下文 — 点击展开</summary>
 
-社区契约：`https://api.dsh-plugin.org/plugins.{en|zh}.json`。Codex 契约：`https://raw.githubusercontent.com/openai/plugins/main/.agents/plugins/marketplace.json` 及各插件 `plugin.json`。
+社区目录：`https://dsh-plugin.org/plugins` 与 `/zh/plugins`，分片清单嵌入其 JSON flight 数据包。旧版紧凑源：`https://api.dsh-plugin.org/plugins.{en|zh}.json`。Codex 契约：`https://raw.githubusercontent.com/openai/plugins/main/.agents/plugins/marketplace.json` 及各插件 `plugin.json`。
 
 </details>
 

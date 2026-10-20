@@ -42,6 +42,26 @@ describe('communityEntry', () => {
     expect(installed.version).toBe('1.2.0')
     expect(installed.updateAvailable).toBe(true)
 
+    const upToDate = communityEntry(
+      {
+        s: 'hub', o: 'alice', n: '@alice/hub', r: 'alice/hub',
+        ic: 'dsh plugin add @alice/hub', d: 'Hub UI', vr: 'v1.2.0',
+      },
+      new Set(['@alice/hub']),
+      new Map([['@alice/hub', '1.2.0']]),
+    )
+    expect(upToDate.updateAvailable).toBe(false)
+
+    const newerInstalled = communityEntry(
+      {
+        s: 'hub', o: 'alice', n: '@alice/hub', r: 'alice/hub',
+        ic: 'dsh plugin add @alice/hub', d: 'Hub UI', vr: 'v1.1.0',
+      },
+      new Set(['@alice/hub']),
+      new Map([['@alice/hub', '1.2.0']]),
+    )
+    expect(newerInstalled.updateAvailable).toBe(false)
+
     const bare = communityEntry(
       { s: 'x', o: 'o', n: 'X', r: '!!!' },
       new Set(),

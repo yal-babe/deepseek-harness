@@ -16,7 +16,6 @@ import type {} from '@deepseek-ai/dsh-plugin-manager'
 import type {} from './types.ts'
 import {
   communityEntry,
-  DEFAULT_COMMUNITY_ORIGIN,
   parseCommunityFeed,
   type CommunityWireRow,
 } from './community.ts'
@@ -39,6 +38,7 @@ import {
   unsupportedInstall,
 } from './install.ts'
 import { filterCatalog, sortCatalog } from './query.ts'
+import { parseDirectoryPage, parseDirectoryRows } from './community-directory.ts'
 import type {
   CatalogEntry,
   CatalogInstallResult,
@@ -77,8 +77,10 @@ declare module '@deepseek-ai/cordis' {
 
 /** Configurable feed origins and cache lifetime. */
 export interface Config {
-  /** Community API origin (`https://api.dsh-plugin.org`). */
+  /** Explicit legacy compact-feed origin. Without either origin override, use the full community website directory. */
   communityOrigin?: string
+  /** Full directory website origin, including its same-origin category shards. */
+  communityDirectoryOrigin?: string
   /** Catalog language file: `en` or `zh`. */
   communityLocale?: 'en' | 'zh'
   /** Codex marketplace.json URL. */
@@ -94,7 +96,8 @@ export class PluginCatalog extends TypertRemoteService {
   static inject = ['loader']
 
   static Config: z<Config> = z.object({
-    communityOrigin: z.string().default(DEFAULT_COMMUNITY_ORIGIN),
+    communityOrigin: z.string(),
+    communityDirectoryOrigin: z.string(),
     communityLocale: z.union([z.const('en'), z.const('zh')]).default('en'),
     codexMarketplaceUrl: z.string().default(DEFAULT_CODEX_MARKETPLACE_URL),
     cacheTtlMs: z.number().default(15 * 60_000),
@@ -102,6 +105,7 @@ export class PluginCatalog extends TypertRemoteService {
   })
 
   private communityCache: (FeedCache<CommunityWireRow[]> & { locale: CatalogLocale }) | undefined
+  private readonly communityLoads = new Map<CatalogLocale, Promise<CommunityWireRow[]>>()
   private codexCache: FeedCache<CodexMarketplacePlugin[]> | undefined
   private readonly artworkCache = new Map<string, FeedCache<string | null>>()
   private readonly manifestCache = new Map<string, FeedCache<CodexPluginManifest>>()
@@ -133,25 +137,45 @@ export class PluginCatalog extends TypertRemoteService {
     const installed = await this.installedPackages()
     const entries: CatalogEntry[] = []
     try {
-      if (source === undefined || source === 'community') {
-        for (const row of await this.loadCommunity(locale)) {
-          const entry = communityEntry(row, installed.names, installed.versions)
-          entries.push({ ...entry, enabled: installed.enabled.has(entry.name.toLowerCase()) })
-        }
+      const [communityRows, codexPlugins] = await Promise.all([
+        source === undefined || source === 'community' ? this.loadCommunity(locale) : Promise.resolve([]),
+        source === undefined || source === 'codex' ? this.loadCodexMarketplace() : Promise.resolve([]),
+      ])
+      for (const row of communityRows) {
+        const entry = communityEntry(row, installed.names, installed.versions)
+        entries.push({ ...entry, enabled: installed.enabled.has(entry.name.toLowerCase()) })
       }
-      if (source === undefined || source === 'codex') {
-        for (const plugin of await this.loadCodexMarketplace()) {
-          entries.push(await this.codexListEntry(plugin))
-        }
+      for (const plugin of codexPlugins) {
+        entries.push(await this.codexListEntry(plugin))
       }
     } catch (error: unknown) {
       throw feedError(error)
     }
+    const dedupedEntries: CatalogEntry[] = []
+    const seenNames = new Map<string, CatalogEntry>()
+    for (const entry of entries) {
+      const key = entry.name.toLowerCase()
+      const existing = seenNames.get(key)
+      if (existing === undefined) {
+        seenNames.set(key, entry)
+        dedupedEntries.push(entry)
+      } else {
+        const candidateStars = entry.stars ?? 0
+        const existingStars = existing.stars ?? 0
+        const isBetter = candidateStars > existingStars
+          || (candidateStars === existingStars && (entry.updatedAt ?? '') > (existing.updatedAt ?? ''))
+        if (isBetter) {
+          seenNames.set(key, entry)
+          const index = dedupedEntries.findIndex(e => e.name.toLowerCase() === key)
+          if (index >= 0) dedupedEntries[index] = entry
+        }
+      }
+    }
     const queryFilter = resolved.query === undefined ? {} : { query: resolved.query }
-    const afterQuery = filterCatalog(entries, queryFilter)
+    const afterQuery = filterCatalog(dedupedEntries, queryFilter)
     const installedCount = afterQuery.filter(entry => entry.installed).length
     const filtered = sortCatalog(
-      filterCatalog(entries, {
+      filterCatalog(dedupedEntries, {
         ...queryFilter,
         ...resolved.category === undefined ? {} : { category: resolved.category },
         ...resolved.kind === undefined ? {} : { kind: resolved.kind },
@@ -318,8 +342,15 @@ export class PluginCatalog extends TypertRemoteService {
       }
     }
     try {
+      if (entry.installed) {
+        try {
+          await manager.removeBundle(entry.name)
+        } catch (_removeError) {
+          // Bundle removal may report restart-required without stopping installation.
+        }
+      }
       const inspection = await manager.inspect(entry.installSpec)
-      if (inspection.status === 'refused') {
+      if (inspection.status === 'refused' && (!entry.installed || inspection.problem !== 'already-installed')) {
         return {
           ok: false,
           code: inspection.problem === 'not-a-bundle' || inspection.problem === 'already-installed'
@@ -437,15 +468,46 @@ export class PluginCatalog extends TypertRemoteService {
     ) {
       return this.communityCache.value
     }
-    const origin = (this.config.communityOrigin ?? DEFAULT_COMMUNITY_ORIGIN).replace(/\/$/u, '')
-    const text = await this.fetchText(`${origin}/plugins.${locale}.json`)
-    let raw: unknown
-    try {
-      raw = JSON.parse(text)
-    } catch (error: unknown) {
-      throw new Error(`community catalog JSON is invalid: ${error instanceof Error ? error.message : String(error)}`)
+    const pending = this.communityLoads.get(locale)
+    if (pending !== undefined) return pending
+    const load = this.readCommunity(locale)
+    this.communityLoads.set(locale, load)
+    try { return await load }
+    finally { this.communityLoads.delete(locale) }
+  }
+
+  private async readCommunity(locale: CatalogLocale): Promise<CommunityWireRow[]> {
+    let value: CommunityWireRow[]
+    if (this.config.communityOrigin !== undefined && this.config.communityDirectoryOrigin === undefined) {
+      const origin = this.config.communityOrigin.replace(/\/$/u, '')
+      value = parseCommunityFeed(JSON.parse(await this.fetchText(`${origin}/plugins.${locale}.json`)))
+    } else {
+      const origin = new URL(this.config.communityDirectoryOrigin ?? 'https://dsh-plugin.org').origin
+      const directory = parseDirectoryPage(await this.fetchText(`${origin}${locale === 'zh' ? '/zh' : ''}/plugins`))
+      const rows = new Map<string, CommunityWireRow>()
+      const addRow = (row: CommunityWireRow) => {
+        const key = row.n.toLowerCase()
+        const existing = rows.get(key)
+        if (existing === undefined) {
+          rows.set(key, row)
+          return
+        }
+        const candidateStars = row.sg ?? 0
+        const existingStars = existing.sg ?? 0
+        const better = candidateStars > existingStars
+          || (candidateStars === existingStars && (row.u ?? row.a ?? '') > (existing.u ?? existing.a ?? ''))
+        if (better) rows.set(key, row)
+      }
+      for (const row of directory.rows) addRow(row)
+      const groups = await Promise.all(directory.shards.map(async path => {
+        if (!/^\/directory\/(?:en|zh)\/[a-z0-9-]+\.json$/u.test(path)) {
+          throw new Error('Community directory contains an unsupported shard path')
+        }
+        return parseDirectoryRows(JSON.parse(await this.fetchText(new URL(path, origin).href)))
+      }))
+      for (const row of groups.flat()) addRow(row)
+      value = [...rows.values()]
     }
-    const value = parseCommunityFeed(raw)
     this.communityCache = { fetchedAt: Date.now(), value, locale }
     return value
   }
@@ -538,7 +600,7 @@ export class PluginCatalog extends TypertRemoteService {
     let iconUrl: string | null = null
     try {
       const base = `https://raw.githubusercontent.com/${repo}/HEAD/`
-      const raw: unknown = JSON.parse(await this.fetchText(`${base}package.json`))
+      const raw: unknown = JSON.parse(await this.fetchText(`${base}package.json`, {}, 1500))
       if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
         const manifest = raw as Record<string, unknown>
         const exports = typeof manifest.exports === 'object' && manifest.exports !== null
@@ -585,8 +647,9 @@ export class PluginCatalog extends TypertRemoteService {
   private async fetchText(
     url: string,
     headers: Record<string, string> = {},
+    timeoutMsOverride?: number,
   ): Promise<string> {
-    const timeoutMs = this.config.fetchTimeoutMs ?? 20_000
+    const timeoutMs = timeoutMsOverride ?? this.config.fetchTimeoutMs ?? 20_000
     const signal = AbortSignal.timeout(timeoutMs)
     const response = await fetch(url, {
       signal,

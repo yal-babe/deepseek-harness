@@ -30,7 +30,7 @@ export function StudioLoginDialog({
         </div>
         {configure ? <>
           <StudioServerForm origin={snapshot.state?.origin ?? ''} signedIn={!!snapshot.state?.identity}
-            studioConfigureServer={operations.studioConfigureServer} t={t} onSaved={() => { setConfigure(false) }} />
+            studioConfigureServer={operations.studioConfigureServer} studioTestConnection={operations.studioTestConnection} t={t} onSaved={() => { setConfigure(false) }} />
           <Button variant="ghost" onClick={() => { setConfigure(false) }}>{t('studioBackToLogin')}</Button>
         </> : <><StudioSignIn
           key={`${snapshot.state?.origin}:${snapshot.state?.identity?.id}`}

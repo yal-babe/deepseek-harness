@@ -676,6 +676,37 @@ describe('plugin registration', () => {
     await ctx.fiber.dispose()
   })
 
+  it('routes discovered context capacity and the fallback into the resolved model', async () => {
+    const server = await mockServer([
+      { json: { cloudaicompanionProject: 'proj-1' } },
+      { json: { models: { 'gemini-live': { displayName: 'Live', maxTokens: 1_048_576 } } } },
+    ])
+    vi.stubEnv('ANTIGRAVITY_API_KEY', 'k')
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(Antigravity, { baseURL: `${server.url}/v1` })
+    expect(await ctx.llm.listModels(PROVIDER)).toEqual([{
+      provider: PROVIDER, id: 'gemini-live', name: 'Live', inputModalities: ['text'],
+    }])
+    expect(await ctx.llm.resolveModelInfo(PROVIDER, 'gemini-live')).toMatchObject({
+      id: 'gemini-live', context: { contextWindow: 1_048_576 },
+    })
+    expect(await ctx.llm.resolveModelInfo(PROVIDER, 'undisclosed')).toMatchObject({
+      id: 'undisclosed', context: { contextWindow: 1_048_576 },
+    })
+    await ctx.fiber.dispose()
+  })
+
+  it('honors defaultContextWindow when neither the catalog nor an entry discloses capacity', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(Antigravity, { defaultContextWindow: 200_000 })
+    expect(await ctx.llm.resolveModelInfo(PROVIDER, 'unknown')).toMatchObject({
+      id: 'unknown', context: { contextWindow: 200_000 },
+    })
+    await ctx.fiber.dispose()
+  })
+
   it('advertises no models until a credential is present, then lists Cloud Code', async () => {
     vi.stubEnv('ANTIGRAVITY_API_KEY', '')
     const unsigned = new Context()

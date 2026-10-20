@@ -366,6 +366,11 @@
 
     - id: compaction-basic
       name: '@deepseek-ai/dsh-compaction-basic'
+      config:
+        # Large-window routes (Gemini 1M, Codex 272k) would otherwise grow to a
+        # fraction of the window before compacting; cap the working set so long
+        # tool loops stay fast and cheap.
+        thresholdCapTokens: 150000
 
     # Human `/compact`: one useful reduction below the automatic threshold. Backend
     # independent, so it follows whichever compaction service this leaf mounts.

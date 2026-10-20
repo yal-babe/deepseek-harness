@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PetAgentState, PetMotionView, PetWorkActivity } from '@deepseek-ai/dsh-pet/types'
 import {
-  chainCooldown, idleDelay, mirrorsClip, nextAutonomousClip, nextIdleClip, petIsIdle, requestedClip, smoothClip, standsAside, taskClip,
+  chainCooldown, idleDelay, mirrorsClip, nextAutonomousClip, petIsIdle, requestedClip, smoothClip, taskClip,
   travelAt, travelScale, walkDirection, type PetActionRequest,
 } from './motion.ts'
 import type { PetPreferences } from './preferences.ts'
@@ -76,16 +76,24 @@ export function PetMotion({
   walker.current = walk
   const video = useRef<HTMLVideoElement>(null)
   const loadedSheets = useRef(new Set<string>())
+  useEffect(() => {
+    const images: HTMLImageElement[] = []
+    for (const name of ['dragging', 'dragging_release']) {
+      const clip = motion.clips[name]
+      if (clip?.sheet === undefined || loadedSheets.current.has(clip.url)) continue
+      const image = new Image()
+      image.onload = () => { loadedSheets.current.add(clip.url) }
+      image.src = clip.url
+      images.push(image)
+    }
+    return () => {
+      for (const image of images) { image.onload = null; image.src = '' }
+    }
+  }, [motion])
   const [decoration, setDecoration] = useState<{ name: string; serial: number; effect?: PetEffect } | undefined>(undefined)
   const [visible, setVisible] = useState(!document.hidden)
   const [systemReduced, setSystemReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true)
   const resultClip = useRef('success')
-  const [thinkingName, setThinkingName] = useState('thinking')
-  const thinkingCandidates = ['thinking', 'thinking_chin', 'thinking_idea', 'thinking_deep']
-    .filter(name => motion.clips[name] !== undefined && !standsAside(motion, name))
-  useEffect(() => {
-    if (state === 'THINKING') setThinkingName(previous => nextIdleClip(previous, Math.random(), thinkingCandidates) ?? 'thinking')
-  }, [state, motion])
   const [heldResult, setHeldResult] = useState(false)
   useEffect(() => {
     if (state === 'SUCCESS') {
@@ -175,9 +183,8 @@ export function PetMotion({
     const timer = setTimeout(() => { setDecoration(undefined) }, 7000)
     return () => { clearTimeout(timer) }
   }, [decoration])
-  const taskName = state === 'THINKING' ? thinkingName
-    : state === 'SUCCESS' || heldResult && idle ? resultClip.current : taskClip(state, activity, motion)
-  const name = dragging ? 'dragging' : !idle ? taskName
+  const taskName = state === 'SUCCESS' || heldResult && idle ? resultClip.current : taskClip(state, activity, motion)
+  const name = dragging ? 'dragging' : decoration?.name === 'dragging_release' ? decoration.name : !idle ? taskName
     : decoration?.name ?? lifecycle.clip ?? (resting && motion.clips.sleep !== undefined ? 'sleep' : taskName)
   const clip = motion.clips[name] ?? motion.clips.idle
   const serial = idle && !dragging ? decoration?.serial ?? 0 : 0
@@ -217,17 +224,14 @@ export function PetMotion({
       setDecoration(undefined); return
     }
     if (lifecycle.finish(name)) return
-    if (state === 'THINKING' && thinkingCandidates.length > 1) {
-      setThinkingName(previous => nextIdleClip(previous, Math.random(), thinkingCandidates) ?? 'thinking'); return
-    }
     setEnded(true); setHeldResult(false)
   }
   // Swim clips are drawn facing left (see the AI-video clip guide); rightward travel mirrors every phase. Others follow the facing.
   const mirrored = name.startsWith('swim_') ? movement?.direction === 'right' : mirrorsClip(motion, name, facingRight)
   return <span className={css.motionContent} data-pet-clip={name} data-pet-facing={facingRight ? 'right' : 'left'}
     style={mirrored ? { transform: 'scaleX(-1)' } : undefined}>
-    {clip.sheet !== undefined ? <PetSprite key={`${name}:${serial}`} clip={clip} sheet={clip.sheet} poster={poster} knownReady={loadedSheets.current.has(clip.url)} onReady={() => { loadedSheets.current.add(clip.url) }} resting={resting && lifecycle.clip === undefined && clip.sheet.frames <= 8} loop={decoration === undefined && (clip.loop || state === 'WORKING' || state === 'WAITING' || state === 'THINKING') && !(state === 'THINKING' && thinkingCandidates.length > 1)} paused={!visible || reduced} onEnd={finish} onFailure={onFailure} /> : <video ref={video} key={`${name}:${serial}`} className={css.motion} src={clip.url}
-      muted playsInline preload="auto" poster={poster} loop={decoration === undefined && !dragging ? (clip.loop || state === 'WORKING' || state === 'WAITING' || state === 'THINKING') && !(state === 'THINKING' && thinkingCandidates.length > 1) : dragging}
+    {clip.sheet !== undefined ? <PetSprite key={`${name}:${serial}`} clip={clip} sheet={clip.sheet} poster={poster} knownReady={loadedSheets.current.has(clip.url)} onReady={() => { loadedSheets.current.add(clip.url) }} resting={resting && lifecycle.clip === undefined && clip.sheet.frames <= 8} loop={decoration === undefined && (clip.loop || state === 'WORKING' || state === 'WAITING' || state === 'THINKING')} paused={!visible || reduced} onEnd={finish} onFailure={onFailure} /> : <video ref={video} key={`${name}:${serial}`} className={css.motion} src={clip.url}
+      muted playsInline preload="auto" poster={poster} loop={decoration === undefined && !dragging ? (clip.loop || state === 'WORKING' || state === 'WAITING' || state === 'THINKING') : dragging}
       onError={onFailure} onEnded={finish} /> }
     {effect !== undefined && <PetEffects key={`${name}:${serial}:${effect}`} effect={effect} />}
   </span>

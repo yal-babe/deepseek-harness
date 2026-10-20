@@ -66,13 +66,27 @@ export function useDesktopThrow(controller: PetController, enabled: boolean, siz
   }
   useEffect(() => controller.onGeometry((value) => { geometry.current = value }), [controller])
   useEffect(() => {
-    const timer = requestAnimationFrame(() => {
-      const measured = measureBody()
-      if (measured === undefined) return
-      body.current = measured
-      controller.reportBody(measured)
-    })
-    return () => { cancelAnimationFrame(timer) }
+    let timer: number | undefined
+    const report = (): void => {
+      if (timer !== undefined) return
+      timer = requestAnimationFrame(() => {
+        timer = undefined
+        const measured = measureBody()
+        if (measured === undefined) return
+        body.current = measured
+        controller.reportBody(measured)
+      })
+    }
+    const element = document.querySelector(`[${PET_BODY_ATTRIBUTE}]`)
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(report)
+    if (element !== null) observer?.observe(element)
+    window.addEventListener('resize', report)
+    report()
+    return () => {
+      if (timer !== undefined) cancelAnimationFrame(timer)
+      observer?.disconnect()
+      window.removeEventListener('resize', report)
+    }
   }, [controller, size])
   useEffect(() => {
     const hidden = (): void => { if (document.hidden) stop(true) }

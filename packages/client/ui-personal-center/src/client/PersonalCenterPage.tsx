@@ -40,7 +40,6 @@ export function PersonalCenterPage({
   }, [controller])
   const usage = state.usage
   const today = usage === null ? undefined : todayTokens(usage)
-  const unknownUsage = usage === null || (sum(usage.totals) === 0 && usage.totals.incomplete === true)
   const recents = (usage?.sessions ?? []).filter(row => sum(row.tokens) > 0 || row.tokens.incomplete).slice(0, 20)
   return <div className={css.page}>
     <header className={css.head}>
@@ -85,10 +84,10 @@ export function PersonalCenterPage({
               windows={[]} groups={state.quota.antigravity?.groups} t={t} />
           </section>
           <section className={css.kpis} aria-label={t('tokens')}>
-            <Kpi label={t('uncached')} value={unknownUsage ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).uncachedInputTokens)} />
-            <Kpi label={t('cacheRead')} value={unknownUsage || usage?.totals.cacheReadUnknown ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).cacheReadTokens)} />
-            <Kpi label={t('cacheWrite')} value={unknownUsage || usage?.totals.cacheWriteUnknown ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).cacheWriteTokens)} />
-            <Kpi label={t('output')} value={unknownUsage ? t('balanceUnavailable') : formatTokens((usage?.totals ?? emptyTokens()).outputTokens)} />
+            <Kpi label={t('uncached')} value={usage === null ? t('balanceUnavailable') : formatTokens((usage.totals ?? emptyTokens()).uncachedInputTokens)} />
+            <Kpi label={t('cacheRead')} value={usage === null ? t('balanceUnavailable') : formatTokens((usage.totals ?? emptyTokens()).cacheReadTokens)} />
+            <Kpi label={t('cacheWrite')} value={usage === null ? t('balanceUnavailable') : formatTokens((usage.totals ?? emptyTokens()).cacheWriteTokens)} />
+            <Kpi label={t('output')} value={usage === null ? t('balanceUnavailable') : formatTokens((usage.totals ?? emptyTokens()).outputTokens)} />
           </section>
           <div className={css.split}>
             <section className={css.card}>
@@ -305,8 +304,7 @@ function weeklyCells(usage: UsageSnapshot): { key: string; tokens: number }[] {
 
 function todayTokens(usage: UsageSnapshot): UsageTokenTotals {
   const today = localDay(Date.now(), usage.timezoneOffsetSeconds)
-  const tokens = usage.days.find(row => row.day === today)?.tokens ?? emptyTokens()
-  return usage.totals.incomplete ? { ...tokens, incomplete: true } : tokens
+  return usage.days.find(row => row.day === today)?.tokens ?? emptyTokens()
 }
 
 function emptyTokens(): UsageTokenTotals {
@@ -318,7 +316,7 @@ function sum(tokens: UsageTokenTotals): number {
 }
 
 function formatUsage(tokens: UsageTokenTotals | undefined, unavailable: string): string {
-  if (tokens === undefined || (sum(tokens) === 0 && tokens.incomplete)) return unavailable
+  if (tokens === undefined) return unavailable
   return formatTokens(sum(tokens))
 }
 

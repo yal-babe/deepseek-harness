@@ -10,6 +10,13 @@ import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
 export interface CompactionPolicyConfig {
   /** Window fraction for pressure; capped at context window minus reserved output and `headroomTokens`. Defaults to `0.8`. */
   thresholdRatio?: number
+  /**
+   * Absolute ceiling for the pressure threshold in tokens. The effective
+   * threshold is the smallest of the window fraction, the window budget after
+   * output reservation and headroom, and this cap. Omitted leaves large-window
+   * routes free to grow to their window fraction.
+   */
+  thresholdCapTokens?: number
   /** Additional pressure headroom beyond the routed output reservation. Non-negative integer; defaults to `65536`. */
   headroomTokens?: number
   /** Recent context retained as a fraction of context window minus reserved output tokens. Defaults to `0.16`. */
@@ -52,6 +59,7 @@ export type ResolvedRetention =
 /** Validated policy fields shared before and after exact-target matching. */
 interface ResolvedPolicyFields {
   readonly thresholdRatio: number
+  readonly thresholdCapTokens?: number | undefined
   readonly headroomTokens: number
   readonly summarizationProvider: string
   readonly summarizationModel: string

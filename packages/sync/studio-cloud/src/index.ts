@@ -915,6 +915,16 @@ export class StudioCloud extends TypertRemoteService {
     })
   }
   /**
+   * Check an explicitly supplied server without saving it, signing in, or uploading data.
+   * @param origin - HTTP or HTTPS Studio service origin.
+   * @returns completion when the server advertises a supported Studio protocol; rejects otherwise.
+   */
+  @Remote
+  async testConnection(origin: string): Promise<void> {
+    const address = cloudOrigin(origin)
+    await this.call(address, '/v1/capabilities', capability, {}, this.lifetime)
+  }
+  /**
    * Sign in to an explicitly selected server; this never enables synchronization.
    * @param origin - root service URL.
    * @param login - username or verified email.

@@ -45,6 +45,7 @@ kind: "package-reference"
 | `oauthRedirectPath` | `/oauth/antigravity/callback` | 存在 `webServer` 时注册的 Host 回调路径 |
 | `apiKeyEnv` | `ANTIGRAVITY_API_KEY` | 没有 grant 时使用的凭据引用 |
 | `models` | 空 | 建议目录；为空时登录后从 Cloud Code 拉取 |
+| `defaultContextWindow` | `1048576` | 目录与显式模型条目都未披露容量时使用的上下文容量 |
 | `requestTimeoutMs` | `30000` | 非生成 HTTP 请求的截止时间，包括 token 兑换和目录请求 |
 | `generationTimeoutMs` | `600000` | 单次生成的总时限，包括前置准备与流式输出；独立于 `requestTimeoutMs` |
 | `streamIdleTimeoutMs` | `300000` | 一次 stream 读取允许的最长空闲间隔；提供方活动会重置空闲计时，但不重置生成总时限 |
@@ -53,7 +54,7 @@ kind: "package-reference"
 
 ### 登录
 
-模型目录按端点与凭证缓存。首次加载合并并发请求；已有目录立即返回，并在 `catalogMaxAgeMs`（默认 300000 毫秒）后后台刷新。后台刷新失败会保留原目录，并在该间隔后重试。退出登录后下次读取清除缓存；插件卸载会中止未完成的目录请求。输出用量包含回答与思考 token，思考量同时作为输出的子集展示。
+模型目录按端点与凭证缓存。首次加载合并并发请求；已有目录立即返回，并在 `catalogMaxAgeMs`（默认 300000 毫秒）后后台刷新。后台刷新失败会保留原目录，并在该间隔后重试。退出登录后下次读取清除缓存；插件卸载会中止未完成的目录请求。发现条目的 `maxTokens` 会成为该路由模型的 `contextWindow`，自动压缩需要该容量；显式 `models` 条目的 `contextWindow` 优先，`defaultContextWindow` 覆盖两者都未披露的情况。输出用量包含回答与思考 token，思考量同时作为输出的子集展示。
 
 Host 额度辅助函数按管理中心的 URL 回退顺序 POST `retrieveUserQuotaSummary`，并把 `loadCodeAssist` 的 `paidTier` 优先于 `currentTier` 映射为档位。[provider-quota](../../api/provider-quota/README.zh.md) 暴露这些快照；Antigravity 没有重置卡。
 

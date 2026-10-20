@@ -72,6 +72,8 @@ export class AntigravityAdapter extends LlmAdapter {
 
   private catalog: {
     scope: string
+    /** Discovered entries retain `contextWindow`, which `LlmModelInfo` cannot carry. */
+    entries?: readonly AntigravityCatalogModel[]
     models?: readonly LlmModelInfo[]
     loadedAt?: number
     inflight?: Promise<readonly LlmModelInfo[]>
@@ -105,9 +107,10 @@ export class AntigravityAdapter extends LlmAdapter {
     const cache = this.catalog
     const refresh = (): Promise<readonly LlmModelInfo[]> => {
       if (cache.inflight !== undefined) return cache.inflight
-      const load = fetchAvailableModels(connection, token, signal).then((models) => {
-        const listing = models.map(model => catalogModelInfo(provider, model))
+      const load = fetchAvailableModels(connection, token, signal).then((entries) => {
+        const listing = entries.map(model => catalogModelInfo(provider, model))
         signal.throwIfAborted()
+        cache.entries = entries
         cache.models = listing
         cache.loadedAt = Date.now()
         return listing
@@ -126,11 +129,14 @@ export class AntigravityAdapter extends LlmAdapter {
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
     const connection = this.dependencies.options()
     const configured = connection.models.find(entry => entry.id === model)
+    const discovered = this.catalog?.entries?.find(entry => entry.id === model)
+    const entry = configured ?? discovered
+    const contextWindow = entry?.contextWindow ?? connection.defaultContextWindow
     return Promise.resolve({
-      ...configured === undefined
+      ...entry === undefined
         ? { provider, id: model, name: model, inputModalities: ['text' as const] }
-        : catalogModelInfo(provider, configured),
-      ...configured?.contextWindow === undefined ? {} : { context: { contextWindow: configured.contextWindow } },
+        : catalogModelInfo(provider, entry),
+      context: { contextWindow },
     })
   }
 

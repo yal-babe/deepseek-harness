@@ -25,7 +25,7 @@ Host-owned Studio login, separate from model-provider authorization. Mount `@dee
 <a id="use-this-package"></a>
 ## Use this package
 
-The device-local `server.json` under the state directory stores the HTTP or HTTPS origin independently of the account grant. Settings → Server configuration saves it once for login and recovery; no HTTP checkbox is required. An existing signed-in origin migrates automatically. Sign out before changing issuers. Storage outages retain the cached account identity and origin while exposing a retryable failure.
+The device-local `server.json` under the state directory stores the HTTP or HTTPS origin independently of the account grant. Settings → Cloud services saves it once for login and recovery; no HTTP checkbox is required. The unauthenticated `testConnection(origin)` operation validates `/v1/capabilities` without saving configuration, acquiring credentials, or starting synchronization. An existing signed-in origin migrates automatically. Sign out before changing issuers. Storage outages retain the cached account identity and origin while exposing a retryable failure.
 
 The Web and Desktop profiles mount this service separately from the legacy batch outbox. The default state directory is located under `$DSH_HOME/studio-cloud`; service origin and account hashes isolate the persisted queue, cursor, and local project mappings. The sync loop default interval is 30000ms and executes only when uploads and automatic synchronization are both enabled.
 

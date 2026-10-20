@@ -26,7 +26,7 @@ it('reuses the usage owner, leaves unknown values unavailable, and refreshes onl
     openSession: vi.fn() }
   const view = render(<PetUsageSummary {...props} />)
   expect(load).not.toHaveBeenCalled()
-  expect(screen.getAllByText(en.balanceUnavailable)).toHaveLength(3)
+  expect(screen.getAllByText(en.balanceUnavailable)).toHaveLength(2)
   expect(screen.queryByText('0')).toBeNull()
   view.rerender(<PetUsageSummary {...props} visible />)
   expect(load).toHaveBeenCalledTimes(1)
@@ -51,7 +51,7 @@ it('shows the same disjoint token total and wallet currencies as the existing su
   const view = render(<PetUsageSummary visible taskState="IDLE" sessionId={SessionId('s1')} controller={controller} t={t}
     useSnapshot={selector => selector(controller.store.getSnapshot())} openSession={vi.fn()} />)
   expect(screen.getAllByText('135')).toHaveLength(2)
-  expect(screen.getByText('CNY 12.34 / USD 5')).toBeTruthy()
+  expect(screen.getByText('¥12.34 + $5.00')).toBeTruthy()
   expect(screen.getByText(en.petScope)).toBeTruthy()
   view.unmount(); controller.dispose()
 })

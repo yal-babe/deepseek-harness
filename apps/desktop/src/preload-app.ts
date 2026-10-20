@@ -119,13 +119,14 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
       },
       drag: (phase: 'start' | 'move' | 'end', options?: { thrown?: boolean }) => {
         if (phase === 'end') ipcRenderer.send(PET_IPC.dragEnd, { thrown: options?.thrown === true })
-        else ipcRenderer.send(phase === 'start' ? PET_IPC.dragStart : PET_IPC.dragMove)
+        // Native cursor polling owns movement while dragging; renderer moves only track release velocity.
+        else if (phase === 'start') ipcRenderer.send(PET_IPC.dragStart)
       },
       place: (point: { x: number; y: number }, final: boolean) => { ipcRenderer.send(PET_IPC.place, { x: point.x, y: point.y, final }) },
       body: (rect: { x: number; y: number; width: number; height: number }) => {
         ipcRenderer.send(PET_IPC.body, { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
       },
-      reveal: (open: boolean) => { ipcRenderer.send(PET_IPC.reveal, open) },
+      reveal: (open: boolean, passive = false) => { ipcRenderer.send(PET_IPC.reveal, passive ? { open, passive } : open) },
       travel: (dx: number, final: boolean) => { ipcRenderer.send(PET_IPC.travel, { dx, final }) },
       onGeometry: (listener: (geometry: unknown) => void) => {
         const handle = (_event: unknown, geometry: unknown): void => { listener(geometry) }
